@@ -1,8 +1,23 @@
-# Pokedex Checklist
+# Pokédex Checklist para Pixelmon
 
-Aplicativo local para acompanhar Pokemon capturados e faltantes no Pixelmon.
+Aplicativo local para acompanhar o progresso de uma Pokédex no Pixelmon. Ele ajuda a visualizar quais Pokémon já foram adquiridos, quais ainda faltam e qual é o método mais provável para completar cada entrada.
 
-## Como abrir
+O projeto roda no próprio computador, salva o progresso localmente e não precisa de conta, banco externo ou instalação de dependências.
+
+## Recursos
+
+- Pokédex Nacional com 1025 espécies, da Geração 1 à Geração 9.
+- Dashboard com total de capturados, faltantes e progresso em porcentagem.
+- Navegação lateral por gerações e categorias especiais.
+- Busca por nome, número ou item.
+- Filtros por status: faltando, capturados ou todos.
+- Filtros por método: encontrar/capturar, evoluir por nível, item, troca e especial.
+- Separação entre evolução por nível disponível e evolução por nível com Pokémon base ausente.
+- Cards compactos com sprite, número nacional, método e botão de captura.
+- Exportação da lista de Pokémon faltantes.
+- Monitor opcional de logs locais para sugerir capturas detectadas no Pixelmon.
+
+## Como usar
 
 No Windows, execute:
 
@@ -10,51 +25,36 @@ No Windows, execute:
 .\iniciar-checklist.bat
 ```
 
-O atalho inicia `servidor-local.ps1`, abre o navegador e habilita o salvamento local.
+Isso abre um servidor local e carrega o app no navegador. Mantenha a janela do terminal aberta enquanto estiver usando a Pokédex.
 
-## Estado local
+Ao marcar ou desmarcar Pokémon, o progresso fica salvo no computador em um arquivo local criado automaticamente pelo app.
 
-O progresso do usuario fica em `pokemon-checklist-db.json`.
+## Monitor de logs locais
 
-Esse arquivo nao faz parte do projeto publicado. Se ele nao existir, o servidor cria um novo automaticamente com a estrutura:
+O painel `Logs locais` pode acompanhar o chat gravado nos arquivos de log do Pixelmon e sugerir capturas detectadas.
 
-```json
-{
-  "version": 2,
-  "updatedAt": "2026-06-03T00:00:00.000Z",
-  "captured": []
-}
-```
-
-As configuracoes da maquina ficam em `pokemon-checklist-config.json`, incluindo a pasta local de logs. Esse arquivo tambem nao deve ser publicado.
-
-## Captura por logs locais
-
-A tela possui um painel lateral para monitorar capturas detectadas nos logs do Pixelmon.
-
-Na primeira vez que usar a ferramenta, informe no painel a pasta de logs do seu launcher. Um caminho comum e:
+Na primeira vez, informe no campo `Pasta de logs` o caminho da pasta de logs da sua instância do jogo. Um caminho comum é:
 
 ```text
 %APPDATA%\CoreLauncher\game\instances\Pixelmon Brasil - Gen 9\logs
 ```
 
-Esse caminho pode variar entre computadores, launchers e nomes de instancia.
+Esse caminho pode mudar conforme o launcher, o nome da instância ou a instalação do usuário.
 
-Eventos detectados entram apenas como candidatos. O Pokemon so e salvo na Pokedex depois da confirmacao manual do usuario, evitando falso positivo.
+As detecções aparecem como candidatos na lateral direita. Nada é marcado automaticamente: cada Pokémon precisa ser confirmado manualmente antes de entrar na Pokédex.
 
-## Arquivos do projeto
+## Estrutura dos arquivos
 
-- `pokemon-checklist.html`: interface principal, filtros, cards, busca, painel de capturas detectadas e regras de exibicao.
-- `servidor-local.ps1`: servidor local. Entrega os arquivos do app, cria/salva `pokemon-checklist-db.json` e monitora os logs reais do jogo.
-- `iniciar-checklist.bat`: atalho para iniciar o servidor local.
-- `pokemon-catalogo-data.js`: catalogo nacional de Pokemon.
-- `lista-falta-pokemon-data.js`: lista base compilada usada pela tela para classificacao inicial.
-- `pokemon-metodos-data.js`: metodos de obtencao/evolucao.
-- `pokemon-biomas-data.js`: informacoes de encontro/captura no Pixelmon.
+- `pokemon-checklist.html`: interface principal do app.
+- `servidor-local.ps1`: servidor local responsável por abrir o app, salvar o progresso e monitorar logs.
+- `iniciar-checklist.bat`: atalho para iniciar o app no Windows.
+- `pokemon-catalogo-data.js`: catálogo nacional de Pokémon.
+- `lista-falta-pokemon-data.js`: lista base usada para classificar entradas e métodos iniciais.
+- `pokemon-metodos-data.js`: métodos de obtenção e evolução.
+- `pokemon-biomas-data.js`: informações de biomas e horários de encontro no Pixelmon.
 
-## Arquivos locais ignorados
+## Observações
 
-- `pokemon-checklist-db.json`: progresso pessoal do usuario.
-- `pokemon-checklist-config.json`: configuracoes locais da maquina, como a pasta de logs.
-- `logs-game/` e `logs-launcher/`: copias locais de logs usadas apenas durante investigacao.
-- `.chrome-preview/` e `.codex-db-function-test-*/`: artefatos temporarios locais.
+O app foi pensado para uso local e pessoal. O progresso e as configurações ficam no próprio computador do usuário.
+
+As informações de biomas e métodos podem variar conforme versão do Pixelmon e configuração do servidor, então use os detalhes como apoio prático e confirme casos especiais dentro do seu servidor.
