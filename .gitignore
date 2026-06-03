@@ -1,0 +1,11 @@
+.chrome-preview/
+.codex-db-function-test-*/
+logs-game/
+logs-launcher/
+*.tmp
+.discovery-test.*
+pixelmon-log-discovery-dump.txt
+
+# Estado local do usuario. O servidor cria este arquivo automaticamente se ele nao existir.
+pokemon-checklist-db.json
+pokemon-checklist-config.json

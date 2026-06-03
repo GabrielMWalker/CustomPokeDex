@@ -1,0 +1,2037 @@
+﻿<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Minha Pokédex | Checklist</title>
+  <style>
+    :root {
+      --ink: #173042;
+      --muted: #668091;
+      --paper: #fffdfa;
+      --line: #dce7ea;
+      --red: #e6484f;
+      --red-dark: #c82d38;
+      --blue: #287ea1;
+      --green: #258b69;
+      --yellow: #f6c957;
+      --shadow: 0 12px 30px rgba(22, 62, 75, .1);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: #f4f7f8;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      min-height: 100vh;
+    }
+
+    .app-shell {
+      display: grid;
+      grid-template-columns: 280px minmax(0, 1fr) 320px;
+      min-height: 100vh;
+      transition: grid-template-columns .2s ease;
+    }
+    .app-shell.logs-collapsed { grid-template-columns: 280px minmax(0, 1fr) 74px; }
+    .sidebar {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      padding: 24px 18px;
+      overflow-y: auto;
+      background: #fffdfa;
+      border-right: 1px solid var(--line);
+      box-shadow: 8px 0 24px rgba(22, 62, 75, .06);
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 4px 4px 22px;
+    }
+    .brand-mark {
+      position: relative;
+      width: 42px;
+      height: 42px;
+      flex: 0 0 auto;
+      background: linear-gradient(#e6484f 0 48%, #173042 48% 55%, #fff 55% 100%);
+      border: 3px solid #173042;
+      border-radius: 50%;
+      box-shadow: 0 6px 14px rgba(22, 62, 75, .12);
+    }
+    .brand-mark::after {
+      content: "";
+      position: absolute;
+      width: 13px;
+      height: 13px;
+      left: 50%;
+      top: 50%;
+      background: white;
+      border: 3px solid #173042;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+    }
+    .eyebrow { margin: 0 0 3px; color: var(--red-dark); font-size: 11px; font-weight: 850; letter-spacing: .12em; text-transform: uppercase; }
+    h1 { margin: 0; font-size: 24px; line-height: 1.05; letter-spacing: 0; }
+    .nav-section { margin-top: 18px; }
+    .nav-label {
+      margin: 0 0 8px 10px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 850;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+    .nav-group { display: grid; gap: 4px; }
+    .nav-button {
+      width: 100%;
+      min-height: 42px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 10px;
+      padding: 0 10px 0 12px;
+      color: var(--ink);
+      background: transparent;
+      border-color: transparent;
+      border-radius: 8px;
+      text-align: left;
+      box-shadow: none;
+    }
+    .nav-button:hover { background: #f3f7f8; border-color: transparent; transform: none; }
+    .nav-button.active {
+      color: var(--red-dark);
+      background: #fff0f1;
+      border-color: #ffd5d8;
+    }
+    .nav-button span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .nav-count {
+      min-width: 34px;
+      padding: 3px 7px;
+      color: var(--muted);
+      background: white;
+      border: 1px solid var(--line);
+      border-radius: 99px;
+      font-size: 11px;
+      font-weight: 820;
+      text-align: center;
+    }
+    .nav-button.active .nav-count { color: var(--red-dark); border-color: #ffc4c8; }
+    .main-area {
+      width: min(100%, 1280px);
+      margin: 0 auto;
+      padding: 24px clamp(18px, 3vw, 36px) 42px;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin: 0 0 16px;
+    }
+    .stat {
+      min-height: 96px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 17px 18px;
+      background: white;
+      border: 1px solid var(--line);
+      border-left: 5px solid var(--red);
+      border-radius: 8px;
+      box-shadow: 0 6px 18px rgba(22,62,75,.07);
+    }
+    .stat strong { display: block; font-size: 30px; line-height: 1; letter-spacing: 0; }
+    .stat span { margin-top: 8px; color: var(--muted); font-size: 12px; font-weight: 760; letter-spacing: .06em; text-transform: uppercase; }
+    .progress { grid-column: 1 / -1; height: 10px; background: #dde8eb; border-radius: 99px; overflow: hidden; }
+    .progress > div { height: 100%; background: linear-gradient(90deg, var(--yellow), var(--green)); border-radius: inherit; transition: width .25s ease; }
+    .collection-settings {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px 16px;
+      margin: 0 0 16px;
+      padding: 10px 2px;
+      color: var(--muted);
+      background: transparent;
+      border: 0;
+      border-radius: 0;
+      font-size: 12px;
+    }
+    .collection-settings strong { color: var(--ink); }
+    .collection-settings label { display: flex; align-items: center; gap: 7px; font-weight: 750; }
+    .collection-settings input { width: 78px; min-height: 32px; padding: 0 8px; }
+    .collection-note { margin-left: auto; }
+    .collection-note.warning { color: #a26814; }
+
+    .toolbar {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      margin: 0 0 24px;
+      padding: 8px 0 0;
+    }
+    .search-field {
+      width: min(980px, 100%);
+      min-height: 46px;
+      padding-inline: 16px;
+      background: white;
+      box-shadow: 0 3px 10px rgba(22,62,75,.045);
+    }
+    .filter-panel {
+      width: min(980px, 100%);
+      display: grid;
+      gap: 14px;
+      padding: 16px 18px 18px;
+      background: white;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 8px 22px rgba(22,62,75,.065);
+    }
+    .filter-panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      padding-bottom: 2px;
+    }
+    .filter-title {
+      margin: 0;
+      color: var(--ink);
+      font-size: 15px;
+      font-weight: 900;
+      letter-spacing: 0;
+      text-transform: none;
+    }
+    .filter-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .chip-group {
+      display: grid;
+      grid-template-columns: 112px 1fr;
+      align-items: start;
+      gap: 12px;
+    }
+    .chip-label {
+      padding-top: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .chip-list { display: flex; flex-wrap: wrap; gap: 8px; }
+    .filter-chip {
+      min-height: 36px;
+      padding: 0 13px;
+      color: var(--muted);
+      background: #f7fbfb;
+      border-color: #d5e2e5;
+      border-radius: 99px;
+      font-size: 13px;
+      font-weight: 800;
+      box-shadow: none;
+    }
+    .filter-chip:hover { border-color: #b9ccd2; transform: none; }
+    .filter-chip.active {
+      color: white;
+      background: var(--blue);
+      border-color: var(--blue);
+      box-shadow: 0 4px 12px rgba(40,126,161,.2);
+    }
+    .link-button {
+      min-height: 34px;
+      padding: 0 4px;
+      color: var(--muted);
+      background: transparent;
+      border: 0;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 820;
+      text-decoration: none;
+    }
+    .link-button:hover { color: var(--red-dark); background: #fff7f7; transform: none; border: 0; }
+    .export-button {
+      min-height: 36px;
+      padding: 0 13px;
+      color: var(--blue);
+      background: #f1f9fc;
+      border-color: #cce4eb;
+      font-size: 12px;
+      box-shadow: none;
+    }
+    input, button {
+      min-height: 43px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      color: var(--ink);
+      background: white;
+      font: inherit;
+    }
+    input { width: 100%; padding: 0 13px; outline: none; }
+    input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(40,126,161,.12); }
+    button { padding: 0 14px; cursor: pointer; font-weight: 760; }
+    button:hover { border-color: #bdcfd5; transform: translateY(-1px); }
+    button:disabled { cursor: default; opacity: .88; transform: none; }
+    .muted-button { color: var(--muted); background: #f7fbfb; }
+
+    .results-header {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 16px;
+      margin: 2px 2px 18px;
+    }
+    .results-kicker {
+      margin: 0 0 4px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 850;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+    .results-title { margin: 0; font-size: 24px; letter-spacing: 0; text-transform: none; }
+    .visible-count { color: var(--muted); font-size: 13px; font-weight: 780; white-space: nowrap; }
+    .category { margin-top: 24px; }
+    .category-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0 2px 10px; }
+    h2 { margin: 0; font-size: 20px; letter-spacing: -.035em; text-transform: capitalize; }
+    .category-count { color: var(--muted); font-size: 13px; font-weight: 720; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(245px, 1fr)); gap: 11px; }
+    .card {
+      min-height: 138px;
+      padding: 12px;
+      display: grid;
+      grid-template-columns: 70px 1fr;
+      grid-template-rows: auto 1fr auto;
+      column-gap: 12px;
+      background: rgba(255,253,250,.92);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 7px 17px rgba(22,62,75,.055);
+      transition: .2s ease;
+    }
+    .card:hover { border-color: #bad1d8; transform: translateY(-2px); box-shadow: 0 11px 20px rgba(22,62,75,.09); }
+    .card:has(.help-wrap:hover),
+    .card:has(.help-wrap.open) { z-index: 12; }
+    .card.done { background: rgba(239, 251, 246, .94); border-color: #b9dfd2; }
+    .art {
+      grid-row: 1 / span 3;
+      align-self: center;
+      width: 70px;
+      height: 70px;
+      object-fit: contain;
+      image-rendering: auto;
+      filter: drop-shadow(0 6px 6px rgba(18,62,75,.12));
+    }
+    .card-main { min-width: 0; }
+    .name-row { display: flex; justify-content: space-between; align-items: start; gap: 8px; }
+    .name-row h3 { margin: 0; font-size: 15px; line-height: 1.2; font-weight: 850; }
+    .dex-number { color: var(--muted); font-size: 11px; font-weight: 820; white-space: nowrap; }
+    .status-dot { width: 8px; height: 8px; margin-top: 5px; flex: 0 0 auto; border-radius: 50%; background: #d5e0e2; }
+    .done .status-dot { background: var(--green); box-shadow: 0 0 0 4px rgba(37,139,105,.12); }
+    .meta-row { display: flex; flex-wrap: wrap; gap: 5px; margin: 7px 0 6px; }
+    .method-badge, .material-badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 22px;
+      padding: 0 7px;
+      border-radius: 99px;
+      font-size: 10px;
+      font-weight: 850;
+      line-height: 1;
+    }
+    .method-badge { color: #234859; background: #eaf5f8; border: 1px solid #cce4eb; }
+    .method-badge.method-level-ready { color: #1f6b52; background: #eaf8f1; border-color: #bfe3d4; }
+    .method-badge.method-level-missing { color: #7b4f12; background: #fff6d8; border-color: #eedc9a; }
+    .method-badge.method-item { color: #6d3f13; background: #fff0df; border-color: #efc79f; }
+    .method-badge.method-trade { color: #4c437b; background: #f0edff; border-color: #d7d0f6; }
+    .method-badge.method-special { color: #7d2831; background: #fff0f1; border-color: #f3c8cd; }
+    .method-badge.method-unknown { color: #647784; background: #f3f6f7; border-color: #d9e3e6; }
+    .material-badge { color: #876316; background: #fff5cf; }
+    .detail { margin: 5px 0 7px; color: var(--muted); font-size: 12px; line-height: 1.35; }
+    .help-wrap { position: relative; z-index: 14; display: inline-flex; align-items: center; margin: 5px 0 7px; }
+    .help-button {
+      width: 25px;
+      min-height: 25px;
+      padding: 0;
+      color: var(--blue);
+      background: #eef8fb;
+      border-color: #cce4eb;
+      border-radius: 50%;
+      font-size: 13px;
+      font-weight: 900;
+      line-height: 1;
+    }
+    .help-tooltip {
+      display: none;
+      position: absolute;
+      left: 0;
+      top: calc(100% + 7px);
+      z-index: 20;
+      width: min(280px, 75vw);
+      padding: 9px 10px;
+      color: white;
+      background: #234859;
+      border-radius: 8px;
+      box-shadow: 0 8px 18px rgba(18, 62, 75, .2);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+    .help-tooltip a {
+      display: inline-block;
+      margin-top: 7px;
+      color: #cceffd;
+      font-weight: 850;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+    .help-wrap:hover .help-tooltip,
+    .help-wrap.open .help-tooltip { display: block; }
+    .complete-button {
+      min-height: 32px;
+      padding: 0 10px;
+      color: white;
+      background: var(--blue);
+      border-color: var(--blue);
+      border-radius: 8px;
+      font-size: 12px;
+      justify-self: start;
+    }
+    .done .complete-button {
+      color: var(--green);
+      background: transparent;
+      border-color: #9fd4c3;
+    }
+    .done .complete-button:hover,
+    .done .complete-button:focus-visible {
+      color: var(--red-dark);
+      background: #fff7f7;
+      border-color: #f1b5bb;
+    }
+    .empty { padding: 44px 20px; color: var(--muted); text-align: center; background: rgba(255,255,255,.7); border: 1px dashed #c8dadd; border-radius: 8px; }
+    .suggestions {
+      margin-top: 14px;
+      padding: 16px;
+      background: white;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 6px 18px rgba(22,62,75,.045);
+    }
+    .suggestions-title {
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .suggestions-note { margin: -4px 0 12px; color: var(--muted); font-size: 13px; }
+    .suggestions .grid { margin-top: 0; }
+    .footer { margin: 26px 0 0; color: var(--muted); font-size: 12px; text-align: center; }
+    .capture-sidebar {
+      min-height: 100vh;
+      padding: 24px 18px;
+      background: #fbfdfd;
+      border-left: 1px solid var(--line);
+      box-shadow: -8px 0 24px rgba(22, 62, 75, .045);
+      transition: padding .2s ease;
+    }
+    .capture-sidebar.is-collapsed {
+      padding: 18px 10px;
+      display: grid;
+      place-items: start center;
+    }
+    .capture-rail-button {
+      display: none;
+      width: 52px;
+      min-height: 220px;
+      padding: 12px 0;
+      color: var(--ink);
+      background: white;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      box-shadow: 0 8px 18px rgba(22,62,75,.075);
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .capture-rail-button:hover {
+      color: var(--red-dark);
+      border-color: #f1b5bb;
+      background: #fffafa;
+      transform: none;
+    }
+    .capture-rail-icon {
+      writing-mode: horizontal-tb;
+      font-size: 21px;
+      line-height: 1;
+      transform: rotate(180deg);
+    }
+    .capture-rail-badge {
+      min-width: 24px;
+      min-height: 24px;
+      display: inline-grid;
+      place-items: center;
+      padding: 0 6px;
+      color: white;
+      background: var(--red);
+      border-radius: 99px;
+      font-size: 11px;
+      letter-spacing: 0;
+      writing-mode: horizontal-tb;
+    }
+    .capture-rail-badge.is-empty {
+      color: var(--muted);
+      background: #edf4f6;
+    }
+    .capture-sidebar.is-collapsed .capture-rail-button { display: inline-flex; }
+    .capture-sidebar.is-collapsed .capture-panel { display: none; }
+    .capture-panel {
+      display: grid;
+      gap: 14px;
+    }
+    .capture-panel-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .capture-header-actions {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      flex: 0 0 auto;
+    }
+    .icon-action-button {
+      width: 34px;
+      min-height: 34px;
+      display: inline-grid;
+      place-items: center;
+      padding: 0;
+      color: var(--muted);
+      background: #f7fbfb;
+      border-color: #d5e2e5;
+      border-radius: 8px;
+      font-size: 17px;
+      line-height: 1;
+      box-shadow: none;
+    }
+    .icon-action-button:hover { color: var(--red-dark); background: #fff7f7; transform: none; }
+    .capture-title {
+      margin: 0 0 4px;
+      font-size: 18px;
+      line-height: 1.15;
+    }
+    .capture-subtitle {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+    .switch-control {
+      position: relative;
+      width: 52px;
+      height: 30px;
+      flex: 0 0 auto;
+    }
+    .switch-control input {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      cursor: pointer;
+    }
+    .switch-track {
+      display: block;
+      width: 52px;
+      height: 30px;
+      background: #d8e4e7;
+      border: 1px solid #c7d7dc;
+      border-radius: 99px;
+      transition: .18s ease;
+    }
+    .switch-track::after {
+      content: "";
+      position: absolute;
+      top: 4px;
+      left: 4px;
+      width: 22px;
+      height: 22px;
+      background: white;
+      border-radius: 50%;
+      box-shadow: 0 2px 6px rgba(22,62,75,.22);
+      transition: .18s ease;
+    }
+    .switch-control input:checked + .switch-track {
+      background: var(--green);
+      border-color: var(--green);
+    }
+    .switch-control input:checked + .switch-track::after { transform: translateX(22px); }
+    .switch-control input:disabled + .switch-track { opacity: .5; }
+    .capture-status {
+      padding: 10px 11px;
+      color: var(--muted);
+      background: white;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      font-size: 12px;
+      line-height: 1.4;
+      overflow-wrap: anywhere;
+    }
+    .capture-status strong { display: block; margin-bottom: 3px; color: var(--ink); }
+    .capture-monitor-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .capture-monitor-header strong { margin-bottom: 0; }
+    .capture-monitor-toggle {
+      min-height: 28px;
+      padding: 0 6px;
+      color: var(--muted);
+      background: transparent;
+      border: 0;
+      font-size: 12px;
+      font-weight: 850;
+    }
+    .capture-monitor-toggle:hover { color: var(--red-dark); background: #fff7f7; transform: none; }
+    .capture-monitor-details {
+      display: block;
+      margin-top: 5px;
+    }
+    .capture-status.monitor-minimized .capture-monitor-details { display: none; }
+    .capture-config {
+      display: grid;
+      gap: 7px;
+      padding: 10px 11px;
+      background: white;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .capture-config label {
+      color: var(--ink);
+      font-size: 12px;
+      font-weight: 850;
+    }
+    .capture-path-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 7px;
+    }
+    .capture-path-input {
+      min-height: 34px;
+      font-size: 12px;
+    }
+    .save-log-path-button {
+      min-height: 34px;
+      padding: 0 10px;
+      color: white;
+      background: var(--blue);
+      border-color: var(--blue);
+      font-size: 12px;
+      box-shadow: none;
+    }
+    .capture-config-hint {
+      margin: 0;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.35;
+      overflow-wrap: anywhere;
+    }
+    .capture-list {
+      display: grid;
+      gap: 9px;
+    }
+    .capture-card {
+      display: grid;
+      grid-template-columns: 50px 1fr;
+      gap: 10px;
+      padding: 10px;
+      background: white;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 6px 14px rgba(22,62,75,.055);
+    }
+    .capture-card img {
+      width: 50px;
+      height: 50px;
+      object-fit: contain;
+      align-self: center;
+    }
+    .capture-card h3 {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.2;
+    }
+    .capture-meta {
+      margin: 3px 0 8px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.35;
+    }
+    .capture-actions {
+      display: flex;
+      gap: 7px;
+      flex-wrap: wrap;
+    }
+    .confirm-capture-button,
+    .dismiss-capture-button {
+      min-height: 30px;
+      padding: 0 9px;
+      font-size: 11px;
+      box-shadow: none;
+    }
+    .confirm-capture-button {
+      color: white;
+      background: var(--green);
+      border-color: var(--green);
+    }
+    .dismiss-capture-button {
+      color: var(--muted);
+      background: #f7fbfb;
+      border-color: #d5e2e5;
+    }
+    .capture-empty {
+      padding: 18px 12px;
+      color: var(--muted);
+      background: white;
+      border: 1px dashed #c8dadd;
+      border-radius: 8px;
+      font-size: 12px;
+      line-height: 1.4;
+      text-align: center;
+    }
+    .capture-panel-footer {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+    }
+
+    @media (max-width: 960px) {
+      .app-shell,
+      .app-shell.logs-collapsed { grid-template-columns: 1fr; }
+      .sidebar {
+        position: relative;
+        height: auto;
+        padding: 16px;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+      .capture-sidebar {
+        position: relative;
+        height: auto;
+        padding: 16px;
+        border-left: 0;
+        border-top: 1px solid var(--line);
+      }
+      .capture-sidebar.is-collapsed { padding: 10px 16px; }
+      .capture-sidebar.is-collapsed .capture-rail-button {
+        width: 100%;
+        min-height: 48px;
+        flex-direction: row;
+        writing-mode: horizontal-tb;
+        justify-content: center;
+      }
+      .capture-sidebar.is-collapsed .capture-rail-icon { transform: none; }
+      .brand { padding-bottom: 12px; }
+      .nav-section { margin-top: 12px; }
+      .nav-group {
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        padding-bottom: 3px;
+      }
+      .nav-button { min-width: 138px; }
+      .main-area { padding: 18px 12px 32px; }
+      .stats { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+      .progress { grid-column: span 2; }
+      .stat { padding: 12px; }
+      .collection-note { width: 100%; margin-left: 0; }
+      .filter-panel { padding: 14px; }
+      .chip-group { grid-template-columns: 1fr; gap: 7px; }
+      .chip-label { padding-top: 0; }
+      .results-header { align-items: start; flex-direction: column; gap: 6px; }
+      .grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 560px) {
+      .stats { grid-template-columns: 1fr; }
+      .progress { grid-column: span 1; }
+      .nav-button { min-width: 132px; }
+      .filter-panel-header { align-items: flex-start; flex-direction: column; gap: 10px; }
+      .filter-actions { width: 100%; justify-content: space-between; }
+      .export-button { flex: 1 1 auto; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app-shell" id="app-shell">
+    <aside class="sidebar" aria-label="Navega&ccedil;&atilde;o da Pok&eacute;dex">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <div>
+          <p class="eyebrow">Checklist pessoal</p>
+          <h1>Minha Pok&eacute;dex</h1>
+        </div>
+      </div>
+
+      <nav aria-label="Acesso r&aacute;pido">
+        <section class="nav-section" aria-label="Gera&ccedil;&otilde;es">
+          <p class="nav-label">Gera&ccedil;&otilde;es</p>
+          <div class="nav-group" id="generation-nav"></div>
+        </section>
+        <section class="nav-section" aria-label="Categorias especiais">
+          <p class="nav-label">Categorias especiais</p>
+          <div class="nav-group" id="special-nav"></div>
+        </section>
+      </nav>
+    </aside>
+
+    <section class="main-area">
+    <section class="stats" aria-label="Resumo da lista">
+      <article class="stat"><strong id="owned-count">0</strong><span>Total de adquiridos</span></article>
+      <article class="stat"><strong id="remaining-count">0</strong><span>Faltantes</span></article>
+      <article class="stat"><strong id="percent-count">0%</strong><span>Progresso em %</span></article>
+      <article class="stat"><strong id="catalog-total-count">0</strong><span>Espécies no catálogo</span></article>
+      <div class="progress" aria-label="Progresso"><div id="progress-bar"></div></div>
+    </section>
+
+    <section class="collection-settings" aria-label="Resumo da coleção">
+      <strong>Pokédex Nacional completa</strong>
+      <span>Gerações 1 a 9: <b id="catalog-count">0</b> espécies</span>
+      <span class="collection-note" id="collection-note"></span>
+    </section>
+
+    <section class="toolbar" aria-label="Filtros">
+      <input class="search-field" id="search" type="search" placeholder="Buscar por nome, item ou n&uacute;mero...">
+      <div class="filter-panel" aria-label="Filtros vis&iacute;veis">
+        <div class="filter-panel-header">
+          <h2 class="filter-title">Filtros</h2>
+          <div class="filter-actions" aria-label="A&ccedil;&otilde;es dos filtros">
+            <button class="muted-button export-button" id="export-missing" type="button">Exportar faltantes</button>
+            <button class="link-button" id="clear-filters" type="button">Limpar filtros</button>
+          </div>
+        </div>
+        <div class="chip-group" aria-label="Status">
+          <span class="chip-label">Status</span>
+          <div class="chip-list" id="status-chips"></div>
+        </div>
+        <div class="chip-group" aria-label="Requisito ou m&eacute;todo">
+          <span class="chip-label">M&eacute;todo</span>
+          <div class="chip-list" id="method-chips"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="results-header" aria-live="polite">
+      <div>
+        <p class="results-kicker">Resultados</p>
+        <h2 class="results-title" id="active-title">Todos os Pok&eacute;mon</h2>
+      </div>
+      <span class="visible-count" id="visible-count">0 Pok&eacute;mon</span>
+    </section>
+
+    <div id="list"></div>
+    <p class="footer" id="storage-info">As marcações ficam salvas neste navegador. Para usar o banco local, abra pelo arquivo iniciar-checklist.bat.</p>
+    </section>
+
+    <aside class="capture-sidebar" aria-label="Capturas detectadas nos logs">
+      <button class="capture-rail-button" id="log-sidebar-rail" type="button" aria-label="Abrir logs locais" title="Abrir logs locais">
+        <span class="capture-rail-icon" aria-hidden="true">›</span>
+        <span>Logs locais</span>
+        <span class="capture-rail-badge is-empty" id="log-sidebar-badge">0</span>
+      </button>
+      <section class="capture-panel">
+        <div class="capture-panel-header">
+          <div>
+            <p class="eyebrow">Logs locais</p>
+            <h2 class="capture-title">Capturas detectadas</h2>
+            <p class="capture-subtitle">Confirme apenas o que deve entrar na sua Pokédex.</p>
+          </div>
+          <div class="capture-header-actions">
+            <button class="icon-action-button" id="toggle-log-sidebar" type="button" aria-label="Recolher logs locais" title="Recolher logs locais">‹</button>
+            <label class="switch-control" aria-label="Ativar captura por logs locais">
+              <input id="log-capture-toggle" type="checkbox">
+              <span class="switch-track" aria-hidden="true"></span>
+            </label>
+          </div>
+        </div>
+        <div class="capture-status" id="log-capture-status" aria-live="polite">
+          <div class="capture-monitor-header">
+            <strong>Monitor desligado</strong>
+            <button class="capture-monitor-toggle" id="toggle-monitor-details" type="button" aria-expanded="true">Minimizar</button>
+          </div>
+          <span class="capture-monitor-details">Ative pelo servidor local para acompanhar novas capturas.</span>
+        </div>
+        <div class="capture-config" aria-label="Configuração da pasta de logs">
+          <label for="log-path-input">Pasta de logs</label>
+          <div class="capture-path-row">
+            <input class="capture-path-input" id="log-path-input" type="text" placeholder="%APPDATA%\CoreLauncher\game\instances\Pixelmon Brasil - Gen 9\logs">
+            <button class="save-log-path-button" id="save-log-path" type="button">Salvar</button>
+          </div>
+          <p class="capture-config-hint" id="log-path-hint">Configure na primeira vez antes de ligar o monitor.</p>
+        </div>
+        <div class="capture-list" id="log-capture-list"></div>
+        <div class="capture-panel-footer">
+          <button class="link-button" id="refresh-log-captures" type="button">Atualizar</button>
+          <button class="link-button" id="clear-log-captures" type="button">Limpar fila</button>
+        </div>
+      </section>
+    </aside>
+  </main>
+
+  <script src="./lista-falta-pokemon-data.js"></script>
+  <script src="./pokemon-catalogo-data.js"></script>
+  <script src="./pokemon-metodos-data.js"></script>
+  <script src="./pokemon-biomas-data.js"></script>
+    <script>
+      const SOURCE = window.POKEMON_LIST_SOURCE || "";
+      const CATALOG = window.POKEMON_CATALOG || [];
+      const SUPPLEMENTAL_METHODS = window.POKEMON_SUPPLEMENTAL_METHODS || [];
+    const CAPTURE_BIOMES = window.POKEMON_CAPTURE_BIOMES || [];
+    const BIOME_DATA_LOADED = Array.isArray(window.POKEMON_CAPTURE_BIOMES);
+    const STORAGE_KEY = "pokemon-checklist-captured-v2";
+    const LEGACY_STORAGE_KEY = "pokemon-checklist-status-v1";
+    const LOG_SIDEBAR_COLLAPSED_KEY = "pokemon-checklist-log-sidebar-collapsed";
+    const LOG_MONITOR_MINIMIZED_KEY = "pokemon-checklist-log-monitor-minimized";
+    const capturedState = new Set();
+    const filterState = { status: "", methods: new Set() };
+    const defaultNavigation = { type: "all", label: "Todos os Pok\u00e9mon" };
+    const generationRanges = [
+      { type: "generation", label: "Gera\u00e7\u00e3o 1", start: 1, end: 151 },
+      { type: "generation", label: "Gera\u00e7\u00e3o 2", start: 152, end: 251 },
+      { type: "generation", label: "Gera\u00e7\u00e3o 3", start: 252, end: 386 },
+      { type: "generation", label: "Gera\u00e7\u00e3o 4", start: 387, end: 493 },
+      { type: "generation", label: "Gera\u00e7\u00e3o 5", start: 494, end: 649 },
+      { type: "generation", label: "Gera\u00e7\u00e3o 6", start: 650, end: 721 },
+      { type: "generation", label: "Gera\u00e7\u00e3o 7", start: 722, end: 809 },
+      { type: "generation", label: "Gera\u00e7\u00e3o 8", start: 810, end: 905 },
+      { type: "generation", label: "Gera\u00e7\u00e3o 9", start: 906, end: 1025 }
+    ];
+    let activeNavigation = defaultNavigation;
+    let useFileDatabase = false;
+    const logCaptureState = {
+      enabled: false,
+      configuredLogPath: "",
+      defaultLogPath: "",
+      needsLogPathConfig: true,
+      activeFile: "",
+      activePath: "",
+      candidates: [],
+      lastChat: null,
+      lastSignal: null,
+      lastCapture: null,
+      lastIgnored: null,
+      lastScanAt: "",
+      lastFrontendPollAt: "",
+      currentSize: 0,
+      offset: 0,
+      lastDelta: 0,
+      lastNoReadReason: "",
+      pathResetCount: 0,
+      pollCount: 0,
+      frontendPollCount: 0,
+      linesRead: 0,
+      chatLinesRead: 0,
+      eventsRead: 0,
+      candidateCount: 0,
+      lastError: "",
+      poller: null
+    };
+    let isLogSidebarCollapsed = localStorage.getItem(LOG_SIDEBAR_COLLAPSED_KEY) === "true";
+    let isLogMonitorMinimized = localStorage.getItem(LOG_MONITOR_MINIMIZED_KEY) === "true";
+
+    const fixTextEncodingArtifacts = value => String(value)
+      .replace(/\u00c3\u00a9/g, "\u00e9")
+      .replace(/\u00e2\u2122\u20ac/g, "\u2640")
+      .replace(/\u00e2\u2122\u201a/g, "\u2642");
+
+    const normalize = value => fixTextEncodingArtifacts(value)
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
+
+    const canonicalKey = name => normalize(name)
+      .replace(/\u2640/g, "f")
+      .replace(/\u2642/g, "m")
+      .replace(/[^a-z0-9]/g, "");
+
+    const imageSlug = name => normalize(name)
+      .replace(/\u2640/g, "-f")
+      .replace(/\u2642/g, "-m")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "");
+
+    function parseSource(source) {
+      const groups = [];
+      let current = null;
+
+      source.split(/\r?\n/).forEach(line => {
+        const category = line.match(/^\*\*(.+)\*\*$/);
+        if (category) {
+          current = { name: category[1].trim(), entries: [] };
+          groups.push(current);
+          return;
+        }
+
+        const item = line.match(/^\*\s+(.+)$/);
+        if (!item || !current) return;
+
+        const raw = item[1].trim();
+        const parts = raw.match(/^(.+?)\s+\((.+)\)$/);
+        const name = parts ? parts[1] : raw;
+        const detail = parts ? parts[2] : "";
+        const materials = [...detail.matchAll(/\{([^}]+)\}/g)].map(match => match[1]);
+        current.entries.push({
+          name,
+          detail: detail.replace(/[{}]/g, ""),
+          materials,
+          key: `${current.name}::${name}`
+        });
+      });
+
+      return groups;
+    }
+
+    const categoryLabels = {
+      "lendario": "Lendários, míticos e Ultra Beasts",
+      "ultrabeast": "Lendários, míticos e Ultra Beasts",
+      "precisa de pedra": "Evoluir com pedra ou item",
+      "precisa de outras coisas, tipo troca ou algo assim": "Evolução especial",
+      "preciso encontrar": "Encontrar ou capturar",
+      "upar lvl mas não tenho pokemon requisito": "Evoluir por nível: requisito ainda ausente",
+      "upar lvl mas n\u00c3\u00a3o tenho pokemon requisito": "Evoluir por nível: requisito ainda ausente",
+      "upar lvl e tenho o pokemon requisito": "Evoluir por nível: requisito disponível"
+    };
+    const missingRequirementCategory = "Evoluir por nível: requisito ainda ausente";
+    const availableRequirementCategory = "Evoluir por nível: requisito disponível";
+    const specialCategory = "Lendários, míticos e Ultra Beasts";
+    const itemCategory = "Evoluir com pedra ou item";
+    const tradeCategory = "Evoluir por troca";
+    const evolutionCategory = "Evolução especial";
+    const fossilCategory = "Reviver fóssil";
+    const encounterCategory = "Encontrar ou capturar";
+    const serverCategory = "Disponibilidade depende do servidor";
+    const unclassifiedCategory = "Método não definido";
+    const levelRequirementCategories = new Set([
+      missingRequirementCategory,
+      availableRequirementCategory
+    ]);
+    const statusFilters = [
+      { value: "pending", label: "Somente Faltando" },
+      { value: "done", label: "Capturados" },
+      { value: "", label: "Todos" }
+    ];
+    const methodFilters = [
+      {
+        value: "encounter",
+        label: "Encontrar/Capturar",
+        categories: new Set([encounterCategory])
+      },
+      {
+        value: "level-ready",
+        label: "Por N\u00edvel: dispon\u00edvel",
+        categories: new Set([availableRequirementCategory])
+      },
+      {
+        value: "level-missing",
+        label: "Por N\u00edvel: base ausente",
+        categories: new Set([missingRequirementCategory])
+      },
+      {
+        value: "item",
+        label: "Por Item",
+        categories: new Set([itemCategory, fossilCategory])
+      },
+      {
+        value: "trade",
+        label: "Troca",
+        categories: new Set([tradeCategory])
+      },
+      {
+        value: "special",
+        label: "Especial",
+        categories: new Set([evolutionCategory, specialCategory, serverCategory])
+      }
+    ];
+    const specialPokemonKeys = new Set([
+      "Articuno", "Zapdos", "Moltres", "Mewtwo", "Mew",
+      "Raikou", "Entei", "Suicune", "Lugia", "Ho-Oh", "Celebi",
+      "Regirock", "Regice", "Registeel", "Latias", "Latios", "Kyogre", "Groudon", "Rayquaza", "Jirachi", "Deoxys",
+      "Uxie", "Mesprit", "Azelf", "Dialga", "Palkia", "Heatran", "Regigigas", "Giratina", "Cresselia", "Phione", "Manaphy", "Darkrai", "Shaymin", "Arceus",
+      "Victini", "Cobalion", "Terrakion", "Virizion", "Tornadus", "Thundurus", "Reshiram", "Zekrom", "Landorus", "Kyurem", "Keldeo", "Meloetta", "Genesect",
+      "Xerneas", "Yveltal", "Zygarde", "Diancie", "Hoopa", "Volcanion",
+      "Type: Null", "Tapu Koko", "Tapu Lele", "Tapu Bulu", "Tapu Fini", "Cosmog", "Cosmoem", "Solgaleo", "Lunala", "Necrozma",
+      "Nihilego", "Buzzwole", "Pheromosa", "Xurkitree", "Celesteela", "Kartana", "Guzzlord", "Poipole", "Naganadel", "Stakataka", "Blacephalon",
+      "Magearna", "Marshadow", "Zeraora", "Meltan", "Melmetal",
+      "Zacian", "Zamazenta", "Eternatus", "Kubfu", "Urshifu", "Zarude", "Regieleki", "Regidrago", "Glastrier", "Spectrier", "Calyrex", "Enamorus",
+      "Wo-Chien", "Chien-Pao", "Ting-Lu", "Chi-Yu", "Koraidon", "Miraidon", "Walking Wake", "Iron Leaves",
+      "Okidogi", "Munkidori", "Fezandipiti", "Ogerpon", "Gouging Fire", "Raging Bolt", "Iron Boulder", "Iron Crown", "Terapagos", "Pecharunt"
+    ].map(canonicalKey));
+    const mythicalPokemonKeys = new Set([
+      "Mew", "Celebi", "Jirachi", "Deoxys", "Phione", "Manaphy", "Darkrai", "Shaymin", "Arceus",
+      "Victini", "Keldeo", "Meloetta", "Genesect", "Diancie", "Hoopa", "Volcanion", "Magearna",
+      "Marshadow", "Zeraora", "Meltan", "Melmetal", "Zarude", "Pecharunt"
+    ].map(canonicalKey));
+    const ultraBeastPokemonKeys = new Set([
+      "Nihilego", "Buzzwole", "Pheromosa", "Xurkitree", "Celesteela", "Kartana", "Guzzlord",
+      "Poipole", "Naganadel", "Stakataka", "Blacephalon"
+    ].map(canonicalKey));
+    const specialNavItems = [
+      {
+        type: "legendary",
+        label: "Lend\u00e1rios",
+        predicate: entry => specialPokemonKeys.has(canonicalKey(entry.name))
+          && !mythicalPokemonKeys.has(canonicalKey(entry.name))
+          && !ultraBeastPokemonKeys.has(canonicalKey(entry.name))
+      },
+      {
+        type: "mythical",
+        label: "M\u00edticos",
+        predicate: entry => mythicalPokemonKeys.has(canonicalKey(entry.name))
+      },
+      {
+        type: "ultra",
+        label: "Ultra Beasts",
+        predicate: entry => ultraBeastPokemonKeys.has(canonicalKey(entry.name))
+      }
+    ];
+
+    const manualGroups = parseSource(SOURCE);
+    manualGroups.forEach(group => {
+      group.name = categoryLabels[group.name] || group.name;
+      group.entries.forEach(entry => {
+        entry.sourceCategory = classifyCategory(group.name, entry.detail);
+        entry.requiredPokemon = parseRequiredPokemon(entry.detail);
+      });
+    });
+    const manualEntries = manualGroups.flatMap(group => group.entries);
+    const manualByKey = new Map(manualEntries.map(entry => [canonicalKey(entry.name), entry]));
+    const supplementalByKey = new Map(SUPPLEMENTAL_METHODS.map(entry => [canonicalKey(entry.name), entry]));
+    const captureBiomesByKey = new Map(CAPTURE_BIOMES.map(entry => [canonicalKey(entry.name), entry]));
+    const allEntries = CATALOG.map(pokemon => {
+      const nameKey = canonicalKey(pokemon.name);
+      const manual = manualByKey.get(nameKey);
+      const method = supplementalByKey.get(nameKey);
+      const captureBiome = captureBiomesByKey.get(nameKey);
+      const detail = manual?.detail || captureBiome?.detail || method?.detail || "";
+      const rawCategory = manual?.sourceCategory || method?.category || (captureBiome ? encounterCategory : "");
+      let sourceCategory = rawCategory
+        ? classifyPokemonCategory(pokemon.name, rawCategory, detail)
+        : unclassifiedCategory;
+      if (sourceCategory === encounterCategory && !hasRealEncounterInfo(detail)) {
+        sourceCategory = detail ? serverCategory : unclassifiedCategory;
+      }
+      return {
+        id: pokemon.id,
+        name: pokemon.name,
+        detail: detail || (sourceCategory === specialCategory
+          ? "Obtenção especial. Consulte o método configurado no servidor ou a wiki do Pixelmon."
+          : ""),
+        materials: manual?.materials || [],
+        key: `pokemon::${pokemon.name}`,
+        legacyKey: manual?.key,
+        requiredPokemon: manual?.requiredPokemon || parseRequiredPokemon(detail),
+        sourceCategory,
+        wiki: captureBiome?.wiki || method?.wiki || "",
+        showDetailInline: !isFindingInformation(sourceCategory)
+      };
+    });
+
+    function parseRequiredPokemon(detail) {
+      return detail.match(/^(.+?)\s+lvl\s+\d+/i)?.[1]?.trim()
+        || detail.match(/^Evoluir\s+(.+?)\s+(?:até|at\u00c3\u00a9|durante|a partir)/i)?.[1]?.trim()
+        || "";
+    }
+
+    function classifyCategory(category, detail = "") {
+      const categoryText = normalize(category || "");
+      const detailText = normalize(detail);
+      if (categoryText.includes("lendario") || categoryText.includes("mitico") || categoryText.includes("ultra beast")) return specialCategory;
+      if (categoryText.includes("fossil") || detailText.includes("fossil") || detailText.includes("reviver")) return fossilCategory;
+      if (categoryText === normalize(tradeCategory) || detailText.includes("por troca") || detailText.startsWith("trocar ") || detailText.includes(" traded")) return tradeCategory;
+      if (categoryText.includes("pedra") || detailText.includes(" stone") || detailText.includes(" armor") || detailText.includes(" apple") || detailText.includes("exposed to")) return itemCategory;
+      if (levelRequirementCategories.has(category) || categoryText === "evoluir por nivel" || /^evoluir .+ nivel \d+/i.test(detailText)) {
+        return missingRequirementCategory;
+      }
+      if (categoryText.includes("evolucao especial") || categoryText.includes("requisito especial") || detailText.startsWith("subir o nivel")) return evolutionCategory;
+      if (categoryText.includes("disponibilidade depende") || categoryText.includes("consultar wiki")) return serverCategory;
+      if (categoryText.includes("encontrar") || detailText.includes("bioma")) return encounterCategory;
+      return category || encounterCategory;
+    }
+
+    function classifyPokemonCategory(name, category, detail = "") {
+      const result = classifyCategory(category, detail);
+      return result === encounterCategory && specialPokemonKeys.has(canonicalKey(name))
+        ? specialCategory
+        : result;
+    }
+
+    function hasRealEncounterInfo(detail = "") {
+      const text = normalize(detail);
+      const rawText = detail.toLowerCase();
+      if (!text) return false;
+      if (text.includes("nao encontrado") || rawText.includes("nÃ£o encontrado") || text.includes("consulte") || text.includes("configuracao do servidor")) return false;
+      return text.includes("biomas:") || text.includes("encontrar e capturar em");
+    }
+
+    function isFindingInformation(category) {
+      return category === encounterCategory || category === specialCategory || category === serverCategory;
+    }
+
+    function getMethodFilter(entry) {
+      const category = getCurrentCategory(entry);
+      return methodFilters.find(filter => filter.categories.has(category))?.value || "unknown";
+    }
+
+    const catalogByKey = new Map(allEntries.map(entry => [canonicalKey(entry.name), entry]));
+
+    function readJsonStorage(key, fallback) {
+      try {
+        const value = localStorage.getItem(key);
+        return value ? JSON.parse(value) : fallback;
+      } catch {
+        return fallback;
+      }
+    }
+
+    function normalizeCapturedNameList(names) {
+      if (!Array.isArray(names)) return [];
+      const seen = new Set();
+      const capturedNames = [];
+      names.forEach(name => {
+        const key = canonicalKey(String(name || ""));
+        const entry = catalogByKey.get(key);
+        if (!entry || seen.has(key)) return;
+        seen.add(key);
+        capturedNames.push(entry.name);
+      });
+      return capturedNames;
+    }
+
+    function setCapturedFromNames(names) {
+      capturedState.clear();
+      normalizeCapturedNameList(names).forEach(name => capturedState.add(canonicalKey(name)));
+    }
+
+    function getCapturedNames() {
+      return allEntries
+        .filter(entry => capturedState.has(canonicalKey(entry.name)))
+        .map(entry => entry.name);
+    }
+
+    function migrateLegacyStatus(status = {}) {
+      return allEntries
+        .filter(entry => {
+          if (Object.prototype.hasOwnProperty.call(status, entry.key)) return status[entry.key] === true;
+          if (entry.legacyKey && Object.prototype.hasOwnProperty.call(status, entry.legacyKey)) return status[entry.legacyKey] === true;
+          return false;
+        })
+        .map(entry => entry.name);
+    }
+
+    function initializeLocalCapturedState() {
+      const captured = readJsonStorage(STORAGE_KEY, null);
+      if (Array.isArray(captured)) {
+        setCapturedFromNames(captured);
+        return;
+      }
+
+      const legacyStatus = readJsonStorage(LEGACY_STORAGE_KEY, null);
+      if (legacyStatus && typeof legacyStatus === "object") {
+        setCapturedFromNames(migrateLegacyStatus(legacyStatus));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(getCapturedNames()));
+      }
+    }
+
+    initializeLocalCapturedState();
+
+    const searchInput = document.querySelector("#search");
+    const appShell = document.querySelector("#app-shell");
+    const statusChips = document.querySelector("#status-chips");
+    const methodChips = document.querySelector("#method-chips");
+    const generationNav = document.querySelector("#generation-nav");
+    const specialNav = document.querySelector("#special-nav");
+    const activeTitle = document.querySelector("#active-title");
+    const visibleCount = document.querySelector("#visible-count");
+    const logCaptureToggle = document.querySelector("#log-capture-toggle");
+    const captureSidebar = document.querySelector(".capture-sidebar");
+    const toggleLogSidebarButton = document.querySelector("#toggle-log-sidebar");
+    const logSidebarRailButton = document.querySelector("#log-sidebar-rail");
+    const logSidebarBadge = document.querySelector("#log-sidebar-badge");
+    const logPathInput = document.querySelector("#log-path-input");
+    const logPathHint = document.querySelector("#log-path-hint");
+    const saveLogPathButton = document.querySelector("#save-log-path");
+    const logCaptureStatus = document.querySelector("#log-capture-status");
+    const logCaptureList = document.querySelector("#log-capture-list");
+    const refreshLogCapturesButton = document.querySelector("#refresh-log-captures");
+    const clearLogCapturesButton = document.querySelector("#clear-log-captures");
+    document.querySelector("#catalog-count").textContent = CATALOG.length;
+
+    function matchesActiveNavigation(entry) {
+      if (activeNavigation.type === "generation") {
+        return entry.id >= activeNavigation.start && entry.id <= activeNavigation.end;
+      }
+      if (activeNavigation.predicate) return activeNavigation.predicate(entry);
+      return true;
+    }
+
+    function entriesForActiveNavigation() {
+      return allEntries.filter(matchesActiveNavigation);
+    }
+
+    function createNavButton(item, count) {
+      const button = document.createElement("button");
+      const isActive = activeNavigation.type === item.type
+        && (item.type !== "generation" || activeNavigation.start === item.start);
+      button.className = `nav-button${isActive ? " active" : ""}`;
+      button.type = "button";
+      button.setAttribute("aria-pressed", isActive ? "true" : "false");
+
+      const label = document.createElement("span");
+      label.textContent = item.label;
+      const badge = document.createElement("span");
+      badge.className = "nav-count";
+      badge.textContent = count;
+      button.append(label, badge);
+
+      button.addEventListener("click", () => {
+        activeNavigation = item;
+        render();
+      });
+      return button;
+    }
+
+    function renderNavigation() {
+      generationNav.replaceChildren(
+        createNavButton(defaultNavigation, allEntries.length),
+        ...generationRanges.map(item => createNavButton(
+          item,
+          allEntries.filter(entry => entry.id >= item.start && entry.id <= item.end).length
+        ))
+      );
+      specialNav.replaceChildren(
+        ...specialNavItems.map(item => createNavButton(
+          item,
+          allEntries.filter(item.predicate).length
+        ))
+      );
+    }
+
+    function createFilterChip({ label, active, count, onClick }) {
+      const button = document.createElement("button");
+      button.className = `filter-chip${active ? " active" : ""}`;
+      button.type = "button";
+      button.setAttribute("aria-pressed", active ? "true" : "false");
+      button.textContent = count === undefined ? label : `${label} (${count})`;
+      button.addEventListener("click", onClick);
+      return button;
+    }
+
+    function renderFilterChips() {
+      const visibleByNavigation = entriesForActiveNavigation();
+      statusChips.replaceChildren(...statusFilters.map(filter => {
+        const count = visibleByNavigation.filter(entry => {
+          const done = isOwned(entry);
+          return !filter.value || (filter.value === "done" ? done : !done);
+        }).length;
+        return createFilterChip({
+          label: filter.label,
+          count,
+          active: filterState.status === filter.value,
+          onClick: () => {
+            filterState.status = filter.value;
+            render();
+          }
+        });
+      }));
+
+      methodChips.replaceChildren(...methodFilters.map(filter => {
+        const count = visibleByNavigation.filter(entry => getMethodFilter(entry) === filter.value).length;
+        return createFilterChip({
+          label: filter.label,
+          count,
+          active: filterState.methods.has(filter.value),
+          onClick: () => {
+            if (filterState.methods.has(filter.value)) {
+              filterState.methods.delete(filter.value);
+            } else {
+              filterState.methods.add(filter.value);
+            }
+            render();
+          }
+        });
+      }));
+    }
+
+    renderFilterChips();
+
+    async function persistData() {
+      const captured = getCapturedNames();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(captured));
+      if (!useFileDatabase) return;
+
+      try {
+        await fetch("/api/state", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ version: 2, captured })
+        });
+      } catch {
+        document.querySelector("#storage-info").textContent = "Não foi possível atualizar o banco local. Mantenha o iniciador aberto enquanto usa a página.";
+      }
+    }
+
+    function saveState() {
+      persistData();
+    }
+
+    function isOwned(entry) {
+      return capturedState.has(canonicalKey(entry.name));
+    }
+
+    function pokemonSpriteSource(entry) {
+      return `https://img.pokemondb.net/sprites/home/normal/${imageSlug(entry.name)}.png`;
+    }
+
+    function applyPokemonImageFallback(image) {
+      image.onerror = () => {
+        image.onerror = null;
+        image.src = "data:image/svg+xml," + encodeURIComponent(`
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="39" fill="#f7fbfb" stroke="#bfd2d8" stroke-width="7"/>
+            <path d="M12 50h76" stroke="#bfd2d8" stroke-width="7"/>
+            <circle cx="50" cy="50" r="14" fill="#fff" stroke="#bfd2d8" stroke-width="7"/>
+          </svg>
+        `);
+      };
+    }
+
+    function createPokemonImage(entry, className) {
+      const image = document.createElement("img");
+      image.className = className;
+      image.loading = "lazy";
+      image.alt = entry.name;
+      image.src = pokemonSpriteSource(entry);
+      applyPokemonImageFallback(image);
+      return image;
+    }
+
+    function getDisplayGroups() {
+      const displayGroups = new Map();
+      allEntries.forEach(entry => {
+        const groupName = isOwned(entry) ? "Já capturados" : getCurrentCategory(entry);
+        if (!displayGroups.has(groupName)) displayGroups.set(groupName, { name: groupName, entries: [] });
+        displayGroups.get(groupName).entries.push(entry);
+      });
+      return [...displayGroups.values()];
+    }
+
+    function getCurrentCategory(entry) {
+      let groupName = entry.sourceCategory;
+      if (levelRequirementCategories.has(groupName) && entry.requiredPokemon) {
+        const requirement = catalogByKey.get(canonicalKey(entry.requiredPokemon));
+        groupName = requirement && isOwned(requirement)
+          ? availableRequirementCategory
+          : missingRequirementCategory;
+      }
+      return groupName;
+    }
+
+    function getMethodFilterLabel(entry) {
+      const method = getMethodFilter(entry);
+      if (method === "unknown") return "Sem método definido";
+      return methodFilters.find(filter => filter.value === method)?.label || "Especial";
+    }
+
+    function getSearchText(entry) {
+      const dexNumber = String(entry.id).padStart(4, "0");
+      return normalize(`${entry.id} ${dexNumber} #${dexNumber} ${entry.name} ${entry.detail} ${entry.materials.join(" ")}`);
+    }
+
+    function matchesTextSearch(entry, search) {
+      return !search || getSearchText(entry).includes(search);
+    }
+
+    async function loadPersistentData() {
+      if (!["http:", "https:"].includes(location.protocol)) {
+        render();
+        return;
+      }
+
+      try {
+        const response = await fetch("/api/state");
+        if (!response.ok) throw new Error("Banco local indisponível");
+        const data = await response.json();
+        useFileDatabase = true;
+
+        if (Array.isArray(data.captured)) {
+          setCapturedFromNames(data.captured);
+        } else if (data.status && typeof data.status === "object") {
+          setCapturedFromNames(migrateLegacyStatus(data.status));
+          await persistData();
+        } else {
+          setCapturedFromNames([]);
+          await persistData();
+        }
+
+        document.querySelector("#storage-info").textContent = BIOME_DATA_LOADED
+          ? "Banco local ativo: suas marcações ficam salvas no arquivo pokemon-checklist-db.json."
+          : "Banco local ativo, mas os biomas não carregaram. Feche a janela do iniciador e abra iniciar-checklist.bat novamente.";
+      } catch {
+        document.querySelector("#storage-info").textContent = "Banco local indisponível. As marcações continuam salvas neste navegador.";
+      }
+
+      render();
+    }
+
+    function updateStats() {
+      const owned = allEntries.filter(isOwned).length;
+      const percent = Math.min(100, Math.round(owned / CATALOG.length * 100));
+      document.querySelector("#owned-count").textContent = owned;
+      document.querySelector("#catalog-total-count").textContent = CATALOG.length;
+      document.querySelector("#remaining-count").textContent = CATALOG.length - owned;
+      document.querySelector("#percent-count").textContent = `${percent}%`;
+      document.querySelector("#progress-bar").style.width = `${percent}%`;
+      const note = document.querySelector("#collection-note");
+      note.classList.remove("warning");
+      note.textContent = "Base de capturados unificada";
+    }
+
+    function createCard(entry) {
+      const done = isOwned(entry);
+      const card = document.createElement("article");
+      card.className = `card${done ? " done" : ""}`;
+
+      const image = createPokemonImage(entry, "art");
+
+      const text = document.createElement("div");
+      text.className = "card-main";
+      text.innerHTML = `
+        <div class="name-row">
+          <div>
+            <h3></h3>
+            <span class="dex-number"></span>
+          </div>
+          <span class="status-dot" aria-hidden="true"></span>
+        </div>
+        <div class="meta-row">
+          <span class="method-badge"></span>
+        </div>
+        ${entry.detail && entry.showDetailInline ? `<p class="detail"></p>` : ""}
+        ${entry.detail && !entry.showDetailInline ? `<span class="help-wrap"><button class="help-button" type="button" aria-label="Ver detalhes">?</button><span class="help-tooltip"></span></span>` : ""}
+        ${entry.materials.length ? `<div class="meta-row materials-row"></div>` : ""}
+      `;
+      text.querySelector("h3").textContent = entry.name;
+      text.querySelector(".dex-number").textContent = `#${String(entry.id).padStart(4, "0")}`;
+      const method = getMethodFilter(entry);
+      const methodBadge = text.querySelector(".method-badge");
+      methodBadge.classList.add(`method-${method}`);
+      methodBadge.textContent = getMethodFilterLabel(entry);
+      if (entry.detail && entry.showDetailInline) text.querySelector(".detail").textContent = entry.detail;
+      if (entry.detail && !entry.showDetailInline) {
+        const help = text.querySelector(".help-wrap");
+        const tooltip = help.querySelector(".help-tooltip");
+        tooltip.textContent = entry.detail;
+        if (entry.wiki) {
+          const link = document.createElement("a");
+          link.href = entry.wiki;
+          link.target = "_blank";
+          link.rel = "noopener";
+          link.textContent = "Abrir Wiki Pixelmon";
+          tooltip.append(link);
+        }
+        help.querySelector(".help-button").addEventListener("click", event => {
+          event.stopPropagation();
+          help.classList.toggle("open");
+        });
+      }
+      if (entry.materials.length) {
+        entry.materials.forEach(material => {
+          const chip = document.createElement("span");
+          chip.className = "material-badge";
+          chip.textContent = material;
+          text.querySelector(".materials-row").append(chip);
+        });
+      }
+
+      const button = document.createElement("button");
+      button.className = "complete-button";
+      button.type = "button";
+      button.textContent = done ? "\u2713 Adquirido" : "Marcar como capturado";
+      if (done) {
+        button.addEventListener("mouseenter", () => {
+          button.textContent = "Desmarcar";
+        });
+        button.addEventListener("mouseleave", () => {
+          button.textContent = "\u2713 Adquirido";
+        });
+      }
+      button.addEventListener("click", () => {
+        const key = canonicalKey(entry.name);
+        if (isOwned(entry)) {
+          capturedState.delete(key);
+        } else {
+          capturedState.add(key);
+        }
+        saveState();
+        render();
+      });
+
+      card.append(image, text, button);
+      return card;
+    }
+
+    function getVisibleLogCaptureCandidates() {
+      const seen = new Set();
+      return logCaptureState.candidates
+        .map(candidate => ({
+          candidate,
+          entry: catalogByKey.get(canonicalKey(candidate.pokemon))
+        }))
+        .filter(item => {
+          if (!item.entry || isOwned(item.entry)) return false;
+          const key = canonicalKey(item.entry.name);
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function applyLogPanelPreferences() {
+      const pendingCount = getVisibleLogCaptureCandidates().length;
+      appShell.classList.toggle("logs-collapsed", isLogSidebarCollapsed);
+      captureSidebar.classList.toggle("is-collapsed", isLogSidebarCollapsed);
+      toggleLogSidebarButton.textContent = "‹";
+      toggleLogSidebarButton.title = "Recolher logs locais";
+      toggleLogSidebarButton.setAttribute("aria-label", toggleLogSidebarButton.title);
+      toggleLogSidebarButton.setAttribute("aria-expanded", "true");
+      logSidebarRailButton.setAttribute("aria-expanded", isLogSidebarCollapsed ? "false" : "true");
+      logSidebarBadge.textContent = pendingCount > 99 ? "99+" : String(pendingCount);
+      logSidebarBadge.classList.toggle("is-empty", pendingCount === 0);
+      logSidebarRailButton.title = pendingCount
+        ? `Abrir logs locais (${pendingCount} pendente${pendingCount === 1 ? "" : "s"})`
+        : "Abrir logs locais";
+      logSidebarRailButton.setAttribute("aria-label", logSidebarRailButton.title);
+    }
+
+    function setLogCaptureStatus(title, detailHtml) {
+      const expanded = !isLogMonitorMinimized;
+      logCaptureStatus.classList.toggle("monitor-minimized", isLogMonitorMinimized);
+      logCaptureStatus.innerHTML = `
+        <div class="capture-monitor-header">
+          <strong>${escapeHtml(title)}</strong>
+          <button class="capture-monitor-toggle" id="toggle-monitor-details" type="button" aria-expanded="${expanded ? "true" : "false"}">
+            ${isLogMonitorMinimized ? "Expandir" : "Minimizar"}
+          </button>
+        </div>
+        <span class="capture-monitor-details">${detailHtml || ""}</span>
+      `;
+    }
+
+    function formatDateTimeLabel(value) {
+      if (!value) return "--";
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return "--";
+      return date.toLocaleTimeString("pt-BR", { hour12: false });
+    }
+
+    function formatBytesLabel(bytes) {
+      const value = Number(bytes) || 0;
+      if (value < 1024) return `${value} B`;
+      if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
+      return `${(value / 1024 / 1024).toFixed(1)} MB`;
+    }
+
+    function compactText(value, maxLength = 120) {
+      const text = String(value || "");
+      return text.length > maxLength ? `${text.slice(0, maxLength - 1)}…` : text;
+    }
+
+    function getLogCandidateTypeLabel(type) {
+      if (type === "local-prize-pokemon") return "Prêmio";
+      if (type === "local-capture-sent-to-pc") return "Enviado ao PC";
+      if (type === "local-capture") return "Captura";
+      return "Log";
+    }
+
+    function applyLogCaptureState(data = {}) {
+      logCaptureState.enabled = Boolean(data.enabled);
+      logCaptureState.configuredLogPath = data.configuredLogPath || "";
+      logCaptureState.defaultLogPath = data.defaultLogPath || "";
+      logCaptureState.needsLogPathConfig = Boolean(data.needsLogPathConfig);
+      logCaptureState.activeFile = data.activeFile || "";
+      logCaptureState.activePath = data.activePath || "";
+      logCaptureState.candidates = Array.isArray(data.candidates) ? data.candidates : [];
+      logCaptureState.lastChat = data.lastChat || null;
+      logCaptureState.lastSignal = data.lastSignal || null;
+      logCaptureState.lastCapture = data.lastCapture || null;
+      logCaptureState.lastIgnored = data.lastIgnored || null;
+      logCaptureState.lastScanAt = data.lastScanAt || "";
+      logCaptureState.currentSize = Number(data.currentSize) || 0;
+      logCaptureState.offset = Number(data.offset) || 0;
+      logCaptureState.lastDelta = Number(data.lastDelta) || 0;
+      logCaptureState.lastNoReadReason = data.lastNoReadReason || "";
+      logCaptureState.pathResetCount = Number(data.pathResetCount) || 0;
+      logCaptureState.pollCount = Number(data.pollCount) || 0;
+      logCaptureState.linesRead = Number(data.linesRead) || 0;
+      logCaptureState.chatLinesRead = Number(data.chatLinesRead) || 0;
+      logCaptureState.eventsRead = Number(data.eventsRead) || 0;
+      logCaptureState.candidateCount = Number(data.candidateCount) || logCaptureState.candidates.length;
+      logCaptureState.lastError = data.lastError || "";
+      if (document.activeElement !== logPathInput) {
+        logPathInput.value = logCaptureState.configuredLogPath;
+      }
+      scheduleLogCapturePolling();
+      renderLogCapturePanel();
+    }
+
+    async function postLogCapture(path, body = {}) {
+      const response = await fetch(path, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+      if (!response.ok) throw new Error("Monitor indisponível");
+      applyLogCaptureState(await response.json());
+    }
+
+    async function refreshLogCaptureStatus() {
+      if (!useFileDatabase) {
+        renderLogCapturePanel();
+        return;
+      }
+      logCaptureState.frontendPollCount += 1;
+      logCaptureState.lastFrontendPollAt = new Date().toISOString();
+      try {
+        const response = await fetch("/api/log-capture");
+        if (!response.ok) throw new Error("Monitor indisponível");
+        applyLogCaptureState(await response.json());
+      } catch {
+        logCaptureState.lastError = "Não foi possível acessar o monitor de logs.";
+        scheduleLogCapturePolling();
+        renderLogCapturePanel();
+      }
+    }
+
+    function scheduleLogCapturePolling() {
+      if (logCaptureState.poller) {
+        clearInterval(logCaptureState.poller);
+        logCaptureState.poller = null;
+      }
+      if (useFileDatabase && logCaptureState.enabled) {
+        logCaptureState.poller = setInterval(refreshLogCaptureStatus, 10000);
+      }
+    }
+
+    async function acknowledgeLogCapture(ids) {
+      if (!ids.length || !useFileDatabase) return;
+      await postLogCapture("/api/log-capture/ack", { ids });
+    }
+
+    async function saveLogCapturePath() {
+      if (!useFileDatabase) return;
+      saveLogPathButton.disabled = true;
+      try {
+        await postLogCapture("/api/log-capture/config", { logPath: logPathInput.value.trim() });
+      } catch {
+        logCaptureState.lastError = "Não foi possível salvar a pasta de logs. Confirme se o caminho existe.";
+        renderLogCapturePanel();
+      } finally {
+        saveLogPathButton.disabled = false;
+      }
+    }
+
+    async function confirmLogCapture(candidate, entry) {
+      if (!entry || isOwned(entry)) {
+        await acknowledgeLogCapture([candidate.id]);
+        return;
+      }
+      capturedState.add(canonicalKey(entry.name));
+      await persistData();
+      await acknowledgeLogCapture([candidate.id]);
+      render();
+    }
+
+    function renderLogCapturePanel() {
+      applyLogPanelPreferences();
+      logCaptureToggle.checked = logCaptureState.enabled;
+      logCaptureToggle.disabled = !useFileDatabase || logCaptureState.needsLogPathConfig;
+      logPathInput.disabled = !useFileDatabase;
+      saveLogPathButton.disabled = !useFileDatabase;
+      refreshLogCapturesButton.disabled = !useFileDatabase;
+      clearLogCapturesButton.disabled = !useFileDatabase || !logCaptureState.candidates.length;
+      logPathHint.textContent = logCaptureState.configuredLogPath
+        ? "Caminho salvo para este computador."
+        : `Primeiro uso: cole a pasta de logs. Sugestão: ${logCaptureState.defaultLogPath || "%APPDATA%\\CoreLauncher\\game\\instances\\Pixelmon Brasil - Gen 9\\logs"}`;
+
+      if (!useFileDatabase) {
+        setLogCaptureStatus("Servidor local necessário", "Abra pelo iniciar-checklist.bat para usar a captura por logs.");
+      } else if (logCaptureState.lastError) {
+        setLogCaptureStatus("Monitor com atenção", escapeHtml(logCaptureState.lastError));
+      } else if (logCaptureState.needsLogPathConfig) {
+        setLogCaptureStatus("Configure a pasta de logs", "Salve o caminho da pasta antes de ligar o monitor.");
+      } else if (logCaptureState.enabled) {
+        const details = [];
+        details.push(`Tela consultou: ${logCaptureState.frontendPollCount}x, ${formatDateTimeLabel(logCaptureState.lastFrontendPollAt)}`);
+        details.push(`Servidor varreu: ${logCaptureState.pollCount}x, ${formatDateTimeLabel(logCaptureState.lastScanAt)}`);
+        details.push(`Arquivo: ${formatBytesLabel(logCaptureState.currentSize)} | offset: ${formatBytesLabel(logCaptureState.offset)} | delta: ${formatBytesLabel(logCaptureState.lastDelta)} | resets: ${logCaptureState.pathResetCount}`);
+        details.push(`Linhas lidas: ${logCaptureState.linesRead} | chat: ${logCaptureState.chatLinesRead} | eventos: ${logCaptureState.eventsRead} | fila: ${logCaptureState.candidateCount}`);
+        if (logCaptureState.lastNoReadReason) {
+          details.push(`Leitura: ${logCaptureState.lastNoReadReason}`);
+        }
+        if (logCaptureState.lastChat) {
+          details.push(`Último chat lido: ${logCaptureState.lastChat.logTime || "--:--:--"} - ${compactText(logCaptureState.lastChat.message)}`);
+        }
+        if (logCaptureState.lastCapture) {
+          details.push(`Última detecção lida: ${logCaptureState.lastCapture.pokemon} - ${getLogCandidateTypeLabel(logCaptureState.lastCapture.type)} (${logCaptureState.lastCapture.logTime || "--:--:--"})`);
+        }
+        if (logCaptureState.lastIgnored) {
+          details.push(`Ignorada: ${logCaptureState.lastIgnored.pokemon} - ${logCaptureState.lastIgnored.reason}`);
+        }
+        if (logCaptureState.lastSignal) {
+          details.push(`Último sinal sem nome: ${logCaptureState.lastSignal.logTime || "--:--:--"}`);
+        }
+        const detailLines = [
+          logCaptureState.activePath || logCaptureState.activeFile || "Aguardando arquivo ativo.",
+          ...details
+        ];
+        setLogCaptureStatus("Monitor ligado", detailLines.map(escapeHtml).join("<br>"));
+      } else {
+        setLogCaptureStatus("Monitor desligado", "Ative para acompanhar novas capturas locais.");
+      }
+
+      const visibleCandidates = getVisibleLogCaptureCandidates();
+      logCaptureList.replaceChildren();
+      if (!visibleCandidates.length) {
+        const empty = document.createElement("div");
+        empty.className = "capture-empty";
+        empty.textContent = logCaptureState.enabled
+          ? "Nenhuma captura pendente de confirmação."
+          : "Ligue o monitor para receber candidatos aqui.";
+        logCaptureList.append(empty);
+        return;
+      }
+
+      visibleCandidates.forEach(({ candidate, entry }) => {
+        const card = document.createElement("article");
+        card.className = "capture-card";
+        const image = createPokemonImage(entry, "");
+        const content = document.createElement("div");
+        content.innerHTML = `
+          <h3></h3>
+          <p class="capture-meta"></p>
+          <div class="capture-actions"></div>
+        `;
+        content.querySelector("h3").textContent = entry.name;
+        content.querySelector(".capture-meta").textContent =
+          `#${String(entry.id).padStart(4, "0")} • ${getLogCandidateTypeLabel(candidate.type)} • ${candidate.logTime || "agora"} • ${candidate.source || "log"}`;
+
+        const confirmButton = document.createElement("button");
+        confirmButton.className = "confirm-capture-button";
+        confirmButton.type = "button";
+        confirmButton.textContent = "Confirmar";
+        confirmButton.addEventListener("click", () => confirmLogCapture(candidate, entry));
+
+        const dismissButton = document.createElement("button");
+        dismissButton.className = "dismiss-capture-button";
+        dismissButton.type = "button";
+        dismissButton.textContent = "Ignorar";
+        dismissButton.addEventListener("click", () => acknowledgeLogCapture([candidate.id]));
+
+        content.querySelector(".capture-actions").append(confirmButton, dismissButton);
+        card.append(image, content);
+        logCaptureList.append(card);
+      });
+    }
+
+    function createSearchSuggestions(search, visible) {
+      if (!search || visible > 0) return null;
+      const suggestions = allEntries
+        .filter(entry => matchesActiveNavigation(entry) && matchesTextSearch(entry, search))
+        .slice(0, 8);
+      if (!suggestions.length) return null;
+      const categories = [...new Set(suggestions.map(getMethodFilterLabel))].join(", ");
+
+      const section = document.createElement("section");
+      section.className = "suggestions";
+      section.innerHTML = `
+        <p class="suggestions-title">Encontrado fora dos filtros atuais</p>
+        <p class="suggestions-note"></p>
+        <div class="grid"></div>
+      `;
+      section.querySelector(".suggestions-note").textContent =
+        `Estes cards batem com a busca, mas estão fora dos filtros ativos. Categorias: ${categories}.`;
+      const grid = section.querySelector(".grid");
+      suggestions.forEach(entry => {
+        grid.append(createCard(entry));
+      });
+      return section;
+    }
+
+    function render() {
+      renderNavigation();
+      renderFilterChips();
+      const search = normalize(searchInput.value.trim());
+      const list = document.querySelector("#list");
+      list.replaceChildren();
+      let visible = 0;
+
+      getDisplayGroups().forEach(group => {
+        const entries = group.entries.filter(entry => {
+          const done = isOwned(entry);
+          const method = getMethodFilter(entry);
+          return matchesActiveNavigation(entry)
+            && matchesTextSearch(entry, search)
+            && (!filterState.status || (filterState.status === "done" ? done : !done))
+            && (!filterState.methods.size || filterState.methods.has(method));
+        });
+        if (!entries.length) return;
+        visible += entries.length;
+
+        const section = document.createElement("section");
+        section.className = "category";
+        section.innerHTML = `
+          <div class="category-heading">
+            <h2></h2>
+            <span class="category-count"></span>
+          </div>
+          <div class="grid"></div>
+        `;
+        section.querySelector("h2").textContent = group.name;
+        section.querySelector(".category-count").textContent = `${entries.length} Pokémon`;
+        const grid = section.querySelector(".grid");
+        entries.forEach(entry => grid.append(createCard(entry)));
+        list.append(section);
+      });
+
+      if (!visible) {
+        const empty = document.createElement("div");
+        empty.className = "empty";
+        empty.textContent = "Nenhum Pokémon encontrado com esses filtros.";
+        list.append(empty);
+      }
+      const suggestions = createSearchSuggestions(search, visible);
+      if (suggestions) list.append(suggestions);
+      activeTitle.textContent = activeNavigation.label;
+      visibleCount.textContent = `${visible} Pok\u00e9mon`;
+      updateStats();
+      renderLogCapturePanel();
+    }
+
+    function exportMissingPokemon() {
+      const missingGroups = getDisplayGroups()
+        .filter(group => group.name !== "Já capturados")
+        .map(group => ({
+          name: group.name,
+          entries: group.entries.filter(entry => !isOwned(entry))
+        }))
+        .filter(group => group.entries.length);
+      const total = missingGroups.reduce((sum, group) => sum + group.entries.length, 0);
+      const lines = [
+        "POKÉMON FALTANTES",
+        `Exportado em: ${new Date().toLocaleString("pt-BR")}`,
+        `Total: ${total}`,
+        ""
+      ];
+
+      missingGroups.forEach(group => {
+        lines.push(`## ${group.name}`);
+        group.entries
+          .slice()
+          .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"))
+          .forEach(entry => lines.push(`- ${entry.name}${entry.detail ? ` — ${entry.detail}` : ""}`));
+        lines.push("");
+      });
+
+      const blob = new Blob([lines.join("\n")], { type: "text/plain;charset=utf-8" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "pokemon-faltantes.txt";
+      link.click();
+      URL.revokeObjectURL(link.href);
+    }
+
+    searchInput.addEventListener("input", render);
+    document.querySelector("#export-missing").addEventListener("click", exportMissingPokemon);
+    document.querySelector("#clear-filters").addEventListener("click", () => {
+      searchInput.value = "";
+      filterState.status = "";
+      filterState.methods.clear();
+      activeNavigation = defaultNavigation;
+      render();
+    });
+    toggleLogSidebarButton.addEventListener("click", () => {
+      isLogSidebarCollapsed = !isLogSidebarCollapsed;
+      localStorage.setItem(LOG_SIDEBAR_COLLAPSED_KEY, String(isLogSidebarCollapsed));
+      renderLogCapturePanel();
+    });
+    logSidebarRailButton.addEventListener("click", () => {
+      isLogSidebarCollapsed = false;
+      localStorage.setItem(LOG_SIDEBAR_COLLAPSED_KEY, "false");
+      renderLogCapturePanel();
+    });
+    logCaptureStatus.addEventListener("click", event => {
+      if (!event.target.closest("#toggle-monitor-details")) return;
+      isLogMonitorMinimized = !isLogMonitorMinimized;
+      localStorage.setItem(LOG_MONITOR_MINIMIZED_KEY, String(isLogMonitorMinimized));
+      renderLogCapturePanel();
+    });
+    logCaptureToggle.addEventListener("change", () => {
+      if (logCaptureState.needsLogPathConfig) {
+        logCaptureToggle.checked = false;
+        logPathInput.focus();
+        logCaptureState.lastError = "Configure a pasta de logs antes de ligar o monitor.";
+        renderLogCapturePanel();
+        return;
+      }
+      postLogCapture("/api/log-capture", { enabled: logCaptureToggle.checked }).catch(() => {
+        logCaptureState.lastError = "Não foi possível alterar o monitor de logs.";
+        renderLogCapturePanel();
+      });
+    });
+    saveLogPathButton.addEventListener("click", saveLogCapturePath);
+    logPathInput.addEventListener("keydown", event => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        saveLogCapturePath();
+      }
+    });
+    refreshLogCapturesButton.addEventListener("click", () => {
+      refreshLogCaptureStatus();
+    });
+    clearLogCapturesButton.addEventListener("click", () => {
+      postLogCapture("/api/log-capture/clear").catch(() => {
+        logCaptureState.lastError = "Não foi possível limpar a fila.";
+        renderLogCapturePanel();
+      });
+    });
+
+    loadPersistentData().then(refreshLogCaptureStatus);
+  </script>
+</body>
+</html>
