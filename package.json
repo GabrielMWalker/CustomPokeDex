@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "tauri dev",
-    "build": "tauri build"
+    "build": "tauri build",
+    "release:latest-json": "node scripts/generate-latest-json.mjs"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.0.0"

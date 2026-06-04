@@ -36,6 +36,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     let focusBuildSearchAfterRender = false;
     let focusCounterSearchAfterRender = false;
     let focusCounterBossSearchAfterRender = false;
+    let updateCheckInProgress = false;
     let activeModalEntry = null;
     const defaultNavigation = { type: "all", label: "Todos os Pok\u00e9mon" };
     const generationRanges = [
@@ -692,6 +693,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     const buildsFlowCount = document.querySelector("#flow-builds-count");
     const themeToggleButton = document.querySelector("#theme-toggle");
     const densityToggleButton = document.querySelector("#density-toggle");
+    const updateCheckButton = document.querySelector("#update-check");
     const statusChips = document.querySelector("#status-chips");
     const methodChips = document.querySelector("#method-chips");
     const typeChips = document.querySelector("#type-chips");
@@ -1736,6 +1738,34 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       densityToggleButton.classList.toggle("active", isCompactMode);
       densityToggleButton.setAttribute("aria-pressed", isCompactMode ? "true" : "false");
       densityToggleButton.textContent = isCompactMode ? "Cards normais" : "Modo compacto";
+      updateCheckButton.hidden = !isTauriApp();
+      updateCheckButton.disabled = updateCheckInProgress || !isTauriApp();
+      updateCheckButton.textContent = updateCheckInProgress ? "Buscando..." : "Buscar atualizacoes";
+    }
+
+    async function checkForAppUpdateManually() {
+      if (!isTauriApp() || updateCheckInProgress) return;
+      updateCheckInProgress = true;
+      applyViewPreferences();
+      try {
+        const update = await invokeTauri("check_update");
+        if (!update?.available) {
+          window.alert(`Voce ja esta na versao mais recente (${update?.currentVersion || "atual"}).`);
+          return;
+        }
+        const shouldInstall = window.confirm(
+          `Nova versao ${update.version} disponivel. Baixar, instalar e reiniciar o app agora?`
+        );
+        if (!shouldInstall) return;
+        updateCheckButton.textContent = "Instalando...";
+        await invokeTauri("install_latest_update");
+      } catch (error) {
+        window.alert("Nao foi possivel buscar atualizacoes. Confira se a release no GitHub ja foi criada com os arquivos do updater.");
+        console.warn("Nao foi possivel buscar atualizacoes.", error);
+      } finally {
+        updateCheckInProgress = false;
+        applyViewPreferences();
+      }
     }
 
     function applyLogPanelPreferences() {
@@ -3108,6 +3138,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       localStorage.setItem(DENSITY_KEY, isCompactMode ? "compact" : "normal");
       applyViewPreferences();
     });
+    updateCheckButton.addEventListener("click", checkForAppUpdateManually);
     document.querySelector("#export-missing").addEventListener("click", exportMissingPokemon);
     document.querySelector("#clear-filters").addEventListener("click", () => {
       searchInput.value = "";

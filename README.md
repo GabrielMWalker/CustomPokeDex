@@ -1,81 +1,206 @@
-# Pixelmon Pokédex Checklist
+# Pixelmon - Pokelist
 
-Aplicativo local para acompanhar o progresso de uma Pokédex no Pixelmon. Ele mostra quais Pokémon já foram adquiridos, quais ainda faltam e qual método ajuda a completar cada entrada.
+Aplicativo desktop/local para acompanhar uma Pokedex pessoal no Pixelmon.
 
-O app foi pensado para uso local: o progresso fica salvo no próprio computador, sem conta, banco externo ou serviço online.
+Ele ajuda a ver o que ja foi capturado, o que ainda falta, como obter cada Pokemon, quais especies sao compativeis para breeding, telemetria de capturas e counters por tipo para raids/bosses.
 
-## Recursos
+## Destaques
 
-- Pokédex Nacional com 1025 espécies, da Geração 1 à Geração 9.
-- Dashboard com capturados, faltantes e progresso em porcentagem.
-- Navegação lateral por gerações e categorias especiais.
-- Busca por nome, número ou item.
-- Filtros visíveis em chips por status e método.
-- Separação entre evolução por nível disponível e evolução por nível com base ausente.
-- Cards com sprite, número nacional, método, tipo e ação de captura.
-- Tema claro, tema escuro e modo compacto.
-- Exportação em `.txt` da lista de Pokémon faltantes.
-- Monitor opcional de logs locais do Pixelmon, sempre com confirmação manual.
+- Pokedex Nacional com 1025 especies, da geracao 1 a 9.
+- Checklist com busca, filtros por status, metodo, tipo e ordenacao.
+- Modal de detalhes por Pokemon com tipo, egg groups, evolucoes, obtencao e wiki.
+- Telemetria com progresso geral, progresso por geracao/metodo e historico de capturas.
+- Breeding com busca por Pokemon, egg groups e lista de compativeis.
+- Counters por tipo com busca de boss, sugestoes com imagem e tipos super efetivos.
+- Monitor opcional de logs locais do Pixelmon com confirmacao manual.
+- Tema claro/escuro, modo compacto e exportacao de faltantes.
+- App desktop Tauri com dados salvos localmente no computador.
+- Botao manual para buscar atualizacoes via GitHub Releases.
 
-## Usar Como App Desktop
+## Fluxos Do App
 
-Este é o modo recomendado para uma experiência mais limpa, sem janela de terminal aberta ao lado.
+### Checklist
 
-Pré-requisitos:
+Fluxo principal para marcar Pokemon como capturados ou faltantes.
 
-- Node.js com npm.
-- Rust com Cargo.
+Use os filtros para navegar por:
 
-Depois de instalar os pré-requisitos, rode:
+- status;
+- metodo de obtencao;
+- tipo do Pokemon;
+- ordem numerica ou alfabetica;
+- geracoes e categorias especiais no menu lateral.
+
+### Telemetria
+
+Mostra a evolucao da sua Pokedex com graficos e tabela de capturas.
+
+A data de captura e definida quando o Pokemon e marcado como capturado.
+
+### Breeding
+
+Ajuda a encontrar Pokemon compativeis por egg group.
+
+Voce pode buscar uma especie especifica ou filtrar por grupo.
+
+### Counters
+
+Ajuda a escolher o que levar contra um boss ou elemento.
+
+Voce pode:
+
+- buscar o boss por nome ou numero;
+- selecionar automaticamente os tipos do boss;
+- marcar tipos manualmente;
+- ver quais tipos causam dano forte;
+- ver sugestoes de Pokemon finais para levar.
+
+### Logs Locais
+
+O painel lateral pode monitorar logs do Pixelmon e sugerir capturas detectadas.
+
+Nada entra automaticamente na Pokedex: toda sugestao precisa ser confirmada.
+
+## Como Rodar Em Desenvolvimento
+
+Pre-requisitos:
+
+- Node.js com npm;
+- Rust com Cargo;
+- dependencias de build do Tauri no Windows.
+
+Instale as dependencias:
 
 ```powershell
 npm install
+```
+
+Rode o app em modo desenvolvimento:
+
+```powershell
 npm run dev
 ```
 
-Para gerar um instalador/app final:
+## Como Gerar O Installer
+
+Crie o build desktop:
 
 ```powershell
 npm run build
 ```
 
-No modo desktop, a base de capturados e a configuração da pasta de logs ficam salvas na pasta local de dados do aplicativo do Windows.
+Os installers ficam em:
 
-## Usar Pelo Navegador
+```text
+src-tauri/target/release/bundle/
+```
 
-Também é possível usar o modo anterior, com servidor local em PowerShell:
+No Windows, o arquivo mais simples para compartilhar costuma ser:
+
+```text
+src-tauri/target/release/bundle/nsis/Pixelmon - Pokelist_X.X.X_x64-setup.exe
+```
+
+## Atualizacoes Pelo App
+
+O app tem um botao manual `Buscar atualizacoes`.
+
+Esse fluxo usa o updater do Tauri:
+
+1. O usuario instala o app uma vez pelo installer.
+2. Depois, quando voce publicar uma nova release no GitHub, ele pode clicar em `Buscar atualizacoes`.
+3. Se houver versao nova, o app baixa, instala e reinicia.
+
+Isso evita que seu amigo precise baixar e executar o installer manualmente toda vez.
+
+## Como Publicar Uma Release Com Update
+
+Antes de publicar uma nova release:
+
+1. Aumente a versao em `src-tauri/tauri.conf.json`.
+2. Rode o build:
+
+```powershell
+npm run build
+```
+
+3. Gere a assinatura e o arquivo de update:
+
+```powershell
+npm run release:latest-json
+```
+
+Esse comando gera:
+
+```text
+src-tauri/target/release/bundle/nsis/Pixelmon - Pokelist_X.X.X_x64-setup.exe.sig
+src-tauri/target/release/bundle/nsis/latest.json
+```
+
+Na release do GitHub, envie estes arquivos:
+
+```text
+Pixelmon - Pokelist_X.X.X_x64-setup.exe
+Pixelmon - Pokelist_X.X.X_x64-setup.exe.sig
+latest.json
+```
+
+O endpoint configurado no app aponta para:
+
+```text
+https://github.com/GabrielMWalker/CustomPokeDex/releases/latest/download/latest.json
+```
+
+## Chave De Assinatura
+
+O updater exige assinatura para garantir que o update veio de uma fonte confiavel.
+
+A chave publica fica em `src-tauri/tauri.conf.json`.
+
+A chave privada fica localmente em:
+
+```text
+.tauri/pixelmon-pokelist.key
+```
+
+Essa pasta esta no `.gitignore` e nao deve ser enviada para o GitHub.
+
+Guarde essa chave com cuidado. Se ela for perdida, updates futuros nao serao aceitos pelos apps ja instalados com essa chave publica.
+
+## Modo Navegador Legado
+
+Ainda existe o modo antigo via servidor local:
 
 ```powershell
 .\iniciar-checklist.bat
 ```
 
-Esse modo abre o app no navegador e salva o progresso em `pokemon-checklist-db.json`, criado automaticamente na pasta do projeto.
-
-## Monitor de Logs Locais
-
-O painel `Logs locais` acompanha o chat gravado nos logs do Pixelmon e sugere capturas detectadas.
-
-Na primeira vez, informe a pasta de logs da sua instância do jogo. Um caminho comum é:
+Nesse modo, o progresso fica em:
 
 ```text
-%APPDATA%\CoreLauncher\game\instances\Pixelmon Brasil - Gen 9\logs
+pokemon-checklist-db.json
 ```
 
-Esse caminho pode variar conforme o launcher, o nome da instância ou a instalação.
+O modo desktop e o recomendado para uso normal.
 
-As detecções aparecem como candidatos na lateral direita. Nada é marcado automaticamente: cada Pokémon precisa ser confirmado antes de entrar na Pokédex.
+## Estrutura Principal
 
-## Estrutura
+```text
+src/
+  index.html
+  scripts/app.js
+  styles/
+  pokemon-*-data.js
 
-- `src/index.html`: interface principal do app.
-- `src/pokemon-catalogo-data.js`: catálogo nacional de Pokémon.
-- `src/lista-falta-pokemon-data.js`: lista base de entradas e classificações.
-- `src/pokemon-metodos-data.js`: métodos de obtenção e evolução.
-- `src/pokemon-biomas-data.js`: biomas e horários de encontro no Pixelmon.
-- `src-tauri/`: app desktop em Tauri.
-- `servidor-local.ps1`: servidor local para o modo navegador.
-- `iniciar-checklist.bat`: atalho para iniciar o modo navegador no Windows.
+src-tauri/
+  src/lib.rs
+  tauri.conf.json
+  Cargo.toml
 
-## Observações
+scripts/
+  generate-latest-json.mjs
+```
 
-As informações de biomas e métodos podem variar conforme a versão do Pixelmon e a configuração do servidor. Use os detalhes como apoio prático e confirme casos especiais dentro do seu servidor.
+## Observacoes
+
+As informacoes de biomas, metodos e disponibilidade podem variar conforme a versao do Pixelmon e a configuracao do servidor. Use a lista como apoio pratico e confirme casos especiais no seu servidor.

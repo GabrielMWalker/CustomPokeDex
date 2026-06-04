@@ -30,5 +30,16 @@
       "icons/128x128@2x.png",
       "icons/icon.ico"
     ]
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDg5QjBBMTgyRjA2Njc4RDAKUldUUWVHYndncUd3aVdETndHMGM4RVhIdnl4Z3Bkak5PRTVHMXFpTG15S0Z5ZHlCZzJQdjZkUVgK",
+      "endpoints": [
+        "https://github.com/GabrielMWalker/CustomPokeDex/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
+    }
   }
 }

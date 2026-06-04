@@ -9,7 +9,8 @@ use std::{
   sync::Mutex,
   time::{SystemTime, UNIX_EPOCH},
 };
-use tauri::{Manager, State};
+use tauri::{AppHandle, Manager, State};
+use tauri_plugin_updater::UpdaterExt;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -128,6 +129,14 @@ struct AppState {
   log: Mutex<LogCaptureState>,
 }
 
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct UpdateInfo {
+  available: bool,
+  version: String,
+  current_version: String,
+}
+
 #[tauri::command]
 fn get_state(state: State<'_, AppState>) -> Result<Database, String> {
   read_database(&state.database_path)
@@ -151,6 +160,45 @@ fn open_external_url(url: String) -> Result<(), String> {
     .spawn()
     .map_err(|error| error.to_string())?;
   Ok(())
+}
+
+#[tauri::command]
+async fn check_update(app: AppHandle) -> Result<UpdateInfo, String> {
+  let current_version = app.package_info().version.to_string();
+  let update = app
+    .updater()
+    .map_err(|error| error.to_string())?
+    .check()
+    .await
+    .map_err(|error| error.to_string())?;
+
+  Ok(UpdateInfo {
+    available: update.is_some(),
+    version: update
+      .map(|available_update| available_update.version.to_string())
+      .unwrap_or_else(|| current_version.clone()),
+    current_version,
+  })
+}
+
+#[tauri::command]
+async fn install_latest_update(app: AppHandle) -> Result<(), String> {
+  let Some(update) = app
+    .updater()
+    .map_err(|error| error.to_string())?
+    .check()
+    .await
+    .map_err(|error| error.to_string())?
+  else {
+    return Ok(());
+  };
+
+  update
+    .download_and_install(|_, _| {}, || {})
+    .await
+    .map_err(|error| error.to_string())?;
+
+  app.restart();
 }
 
 #[tauri::command]
@@ -219,6 +267,7 @@ fn clear_log_capture(state: State<'_, AppState>) -> Result<LogCaptureResponse, S
 
 pub fn run() {
   tauri::Builder::default()
+    .plugin(tauri_plugin_updater::Builder::new().build())
     .setup(|app| {
       let app_dir = app.path().app_data_dir()?;
       fs::create_dir_all(&app_dir)?;
@@ -248,6 +297,8 @@ pub fn run() {
       get_state,
       save_state,
       open_external_url,
+      check_update,
+      install_latest_update,
       get_log_capture,
       set_log_capture_enabled,
       set_log_capture_config,

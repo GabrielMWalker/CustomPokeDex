@@ -3,6 +3,8 @@
 node_modules/
 dist/
 src-tauri/target/
+.tauri/
+*.key
 logs-game/
 logs-launcher/
 *.tmp
