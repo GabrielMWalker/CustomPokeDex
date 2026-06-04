@@ -86,7 +86,7 @@ npm run dev
 Crie o build desktop:
 
 ```powershell
-npm run build
+npm.cmd run build
 ```
 
 Os installers ficam em:
@@ -149,7 +149,7 @@ npm run build
 Depois gere a assinatura e o arquivo de update:
 
 ```powershell
-npm run release:latest-json
+npm.cmd run release:latest-json
 ```
 
 Esse comando gera:
@@ -159,11 +159,11 @@ src-tauri/target/release/bundle/nsis/Pixelmon - Pokelist_X.X.X_x64-setup.exe.sig
 src-tauri/target/release/bundle/nsis/latest.json
 ```
 
-Na release do GitHub, envie estes arquivos:
+Na release do GitHub, envie estes arquivos. Se o upload sanitizar espacos, mantenha o mesmo padrao com pontos usado pelo workflow:
 
 ```text
-Pixelmon - Pokelist_X.X.X_x64-setup.exe
-Pixelmon - Pokelist_X.X.X_x64-setup.exe.sig
+Pixelmon.-.Pokelist_X.X.X_x64-setup.exe
+Pixelmon.-.Pokelist_X.X.X_x64-setup.exe.sig
 latest.json
 ```
 

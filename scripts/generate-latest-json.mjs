@@ -10,6 +10,7 @@ const tauriConfig = JSON.parse(fs.readFileSync(tauriConfigPath, "utf8"));
 const version = tauriConfig.version;
 const nsisDir = path.join(root, "src-tauri", "target", "release", "bundle", "nsis");
 const setupName = `Pixelmon - Pokelist_${version}_x64-setup.exe`;
+const releaseSetupName = setupName.replace(/\s+/g, ".");
 const setupPath = path.join(nsisDir, setupName);
 const signaturePath = `${setupPath}.sig`;
 const privateKeyPath = path.join(root, ".tauri", "pixelmon-pokelist.key");
@@ -35,7 +36,7 @@ const latest = {
   platforms: {
     "windows-x86_64": {
       signature: fs.readFileSync(signaturePath, "utf8").trim(),
-      url: `https://github.com/${repoOwner}/${repoName}/releases/latest/download/${encodeURIComponent(setupName)}`
+      url: `https://github.com/${repoOwner}/${repoName}/releases/latest/download/${encodeURIComponent(releaseSetupName)}`
     }
   }
 };
