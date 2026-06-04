@@ -25,11 +25,17 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     let buildRoleFilter = "";
     let buildDamageFilter = "";
     let raidShieldType = "";
+    let counterSearch = "";
+    let counterBossSearch = "";
+    let selectedCounterBossKey = "";
+    let counterTargetTypes = new Set();
     let buildMetaOnly = false;
     let selectedBreedingKey = "";
     let focusTelemetrySearchAfterRender = false;
     let focusBreedingSearchAfterRender = false;
     let focusBuildSearchAfterRender = false;
+    let focusCounterSearchAfterRender = false;
+    let focusCounterBossSearchAfterRender = false;
     let activeModalEntry = null;
     const defaultNavigation = { type: "all", label: "Todos os Pok\u00e9mon" };
     const generationRanges = [
@@ -1059,6 +1065,15 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       return badge;
     }
 
+    async function openExternalUrl(url) {
+      if (!url) return;
+      if (isTauriApp()) {
+        await invokeTauri("open_external_url", { url });
+        return;
+      }
+      window.open(url, "_blank", "noopener");
+    }
+
     function inferBuildRole(entry) {
       const types = new Set(entry.types || []);
       const fastTypes = new Set(["electric", "flying", "fire", "dragon", "ghost", "dark", "psychic"]);
@@ -1426,7 +1441,6 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
         </div>
         ${entry.types.length ? `<div class="meta-row type-row"></div>` : ""}
         ${entry.detail && entry.showDetailInline ? `<p class="detail"></p>` : ""}
-        ${entry.detail && !entry.showDetailInline ? `<span class="help-wrap"><button class="help-button" type="button" aria-label="Ver detalhes">?</button><span class="help-tooltip"></span></span>` : ""}
         ${entry.materials.length ? `<div class="meta-row materials-row"></div>` : ""}
       `;
       text.querySelector("h3").textContent = entry.name;
@@ -1440,23 +1454,6 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
         entry.types.forEach(type => typeRow.append(createTypeBadge(type)));
       }
       if (entry.detail && entry.showDetailInline) text.querySelector(".detail").textContent = entry.detail;
-      if (entry.detail && !entry.showDetailInline) {
-        const help = text.querySelector(".help-wrap");
-        const tooltip = help.querySelector(".help-tooltip");
-        tooltip.textContent = entry.detail;
-        if (entry.wiki) {
-          const link = document.createElement("a");
-          link.href = entry.wiki;
-          link.target = "_blank";
-          link.rel = "noopener";
-          link.textContent = "Abrir Wiki Pixelmon";
-          tooltip.append(link);
-        }
-        help.querySelector(".help-button").addEventListener("click", event => {
-          event.stopPropagation();
-          help.classList.toggle("open");
-        });
-      }
       if (entry.materials.length) {
         entry.materials.forEach(material => {
           const chip = document.createElement("span");
@@ -1568,12 +1565,14 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       });
       heroText.querySelector(".modal-actions").append(captureButton);
       if (entry.wiki) {
-        const wikiLink = document.createElement("a");
+        const wikiLink = document.createElement("button");
         wikiLink.className = "muted-button modal-capture-button";
-        wikiLink.href = entry.wiki;
-        wikiLink.target = "_blank";
-        wikiLink.rel = "noopener";
+        wikiLink.type = "button";
         wikiLink.textContent = "Abrir Wiki";
+        wikiLink.addEventListener("click", event => {
+          event.preventDefault();
+          openExternalUrl(entry.wiki).catch(() => {});
+        });
         heroText.querySelector(".modal-actions").append(wikiLink);
       }
       hero.append(heroText);
@@ -2421,43 +2420,358 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       return badge;
     }
 
+    function formatMultiplier(multiplier) {
+      if (multiplier === 4) return "4x";
+      if (multiplier === 2) return "2x";
+      if (multiplier === 1) return "1x";
+      if (multiplier === .5) return "0.5x";
+      if (multiplier === .25) return "0.25x";
+      if (multiplier === 0) return "0x";
+      return `${multiplier}x`;
+    }
+
+    function getCounterTargetTypes() {
+      return [...counterTargetTypes];
+    }
+
+    function getCounterAttackTypes(targetTypes) {
+      if (!targetTypes.length) return [];
+      return Object.keys(typeEffectiveness)
+        .map(type => ({
+          type,
+          multiplier: getTypeEffectiveness(type, targetTypes)
+        }))
+        .filter(item => item.multiplier > 1)
+        .sort((a, b) => b.multiplier - a.multiplier || formatPokemonType(a.type).localeCompare(formatPokemonType(b.type), "pt-BR"));
+    }
+
+    function getCounterDefenseLabel(entry, targetTypes) {
+      if (!targetTypes.length) return "Neutro";
+      const incoming = targetTypes.map(type => getTypeEffectiveness(type, entry.types));
+      const worst = Math.max(...incoming);
+      const best = Math.min(...incoming);
+      if (worst === 0) return "Imune";
+      if (worst < 1) return "Resiste";
+      if (best === 0 && worst <= 1) return "Tem imunidade";
+      if (worst > 1) return "Cuidado";
+      return "Neutro";
+    }
+
+    function getCounterDefenseScore(entry, targetTypes) {
+      if (!targetTypes.length) return 0;
+      const incoming = targetTypes.map(type => getTypeEffectiveness(type, entry.types));
+      const worst = Math.max(...incoming);
+      const best = Math.min(...incoming);
+      if (worst === 0) return 22;
+      if (worst < 1) return 14;
+      if (best === 0 && worst <= 1) return 12;
+      if (worst > 1) return -16;
+      return 0;
+    }
+
+    function getCounterCandidates(targetTypes, search = "") {
+      if (!targetTypes.length) return [];
+      const normalizedSearch = normalize(search.trim());
+      return getBuildEligibleEntries()
+        .filter(entry => !normalizedSearch || matchesTextSearch(entry, normalizedSearch))
+        .map(entry => {
+          const builds = getBuildRecommendations(entry);
+          const attackTypes = new Set(entry.types);
+          builds.forEach(build => getBuildAttackTypes(entry, build).forEach(type => attackTypes.add(type)));
+          const strongTypes = [...attackTypes]
+            .map(type => ({
+              type,
+              multiplier: getTypeEffectiveness(type, targetTypes)
+            }))
+            .filter(item => item.multiplier > 1)
+            .sort((a, b) => b.multiplier - a.multiplier || formatPokemonType(a.type).localeCompare(formatPokemonType(b.type), "pt-BR"));
+          if (!strongTypes.length) return null;
+          const strongest = strongTypes[0]?.multiplier || 1;
+          const hasMetaBuild = builds.some(build =>
+            build.isMeta && getBuildAttackTypes(entry, build).some(type => strongTypes.some(item => item.type === type))
+          );
+          const score = strongest * 100
+            + (hasMetaBuild ? 20 : 0)
+            + (isOwned(entry) ? 8 : 0)
+            + getCounterDefenseScore(entry, targetTypes)
+            - entry.id / 10000;
+          return {
+            entry,
+            strongTypes,
+            hasMetaBuild,
+            defenseLabel: getCounterDefenseLabel(entry, targetTypes),
+            score
+          };
+        })
+        .filter(Boolean)
+        .sort((a, b) => b.score - a.score || a.entry.id - b.entry.id);
+    }
+
+    function getCounterBossSuggestions(search) {
+      const normalizedSearch = normalize(search.trim());
+      if (!normalizedSearch) return [];
+      return allEntries
+        .filter(entry => entry.types.length && matchesTextSearch(entry, normalizedSearch))
+        .sort((a, b) => a.id - b.id)
+        .slice(0, 8);
+    }
+
+    function selectCounterBoss(entry) {
+      if (!entry?.types?.length) return;
+      counterBossSearch = entry.name;
+      selectedCounterBossKey = canonicalKey(entry.name);
+      counterTargetTypes = new Set(entry.types);
+      counterSearch = "";
+      render();
+    }
+
+    function renderCounterBossSuggestions(wrapper, suggestions) {
+      const panel = wrapper.querySelector(".counter-boss-suggestions");
+      panel.replaceChildren();
+      panel.hidden = !suggestions.length;
+      suggestions.forEach(entry => {
+        const button = document.createElement("button");
+        button.className = "counter-boss-option";
+        button.type = "button";
+        button.innerHTML = `
+          <span class="counter-boss-image"></span>
+          <span class="counter-boss-text">
+            <strong></strong>
+            <span class="counter-boss-types"></span>
+          </span>
+        `;
+        button.querySelector(".counter-boss-image").replaceWith(createPokemonImage(entry, ""));
+        button.querySelector("strong").textContent = `#${String(entry.id).padStart(4, "0")} ${entry.name}`;
+        entry.types.forEach(type => button.querySelector(".counter-boss-types").append(createTypeBadge(type)));
+        button.addEventListener("click", () => selectCounterBoss(entry));
+        panel.append(button);
+      });
+    }
+
+    function renderCounterTools(list) {
+      const wrapper = document.createElement("section");
+      wrapper.className = "counter-tools";
+      wrapper.innerHTML = `
+        <div class="counter-panel">
+          <div class="counter-panel-header">
+            <h2 class="filter-title">Tipos do inimigo</h2>
+            <button class="link-button" id="clear-counter-types" type="button">Limpar tipos</button>
+          </div>
+          <div class="counter-boss-search">
+            <input class="search-field" id="counter-boss-search" type="search" placeholder="Buscar boss por nome ou numero...">
+            <div class="counter-boss-suggestions" hidden></div>
+          </div>
+          <div class="chip-group" aria-label="Tipos do inimigo">
+            <span class="chip-label">Tipo</span>
+            <div class="counter-chip-list"></div>
+          </div>
+        </div>
+      `;
+      const bossInput = wrapper.querySelector("#counter-boss-search");
+      const bossSuggestions = selectedCounterBossKey ? [] : getCounterBossSuggestions(counterBossSearch);
+      bossInput.value = counterBossSearch;
+      bossInput.addEventListener("input", event => {
+        counterBossSearch = event.target.value;
+        selectedCounterBossKey = "";
+        focusCounterBossSearchAfterRender = true;
+        render();
+      });
+      bossInput.addEventListener("keydown", event => {
+        if (event.key !== "Enter") return;
+        const [firstSuggestion] = getCounterBossSuggestions(counterBossSearch);
+        if (!firstSuggestion) return;
+        event.preventDefault();
+        selectCounterBoss(firstSuggestion);
+      });
+      renderCounterBossSuggestions(wrapper, bossSuggestions);
+
+      const chipList = wrapper.querySelector(".counter-chip-list");
+      typeFilters.forEach(type => {
+        const nextTypes = new Set(counterTargetTypes);
+        if (nextTypes.has(type.value)) nextTypes.delete(type.value);
+        else nextTypes.add(type.value);
+        const countTypes = counterTargetTypes.has(type.value)
+          ? getCounterTargetTypes()
+          : [...nextTypes];
+        chipList.append(createFilterChip({
+          label: type.label,
+          active: counterTargetTypes.has(type.value),
+          count: getCounterCandidates(countTypes).length,
+          onClick: () => {
+            if (counterTargetTypes.has(type.value)) counterTargetTypes.delete(type.value);
+            else counterTargetTypes.add(type.value);
+            counterBossSearch = "";
+            selectedCounterBossKey = "";
+            render();
+          }
+        }));
+      });
+
+      wrapper.querySelector("#clear-counter-types").addEventListener("click", () => {
+        counterBossSearch = "";
+        selectedCounterBossKey = "";
+        counterTargetTypes = new Set();
+        render();
+      });
+
+      list.append(wrapper);
+      if (focusCounterBossSearchAfterRender) {
+        focusCounterBossSearchAfterRender = false;
+        bossInput.focus();
+        bossInput.setSelectionRange(bossInput.value.length, bossInput.value.length);
+      }
+    }
+
+    function renderCounterResultsSearch(list) {
+      const searchWrap = document.createElement("div");
+      searchWrap.className = "counter-results-search";
+      searchWrap.innerHTML = `
+        <input class="search-field" id="counter-search" type="search" list="pokemon-search-options" placeholder="Pesquisar nas sugestoes...">
+      `;
+      const input = searchWrap.querySelector("#counter-search");
+      input.value = counterSearch;
+      input.addEventListener("input", event => {
+        counterSearch = event.target.value;
+        focusCounterSearchAfterRender = true;
+        render();
+      });
+      list.append(searchWrap);
+      if (focusCounterSearchAfterRender) {
+        focusCounterSearchAfterRender = false;
+        input.focus();
+        input.setSelectionRange(input.value.length, input.value.length);
+      }
+    }
+
+    function renderCounterSummary(list, targetTypes) {
+      const section = document.createElement("section");
+      section.className = "counter-summary";
+      section.innerHTML = `
+        <div class="counter-summary-header">
+          <div>
+            <p class="eyebrow">Efetividade</p>
+            <h2></h2>
+          </div>
+          <span class="category-count"></span>
+        </div>
+        <div class="counter-type-grid"></div>
+      `;
+      const title = targetTypes.length
+        ? targetTypes.map(formatPokemonType).join(" / ")
+        : "Escolha um ou mais tipos";
+      section.querySelector("h2").textContent = targetTypes.length
+        ? `Bater forte contra ${title}`
+        : "O que levar contra cada elemento";
+      const strongAttackTypes = getCounterAttackTypes(targetTypes);
+      section.querySelector(".category-count").textContent = targetTypes.length
+        ? `${strongAttackTypes.length} tipos fortes`
+        : "Selecione no filtro";
+
+      const grid = section.querySelector(".counter-type-grid");
+      if (!targetTypes.length) {
+        const note = document.createElement("p");
+        note.className = "raid-note";
+        note.textContent = "Marque o tipo do Pokemon inimigo. Para tipo duplo, como Dragon + Dark, marque os dois.";
+        grid.append(note);
+      } else if (!strongAttackTypes.length) {
+        const note = document.createElement("p");
+        note.className = "raid-note";
+        note.textContent = "Nenhum tipo fica super efetivo nessa combinacao.";
+        grid.append(note);
+      } else {
+        strongAttackTypes.forEach(item => {
+          const card = document.createElement("article");
+          card.className = "counter-type-card";
+          card.innerHTML = `
+            <div class="counter-type-card-main"></div>
+            <strong></strong>
+            <span></span>
+          `;
+          card.querySelector(".counter-type-card-main").append(createTypeBadge(item.type));
+          card.querySelector("strong").textContent = `${formatMultiplier(item.multiplier)} de dano`;
+          card.querySelector("span").textContent = `Ataques ${formatPokemonType(item.type)}`;
+          grid.append(card);
+        });
+      }
+
+      list.append(section);
+    }
+
+    function createCounterCard(result) {
+      const { entry, strongTypes, hasMetaBuild, defenseLabel } = result;
+      const card = document.createElement("article");
+      card.className = `counter-card${isOwned(entry) ? " is-owned" : ""}`;
+      card.innerHTML = `
+        <div class="counter-card-main">
+          <span class="counter-card-image"></span>
+          <div>
+            <p class="modal-kicker"></p>
+            <h3></h3>
+            <div class="raid-card-types"></div>
+          </div>
+        </div>
+        <div class="counter-strong-types"></div>
+        <div class="raid-tags"></div>
+        <p class="raid-note"></p>
+      `;
+      card.querySelector(".counter-card-image").replaceWith(createPokemonImage(entry, ""));
+      card.querySelector(".modal-kicker").textContent = `#${String(entry.id).padStart(4, "0")}`;
+      card.querySelector("h3").textContent = entry.name;
+      entry.types.forEach(type => card.querySelector(".raid-card-types").append(createTypeBadge(type)));
+      strongTypes.slice(0, 4).forEach(item => {
+        const chip = createTextBadge(`${formatPokemonType(item.type)} ${formatMultiplier(item.multiplier)}`);
+        card.querySelector(".counter-strong-types").append(chip);
+      });
+      const tags = card.querySelector(".raid-tags");
+      tags.append(createTextBadge(isOwned(entry) ? "Capturado" : "Faltando"));
+      tags.append(createTextBadge(defenseLabel));
+      if (hasMetaBuild) tags.append(createTextBadge("Meta cadastrada"));
+      card.querySelector(".raid-note").textContent =
+        `Leve para usar ${strongTypes.slice(0, 3).map(item => formatPokemonType(item.type)).join(" / ")} contra esse alvo.`;
+      card.addEventListener("click", () => openPokemonModal(entry));
+      return card;
+    }
+
     function renderBuildsFlow(list) {
-      activeTitle.textContent = "Builds";
-      renderBuildTools(list);
-      renderRaidAdvisor(list);
-      const search = normalize(buildSearch.trim());
-      const results = getAllBuildResults().filter(({ entry, build }) =>
-        matchesTextSearch(entry, search)
-          && (!buildRoleFilter || build.roleKey === buildRoleFilter)
-          && (!buildDamageFilter || build.damageType === buildDamageFilter)
-          && (!buildMetaOnly || build.isMeta)
-      );
-      visibleCount.textContent = `${results.length} builds`;
+      activeTitle.textContent = "Counters por tipo";
+      const targetTypes = getCounterTargetTypes();
+      renderCounterTools(list);
+      renderCounterSummary(list, targetTypes);
+      const results = getCounterCandidates(targetTypes, counterSearch);
+      visibleCount.textContent = targetTypes.length
+        ? `${results.length} sugestoes`
+        : `${typeFilters.length} tipos`;
+
+      if (!targetTypes.length) {
+        const empty = document.createElement("div");
+        empty.className = "empty";
+        empty.textContent = "Selecione o tipo do inimigo acima para ver o que levar.";
+        list.append(empty);
+        return;
+      }
+
+      renderCounterResultsSearch(list);
 
       if (!results.length) {
         const empty = document.createElement("div");
         empty.className = "empty";
-        empty.textContent = buildMetaOnly
-          ? "Nenhuma build meta cadastrada ainda."
-          : "Nenhuma build encontrada com esses filtros.";
+        empty.textContent = "Nenhum Pokemon final encontrado com cobertura forte para esses tipos.";
         list.append(empty);
         return;
       }
 
       const section = document.createElement("section");
-      section.className = "build-results";
+      section.className = "counter-results";
       section.innerHTML = `
         <div class="category-heading">
-          <h2>EVs sugeridos</h2>
+          <h2>Melhores opcoes para levar</h2>
           <span class="category-count"></span>
         </div>
-        <div class="build-grid"></div>
+        <div class="counter-grid"></div>
       `;
-      section.querySelector(".category-count").textContent = `${results.length} builds`;
-      const grid = section.querySelector(".build-grid");
-      results
-        .sort((a, b) => Number(b.build.isMeta) - Number(a.build.isMeta) || a.entry.id - b.entry.id || a.build.name.localeCompare(b.build.name, "pt-BR"))
-        .forEach(({ entry, build }) => grid.append(createBuildCard(entry, build)));
+      section.querySelector(".category-count").textContent = `${results.length} sugestoes`;
+      const grid = section.querySelector(".counter-grid");
+      results.slice(0, 80).forEach(result => grid.append(createCounterCard(result)));
       list.append(section);
     }
 
@@ -2483,7 +2797,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       checklistFlowCount.textContent = `${owned}/${CATALOG.length}`;
       telemetryFlowCount.textContent = `${percent}%`;
       breedingFlowCount.textContent = breedable;
-      buildsFlowCount.textContent = getBuildEligibleEntries().length;
+      buildsFlowCount.textContent = typeFilters.length;
     }
 
     function formatCapturedDateTime(value) {

@@ -163,8 +163,6 @@
       transition: .2s ease;
     }
     .card:hover { border-color: #bad1d8; transform: translateY(-2px); box-shadow: 0 11px 20px rgba(22,62,75,.09); }
-    .card:has(.help-wrap:hover),
-    .card:has(.help-wrap.open) { z-index: 12; }
     .card.done {
       background: color-mix(in srgb, var(--green) 12%, var(--surface));
       border-color: color-mix(in srgb, var(--green) 38%, var(--line));
@@ -231,44 +229,6 @@
     .type-steel { color: #20333a; background: #a9bdc6; }
     .type-fairy { background: #d77eb0; }
     .detail { margin: 5px 0 7px; color: var(--muted); font-size: 12px; line-height: 1.35; }
-    .help-wrap { position: relative; z-index: 14; display: inline-flex; align-items: center; margin: 5px 0 7px; }
-    .help-button {
-      width: 25px;
-      min-height: 25px;
-      padding: 0;
-      color: var(--blue);
-      background: #eef8fb;
-      border-color: #cce4eb;
-      border-radius: 50%;
-      font-size: 13px;
-      font-weight: 900;
-      line-height: 1;
-    }
-    .help-tooltip {
-      display: none;
-      position: absolute;
-      left: 0;
-      top: calc(100% + 7px);
-      z-index: 20;
-      width: min(280px, 75vw);
-      padding: 9px 10px;
-      color: white;
-      background: #234859;
-      border-radius: 8px;
-      box-shadow: 0 8px 18px rgba(18, 62, 75, .2);
-      font-size: 12px;
-      line-height: 1.4;
-    }
-    .help-tooltip a {
-      display: inline-block;
-      margin-top: 7px;
-      color: #cceffd;
-      font-weight: 850;
-      text-decoration: underline;
-      text-underline-offset: 2px;
-    }
-    .help-wrap:hover .help-tooltip,
-    .help-wrap.open .help-tooltip { display: block; }
     .complete-button {
       min-height: 32px;
       padding: 0 10px;
@@ -329,7 +289,6 @@
     .compact-cards .detail {
       display: none;
     }
-    .compact-cards .help-wrap { margin: 0; }
     .compact-cards .materials-row { display: none; }
     .compact-cards .complete-button {
       grid-column: 3;

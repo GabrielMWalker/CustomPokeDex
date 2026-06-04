@@ -4,6 +4,12 @@
   margin: 0 0 18px;
 }
 
+.counter-tools {
+  display: grid;
+  gap: 12px;
+  margin: 0 0 18px;
+}
+
 .build-panel {
   display: grid;
   gap: 12px;
@@ -14,7 +20,98 @@
   box-shadow: 0 8px 22px rgba(22, 62, 75, .055);
 }
 
+.counter-panel {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 8px 22px rgba(22, 62, 75, .055);
+}
+
+.counter-tools .search-field,
+.counter-results-search .search-field {
+  width: 100%;
+}
+
+.counter-boss-search {
+  position: relative;
+  display: grid;
+  gap: 8px;
+}
+
+.counter-boss-suggestions {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 8px;
+}
+
+.counter-boss-suggestions[hidden] {
+  display: none;
+}
+
+.counter-boss-option {
+  min-width: 0;
+  min-height: 62px;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
+  padding: 7px 10px;
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  text-align: left;
+}
+
+.counter-boss-option:hover {
+  border-color: #bad1d8;
+  transform: none;
+}
+
+.counter-boss-option img {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+}
+
+.counter-boss-text {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.counter-boss-text strong {
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 880;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.counter-boss-types {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.counter-panel-header,
+.counter-summary-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .build-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.counter-chip-list {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
@@ -23,6 +120,111 @@
 .build-toggle-line {
   display: flex;
   justify-content: flex-end;
+}
+
+.counter-summary,
+.counter-results {
+  display: grid;
+  gap: 12px;
+  margin: 0 0 18px;
+}
+
+.counter-summary {
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 8px 22px rgba(22, 62, 75, .055);
+}
+
+.counter-summary h2 {
+  margin: 2px 0 0;
+  font-size: 20px;
+  letter-spacing: 0;
+}
+
+.counter-type-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 10px;
+}
+
+.counter-type-card {
+  min-width: 0;
+  display: grid;
+  gap: 7px;
+  padding: 12px;
+  background: color-mix(in srgb, var(--surface) 84%, var(--blue) 8%);
+  border: 1px solid #c5dce2;
+  border-radius: 8px;
+}
+
+.counter-type-card strong {
+  color: var(--ink);
+  font-size: 18px;
+}
+
+.counter-type-card > span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.counter-results-search {
+  width: 100%;
+  margin: 0 0 16px;
+}
+
+.counter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 10px;
+}
+
+.counter-card {
+  min-width: 0;
+  display: grid;
+  gap: 9px;
+  padding: 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 8px 22px rgba(22, 62, 75, .045);
+  cursor: pointer;
+}
+
+.counter-card:hover {
+  border-color: #bad1d8;
+  transform: translateY(-1px);
+}
+
+.counter-card.is-owned {
+  border-color: color-mix(in srgb, var(--green) 36%, var(--line));
+}
+
+.counter-card-main {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+}
+
+.counter-card-main img {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+  filter: drop-shadow(0 6px 6px rgba(18, 62, 75, .12));
+}
+
+.counter-card h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.counter-strong-types {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
 .raid-panel {
@@ -308,7 +510,8 @@
 }
 
 @media (max-width: 680px) {
-  .build-grid {
+  .build-grid,
+  .counter-grid {
     grid-template-columns: 1fr;
   }
 
@@ -317,7 +520,9 @@
     justify-content: flex-start;
   }
 
-  .raid-header {
+  .raid-header,
+  .counter-panel-header,
+  .counter-summary-header {
     display: grid;
   }
 }

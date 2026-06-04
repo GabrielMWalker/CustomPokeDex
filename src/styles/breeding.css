@@ -95,7 +95,7 @@
   display: grid;
   gap: 8px;
   margin-top: 12px;
-  max-height: 360px;
+  max-height: min(680px, calc(100vh - 300px));
   overflow: auto;
 }
 

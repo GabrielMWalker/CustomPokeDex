@@ -5,6 +5,7 @@ use std::{
   fs::{self, File},
   io::{Read, Seek, SeekFrom, Write},
   path::{Path, PathBuf},
+  process::Command,
   sync::Mutex,
   time::{SystemTime, UNIX_EPOCH},
 };
@@ -139,6 +140,20 @@ fn save_state(captured: Vec<CapturedRecord>, state: State<'_, AppState>) -> Resu
 }
 
 #[tauri::command]
+fn open_external_url(url: String) -> Result<(), String> {
+  let trimmed = url.trim();
+  if !(trimmed.starts_with("https://") || trimmed.starts_with("http://")) {
+    return Err("URL externa invalida.".to_string());
+  }
+
+  Command::new("rundll32.exe")
+    .args(["url.dll,FileProtocolHandler", trimmed])
+    .spawn()
+    .map_err(|error| error.to_string())?;
+  Ok(())
+}
+
+#[tauri::command]
 fn get_log_capture(state: State<'_, AppState>) -> Result<LogCaptureResponse, String> {
   refresh_log_capture(&state)
 }
@@ -232,6 +247,7 @@ pub fn run() {
     .invoke_handler(tauri::generate_handler![
       get_state,
       save_state,
+      open_external_url,
       get_log_capture,
       set_log_capture_enabled,
       set_log_capture_config,
