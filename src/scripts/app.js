@@ -12,12 +12,23 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     const DENSITY_KEY = "pokemon-checklist-density";
     const LOG_SIDEBAR_COLLAPSED_KEY = "pokemon-checklist-log-sidebar-collapsed";
     const LOG_MONITOR_MINIMIZED_KEY = "pokemon-checklist-log-monitor-minimized";
+    const APP_META = window.POKELIST_APP_META || {
+      name: "Pixelmon - Pokelist",
+      version: "1.0.0",
+      releaseUrl: "",
+      updaterUrl: ""
+    };
+    const appUtils = window.POKELIST_UTILS || {};
     const getTauriInvoke = () => window.__TAURI__?.core?.invoke;
     const isTauriApp = () => Boolean(getTauriInvoke());
     const invokeTauri = (command, args = {}) => getTauriInvoke()(command, args);
     const capturedState = new Map();
     const filterState = { status: "", methods: new Set(), types: new Set(), sort: "number" };
     let activeView = "checklist";
+    let captureSearch = "";
+    let selectedCaptureBiome = "";
+    let selectedCapturePeriod = "";
+    let captureStatusFilter = "missing";
     let telemetrySearch = "";
     let breedingSearch = "";
     let breedingGroupFilter = "";
@@ -29,14 +40,19 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     let counterBossSearch = "";
     let selectedCounterBossKey = "";
     let counterTargetTypes = new Set();
+    let counterOwnedOnly = false;
     let buildMetaOnly = false;
     let selectedBreedingKey = "";
     let focusTelemetrySearchAfterRender = false;
+    let focusCaptureSearchAfterRender = false;
     let focusBreedingSearchAfterRender = false;
     let focusBuildSearchAfterRender = false;
     let focusCounterSearchAfterRender = false;
     let focusCounterBossSearchAfterRender = false;
     let updateCheckInProgress = false;
+    let updateInstallInProgress = false;
+    let appUpdateStatus = "";
+    let appDialogResolve = null;
     let activeModalEntry = null;
     const defaultNavigation = { type: "all", label: "Todos os Pok\u00e9mon" };
     const generationRanges = [
@@ -595,6 +611,82 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     const catalogByKey = new Map(allEntries.map(entry => [canonicalKey(entry.name), entry]));
     const catalogById = new Map(allEntries.map(entry => [entry.id, entry]));
 
+    function getCaptureBiomeData(entry) {
+      return captureBiomesByKey.get(canonicalKey(entry.name)) || null;
+    }
+
+    function getEntryBiomes(entry) {
+      return getCaptureBiomeData(entry)?.biomes || [];
+    }
+
+    function getCaptureBiomeGroupName(biome = "") {
+      const raw = String(biome || "").trim();
+      const value = normalize(raw.replace(/\s+\((byg|bop|forge|category)\)$/i, ""));
+      if (!value) return "Outros";
+      if (value === "any") return "Any";
+      if (value.startsWith("ultra ")) return "Ultra Space";
+      if (value.includes("end")) return "End";
+      if (value.includes("hellish") || value.includes("nether") || value.includes("crimson") || value.includes("warped") || value.includes("basalt") || value.includes("soul sand")) return "Hellish";
+      if (value.includes("beach") || value.includes("shore")) return "Beaches";
+      if (value.includes("ocean") || value.includes("deep sea") || value.includes("dead sea")) return "Oceanic";
+      if (value.includes("river")) return "Rivers";
+      if (value.includes("lake")) return "Lakes";
+      if (value.includes("swamp")) return "Swamps";
+      if (value.includes("freezing forest") || value.includes("snowy forest")) return "Freezing Forests";
+      if (value.includes("freezing mountain") || value.includes("snowy mountain") || value.includes("snowy slope") || value.includes("jagged peak") || value.includes("ice mountain") || value.includes("mount lanakila")) return "Freezing Mountains";
+      if (value.includes("freezing") || value.includes("frozen") || value.includes("snowy") || value.includes("ice plains") || value.includes("cold")) return "Freezing";
+      if (value.includes("redwood")) return "Redwoods";
+      if (value.includes("birch") || value.includes("aspen")) return "Birches";
+      if (value.includes("roofed") || value.includes("dark forest")) return "Roofed";
+      if (value.includes("taiga")) return "Taigas";
+      if (value.includes("jungle") || value.includes("bamboo") || value.includes("guiana shield")) return "Jungles";
+      if (value.includes("mushroom")) return "Mushroom";
+      if (value.includes("evil") || value.includes("burnt") || value.includes("pumpkin") || value.includes("wailing") || value.includes("wither")) return "Evil";
+      if (value.includes("magical") || value.includes("mystic") || value.includes("twilight") || value.includes("enchanted") || value.includes("witch")) return "Magical";
+      if (value.includes("flower") || value.includes("sunflower") || value.includes("allium") || value.includes("rose") || value.includes("lavender")) return "Flowery";
+      if (value.includes("mesa") || value.includes("badland") || value.includes("red rock") || value.includes("bryce")) return "Mesas";
+      if (value.includes("savanna")) return "Savannas";
+      if (value.includes("arid") || value.includes("desert") || value.includes("dune") || value.includes("quartz")) return "Arid";
+      if (value.includes("mountain") || value.includes("hill") || value.includes("peak") || value.includes("cliff") || value.includes("crag") || value.includes("slope") || value.includes("highland") || value.includes("crystalline chasm")) return "Mountainous";
+      if (value.includes("forest") || value.includes("woods") || value.includes("grove") || value.includes("orchard")) return "Forests";
+      if (value.includes("plains") || value.includes("grassland") || value.includes("prairie") || value.includes("field") || value.includes("clearing")) return "Plains";
+      return "Outros";
+    }
+
+    function getEntryBiomeGroups(entry) {
+      const groups = new Set();
+      getEntryBiomes(entry).forEach(item => groups.add(getCaptureBiomeGroupName(item.biome)));
+      return groups;
+    }
+
+    function getCaptureBiomeOptions() {
+      const options = new Map();
+      allEntries.forEach(entry => {
+        getEntryBiomeGroups(entry).forEach(key => {
+          const current = options.get(key) || { name: key, total: 0, missing: 0 };
+          current.total += 1;
+          if (!isOwned(entry)) current.missing += 1;
+          options.set(key, current);
+        });
+      });
+      return [...options.values()]
+        .sort((a, b) => b.missing - a.missing || a.name.localeCompare(b.name, "pt-BR"));
+    }
+
+    function getCapturePeriodOptions() {
+      const periods = new Set();
+      allEntries.forEach(entry => {
+        getEntryBiomes(entry).forEach(item => {
+          String(item.period || "")
+            .split(",")
+            .map(period => period.trim())
+            .filter(Boolean)
+            .forEach(period => periods.add(period));
+        });
+      });
+      return [...periods].sort((a, b) => a.localeCompare(b, "pt-BR"));
+    }
+
     function readJsonStorage(key, fallback) {
       try {
         const value = localStorage.getItem(key);
@@ -683,14 +775,18 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     const appShell = document.querySelector("#app-shell");
     const toolbar = document.querySelector(".toolbar");
     const checklistTab = document.querySelector("#flow-checklist");
+    const captureTab = document.querySelector("#flow-capture");
     const capturedTab = document.querySelector("#flow-telemetry");
     const breedingTab = document.querySelector("#flow-breeding");
     const buildsTab = document.querySelector("#flow-builds");
+    const settingsTab = document.querySelector("#flow-settings");
     const checklistNavSections = document.querySelector("#checklist-nav-sections");
     const checklistFlowCount = document.querySelector("#flow-checklist-count");
+    const captureFlowCount = document.querySelector("#flow-capture-count");
     const telemetryFlowCount = document.querySelector("#flow-telemetry-count");
     const breedingFlowCount = document.querySelector("#flow-breeding-count");
     const buildsFlowCount = document.querySelector("#flow-builds-count");
+    const settingsFlowCount = document.querySelector("#flow-settings-count");
     const themeToggleButton = document.querySelector("#theme-toggle");
     const densityToggleButton = document.querySelector("#density-toggle");
     const updateCheckButton = document.querySelector("#update-check");
@@ -718,6 +814,13 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     const pokemonModal = document.querySelector("#pokemon-modal");
     const pokemonModalContent = document.querySelector("#pokemon-modal-content");
     const pokemonModalClose = document.querySelector("#pokemon-modal-close");
+    const appDialog = document.querySelector("#app-dialog");
+    const appDialogKicker = document.querySelector("#app-dialog-kicker");
+    const appDialogTitle = document.querySelector("#app-dialog-title");
+    const appDialogMessage = document.querySelector("#app-dialog-message");
+    const appDialogDetail = document.querySelector("#app-dialog-detail");
+    const appDialogCancel = document.querySelector("#app-dialog-cancel");
+    const appDialogConfirm = document.querySelector("#app-dialog-confirm");
     document.querySelector("#catalog-count").textContent = CATALOG.length;
 
     function renderSearchOptions() {
@@ -1729,6 +1832,39 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
         .replace(/'/g, "&#39;");
     }
 
+    function closeAppDialog(result = false) {
+      if (appDialog.hidden) return;
+      appDialog.hidden = true;
+      if (appDialogResolve) {
+        appDialogResolve(result);
+        appDialogResolve = null;
+      }
+    }
+
+    function showAppDialog({
+      kicker = "Pixelmon - Pokelist",
+      title,
+      message = "",
+      detail = "",
+      confirmLabel = "OK",
+      cancelLabel = "Cancelar",
+      showCancel = false
+    }) {
+      appDialogKicker.textContent = kicker;
+      appDialogTitle.textContent = title;
+      appDialogMessage.textContent = message;
+      appDialogDetail.textContent = detail;
+      appDialogDetail.hidden = !detail;
+      appDialogCancel.textContent = cancelLabel;
+      appDialogCancel.hidden = !showCancel;
+      appDialogConfirm.textContent = confirmLabel;
+      appDialog.hidden = false;
+      appDialogConfirm.focus();
+      return new Promise(resolve => {
+        appDialogResolve = resolve;
+      });
+    }
+
     function applyViewPreferences() {
       document.documentElement.dataset.theme = activeTheme;
       document.body.classList.toggle("compact-cards", isCompactMode);
@@ -1740,30 +1876,61 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       densityToggleButton.textContent = isCompactMode ? "Cards normais" : "Modo compacto";
       updateCheckButton.hidden = !isTauriApp();
       updateCheckButton.disabled = updateCheckInProgress || !isTauriApp();
-      updateCheckButton.textContent = updateCheckInProgress ? "Buscando..." : "Buscar atualizacoes";
+      updateCheckButton.textContent = updateInstallInProgress
+        ? "Instalando..."
+        : updateCheckInProgress
+          ? "Buscando..."
+          : "Buscar atualizacoes";
     }
 
     async function checkForAppUpdateManually() {
       if (!isTauriApp() || updateCheckInProgress) return;
       updateCheckInProgress = true;
+      appUpdateStatus = "Buscando atualizacoes...";
       applyViewPreferences();
       try {
         const update = await invokeTauri("check_update");
         if (!update?.available) {
-          window.alert(`Voce ja esta na versao mais recente (${update?.currentVersion || "atual"}).`);
+          appUpdateStatus = `Versao ${update?.currentVersion || "atual"} instalada.`;
+          render();
+          await showAppDialog({
+            kicker: "Atualizacoes",
+            title: "Tudo em dia",
+            message: `Voce ja esta na versao mais recente (${update?.currentVersion || "atual"}).`,
+            confirmLabel: "Fechar"
+          });
           return;
         }
-        const shouldInstall = window.confirm(
-          `Nova versao ${update.version} disponivel. Baixar, instalar e reiniciar o app agora?`
-        );
+        appUpdateStatus = `Versao ${update.version} disponivel.`;
+        render();
+        const shouldInstall = await showAppDialog({
+          kicker: "Atualizacoes",
+          title: `Versao ${update.version} disponivel`,
+          message: "Baixar, instalar e reiniciar o app agora?",
+          detail: `Versao atual: ${update.currentVersion || "atual"}.`,
+          confirmLabel: "Instalar agora",
+          cancelLabel: "Depois",
+          showCancel: true
+        });
         if (!shouldInstall) return;
-        updateCheckButton.textContent = "Instalando...";
+        updateInstallInProgress = true;
+        appUpdateStatus = "Instalando atualizacao e reiniciando o app...";
+        render();
         await invokeTauri("install_latest_update");
       } catch (error) {
-        window.alert("Nao foi possivel buscar atualizacoes. Confira se a release no GitHub ja foi criada com os arquivos do updater.");
+        appUpdateStatus = "Nao foi possivel buscar atualizacoes.";
+        render();
+        await showAppDialog({
+          kicker: "Atualizacoes",
+          title: "Update indisponivel",
+          message: "Nao foi possivel buscar atualizacoes.",
+          detail: "Confira se a release no GitHub ja foi criada com os arquivos do updater.",
+          confirmLabel: "Fechar"
+        });
         console.warn("Nao foi possivel buscar atualizacoes.", error);
       } finally {
         updateCheckInProgress = false;
+        updateInstallInProgress = false;
         applyViewPreferences();
       }
     }
@@ -1776,7 +1943,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       toggleLogSidebarButton.title = "Recolher logs locais";
       toggleLogSidebarButton.setAttribute("aria-label", toggleLogSidebarButton.title);
       toggleLogSidebarButton.setAttribute("aria-expanded", "true");
-      logSidebarRailIcon.textContent = "\u2039";
+      logSidebarRailIcon.textContent = "+";
       logSidebarRailButton.setAttribute("aria-expanded", isLogSidebarCollapsed ? "false" : "true");
       logSidebarBadge.textContent = pendingCount > 99 ? "99+" : String(pendingCount);
       logSidebarBadge.classList.toggle("is-empty", pendingCount === 0);
@@ -1817,6 +1984,21 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     function compactText(value, maxLength = 120) {
       const text = String(value || "");
       return text.length > maxLength ? `${text.slice(0, maxLength - 1)}…` : text;
+    }
+
+    function maskLocalPath(value) {
+      let text = String(value || "");
+      if (!text) return text;
+      text = text
+        .replace(/^[A-Z]:\\Users\\[^\\]+\\AppData\\Roaming\\/i, "%APPDATA%\\")
+        .replace(/^[A-Z]:\\Users\\[^\\]+\\AppData\\Local\\/i, "%LOCALAPPDATA%\\")
+        .replace(/^[A-Z]:\\Users\\[^\\]+\\/i, "%USERPROFILE%\\");
+
+      if (/^[A-Z]:\\/i.test(text)) {
+        const parts = text.split("\\").filter(Boolean);
+        if (parts.length > 4) return `...\\${parts.slice(-4).join("\\")}`;
+      }
+      return text;
     }
 
     function getLogCandidateTypeLabel(type) {
@@ -1917,17 +2099,17 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       await postLogCapture("/api/log-capture/ack", { ids });
     }
 
-    async function saveLogCapturePath() {
+    async function saveLogCapturePath(logPathValue = logPathInput.value, button = saveLogPathButton) {
       if (!useFileDatabase) return;
-      saveLogPathButton.disabled = true;
+      button.disabled = true;
       try {
-        const logPath = logPathInput.value.trim() || logCaptureState.defaultLogPath;
+        const logPath = logPathValue.trim() || logCaptureState.defaultLogPath;
         await postLogCapture("/api/log-capture/config", { logPath });
       } catch {
         logCaptureState.lastError = "Não foi possível salvar a pasta de logs. Confirme se o caminho existe.";
         renderLogCapturePanel();
       } finally {
-        saveLogPathButton.disabled = false;
+        button.disabled = false;
       }
     }
 
@@ -1952,7 +2134,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       clearLogCapturesButton.disabled = !useFileDatabase || !logCaptureState.candidates.length;
       logPathHint.textContent = logCaptureState.configuredLogPath
         ? "Caminho salvo para este computador."
-        : `Primeiro uso: cole a pasta de logs. Sugestão: ${logCaptureState.defaultLogPath || "%APPDATA%\\CoreLauncher\\game\\instances\\Pixelmon Brasil - Gen 9\\logs"}`;
+        : `Primeiro uso: cole a pasta de logs. Sugestão: ${maskLocalPath(logCaptureState.defaultLogPath || "%APPDATA%\\CoreLauncher\\game\\instances\\Pixelmon Brasil - Gen 9\\logs")}`;
 
       if (!useFileDatabase) {
         setLogCaptureStatus("Servidor local necessário", "Abra pelo iniciar-checklist.bat para usar a captura por logs.");
@@ -1982,7 +2164,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
           details.push(`Último sinal sem nome: ${logCaptureState.lastSignal.logTime || "--:--:--"}`);
         }
         const detailLines = [
-          logCaptureState.activePath || logCaptureState.activeFile || "Aguardando arquivo ativo.",
+          maskLocalPath(logCaptureState.activePath || logCaptureState.activeFile || "Aguardando arquivo ativo."),
           ...details
         ];
         setLogCaptureStatus("Monitor ligado", detailLines.map(escapeHtml).join("<br>"));
@@ -2052,9 +2234,17 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       section.querySelector(".suggestions-note").textContent =
         `Estes cards batem com a busca, mas estão fora dos filtros ativos. Categorias: ${categories}.`;
       const grid = section.querySelector(".grid");
-      suggestions.forEach(entry => {
-        grid.append(createCard(entry));
-      });
+      if (appUtils.appendProgressiveItems) {
+        appUtils.appendProgressiveItems({
+          container: grid,
+          items: suggestions,
+          renderItem: createCard,
+          batchSize: 48,
+          buttonLabel: "Mostrar mais sugestoes"
+        });
+      } else {
+        suggestions.forEach(entry => grid.append(createCard(entry)));
+      }
       return section;
     }
 
@@ -2499,10 +2689,443 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       return 0;
     }
 
+    function entryHasCapturePeriod(entry, period) {
+      if (!period) return true;
+      return getEntryBiomes(entry).some(item =>
+        String(item.period || "")
+          .split(",")
+          .map(value => value.trim().toLowerCase())
+          .includes(period.toLowerCase())
+      );
+    }
+
+    function entryHasBiome(entry, biome) {
+      if (!biome) return true;
+      const groups = getEntryBiomeGroups(entry);
+      return groups.has("Any") || groups.has(biome);
+    }
+
+    function entryHasNightCapture(entry) {
+      return getEntryBiomes(entry).some(item => {
+        const period = normalize(item.period);
+        return period.includes("night") || period.includes("midnight") || period.includes("dusk");
+      });
+    }
+
+    function entryHasWaterBiome(entry) {
+      return getEntryBiomes(entry).some(item => {
+        const biome = normalize(item.biome);
+        return biome.includes("ocean") || biome.includes("river") || biome.includes("lake") || biome.includes("beach") || biome.includes("swamp");
+      });
+    }
+
+    function entryHasCaveLikeBiome(entry) {
+      return getEntryBiomes(entry).some(item => {
+        const biome = normalize(item.biome);
+        return biome.includes("cave") || biome.includes("crater") || biome.includes("deep") || biome.includes("mountain");
+      });
+    }
+
+    function getPokeballRecommendation(entry) {
+      const category = getCurrentCategory(entry);
+      const types = new Set(entry.types || []);
+      const isSpecial = category === specialCategory || specialPokemonKeys.has(canonicalKey(entry.name)) || mythicalPokemonKeys.has(canonicalKey(entry.name)) || ultraBeastPokemonKeys.has(canonicalKey(entry.name));
+      const night = entryHasNightCapture(entry);
+      const waterBiome = entryHasWaterBiome(entry);
+      const caveLike = entryHasCaveLikeBiome(entry);
+
+      if (types.has("bug") || types.has("water")) {
+        return {
+          opener: "Quick Ball",
+          primary: "Net Ball",
+          backup: night || caveLike ? "Dusk Ball" : "Ultra Ball",
+          reason: "Bonus forte contra tipos Water/Bug; use Quick Ball no primeiro turno.",
+          priority: isSpecial ? "Alta" : "Media"
+        };
+      }
+
+      if (night || caveLike || types.has("dark") || types.has("ghost")) {
+        return {
+          opener: "Quick Ball",
+          primary: "Dusk Ball",
+          backup: isSpecial ? "Timer Ball" : "Ultra Ball",
+          reason: "Boa para capturas noturnas, cavernas e alvos Dark/Ghost.",
+          priority: isSpecial ? "Alta" : "Media"
+        };
+      }
+
+      if (waterBiome) {
+        return {
+          opener: "Quick Ball",
+          primary: "Dive Ball",
+          backup: "Net Ball",
+          reason: "Rota aquatica; leve Net Ball se o alvo tambem for Water ou Bug.",
+          priority: "Media"
+        };
+      }
+
+      if (isSpecial) {
+        return {
+          opener: "Quick Ball",
+          primary: "Timer Ball",
+          backup: "Ultra Ball",
+          reason: "Para lutas longas ou especiais, Timer Ball tende a ficar melhor com turnos.",
+          priority: "Alta"
+        };
+      }
+
+      return {
+        opener: "Quick Ball",
+        primary: "Ultra Ball",
+        backup: "Timer Ball",
+        reason: "Plano geral: Quick Ball abre a tentativa, Ultra Ball cobre o restante.",
+        priority: "Normal"
+      };
+    }
+
+    const pokeballVisuals = {
+      "Quick Ball": { top: "#4daee8", bottom: "#f7d94a", mark: "#1d4f7a" },
+      "Dusk Ball": { top: "#2f3b38", bottom: "#7cc05b", mark: "#f4cf65" },
+      "Net Ball": { top: "#3d8eb8", bottom: "#eff8fa", mark: "#172f42" },
+      "Dive Ball": { top: "#3f9fd7", bottom: "#f3fbff", mark: "#244f9f" },
+      "Timer Ball": { top: "#e85252", bottom: "#f5f2df", mark: "#173042" },
+      "Repeat Ball": { top: "#ee8a3a", bottom: "#f8e36c", mark: "#8d2c2c" },
+      "Master Ball": { top: "#8c55c7", bottom: "#f6f0ff", mark: "#e9649a" },
+      "Ultra Ball": { top: "#30343a", bottom: "#f4cf65", mark: "#ffffff" }
+    };
+
+    function getSpecialBallOptions(entry) {
+      const recommendation = getPokeballRecommendation(entry);
+      const types = new Set(entry.types || []);
+      const owned = isOwned(entry);
+      const category = getCurrentCategory(entry);
+      const isSpecial = category === specialCategory || specialPokemonKeys.has(canonicalKey(entry.name)) || mythicalPokemonKeys.has(canonicalKey(entry.name)) || ultraBeastPokemonKeys.has(canonicalKey(entry.name));
+      const night = entryHasNightCapture(entry);
+      const waterBiome = entryHasWaterBiome(entry);
+      const caveLike = entryHasCaveLikeBiome(entry);
+      const options = new Map();
+      const add = (name, score) => options.set(name, Math.max(options.get(name) || 0, score));
+
+      add("Quick Ball", 88);
+      add("Timer Ball", isSpecial ? 84 : 68);
+      if (types.has("water") || types.has("bug")) add("Net Ball", 90);
+      if (waterBiome) add("Dive Ball", types.has("water") ? 84 : 76);
+      if (night || caveLike || types.has("dark") || types.has("ghost")) add("Dusk Ball", 88);
+      if (owned) add("Repeat Ball", 92);
+      if (isSpecial) add("Master Ball", 100);
+      add(recommendation.primary, recommendation.priority === "Alta" ? 86 : 78);
+      add(recommendation.backup, recommendation.priority === "Alta" ? 78 : 70);
+      if (options.size < 3) add("Ultra Ball", 62);
+
+      return [...options.entries()]
+        .map(([name, score]) => ({ name, score: Math.min(100, score) }))
+        .sort((a, b) => b.score - a.score || a.name.localeCompare(b.name, "pt-BR"))
+        .slice(0, 4);
+    }
+
+    function pokeballImageSrc(name) {
+      const visual = pokeballVisuals[name] || pokeballVisuals["Ultra Ball"];
+      const svg = `
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+          <circle cx="32" cy="32" r="28" fill="${visual.bottom}" stroke="#173042" stroke-width="4"/>
+          <path d="M5 32a27 27 0 0 1 54 0H5z" fill="${visual.top}"/>
+          <path d="M5 32h54" stroke="#173042" stroke-width="5"/>
+          <circle cx="32" cy="32" r="11" fill="#fff" stroke="#173042" stroke-width="4"/>
+          <circle cx="32" cy="32" r="5" fill="${visual.mark}"/>
+        </svg>
+      `;
+      return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+    }
+
+    function createPokeballOption(item) {
+      const row = document.createElement("div");
+      row.className = "pokeball-option";
+      row.innerHTML = `
+        <img alt="">
+        <span class="pokeball-option-name"></span>
+        <strong></strong>
+      `;
+      const image = row.querySelector("img");
+      image.src = pokeballImageSrc(item.name);
+      image.alt = item.name;
+      row.querySelector(".pokeball-option-name").textContent = item.name;
+      row.querySelector("strong").textContent = `${item.score}%`;
+      return row;
+    }
+
+    function getCapturePriorityRank(entry) {
+      const recommendation = getPokeballRecommendation(entry);
+      const rank = { Alta: 0, Media: 1, Normal: 2 };
+      return rank[recommendation.priority] ?? 3;
+    }
+
+    function matchesCaptureSearch(entry, search) {
+      if (!search) return true;
+      const recommendation = getPokeballRecommendation(entry);
+      const biomeText = getEntryBiomes(entry).map(item => `${item.biome} ${item.period}`).join(" ");
+      const biomeGroups = [...getEntryBiomeGroups(entry)].join(" ");
+      return normalize(`${entry.id} ${entry.name} ${entry.detail} ${biomeText} ${biomeGroups} ${recommendation.primary} ${recommendation.backup}`).includes(search);
+    }
+
+    function getCaptureFilteredEntries() {
+      const normalizedSearch = normalize(captureSearch.trim());
+      return allEntries
+        .filter(entry => getEntryBiomes(entry).length)
+        .filter(entry => entryHasBiome(entry, selectedCaptureBiome))
+        .filter(entry => entryHasCapturePeriod(entry, selectedCapturePeriod))
+        .filter(entry => {
+          if (captureStatusFilter === "missing") return !isOwned(entry);
+          if (captureStatusFilter === "captured") return isOwned(entry);
+          return true;
+        })
+        .filter(entry => matchesCaptureSearch(entry, normalizedSearch))
+        .sort((a, b) =>
+          Number(isOwned(a)) - Number(isOwned(b))
+          || getCapturePriorityRank(a) - getCapturePriorityRank(b)
+          || a.id - b.id
+        );
+    }
+
+    function renderCaptureTools(list) {
+      const biomeOptions = getCaptureBiomeOptions();
+      const periodOptions = getCapturePeriodOptions();
+      if (selectedCaptureBiome && !biomeOptions.some(option => option.name === selectedCaptureBiome)) {
+        selectedCaptureBiome = "";
+      }
+
+      const tools = document.createElement("section");
+      tools.className = "capture-planner-tools";
+      tools.innerHTML = `
+        <div class="capture-planner-panel">
+          <div class="capture-planner-header">
+            <div>
+              <p class="eyebrow">Rota de captura</p>
+              <h2 class="filter-title">Grupo e Poké Bola</h2>
+            </div>
+            <button class="link-button" id="clear-capture-route" type="button">Limpar rota</button>
+          </div>
+          <div class="capture-planner-fields">
+            <label>
+              <span>Grupo de bioma</span>
+              <select id="capture-biome-select"></select>
+            </label>
+            <label>
+              <span>Período</span>
+              <select id="capture-period-select"></select>
+            </label>
+            <label>
+              <span>Busca</span>
+              <input id="capture-search" type="search" list="pokemon-search-options" placeholder="Nome, bola ou detalhe...">
+            </label>
+          </div>
+          <div class="capture-status-filters" aria-label="Status de captura"></div>
+        </div>
+      `;
+
+      const biomeSelect = tools.querySelector("#capture-biome-select");
+      biomeSelect.append(new Option("Todos os grupos", ""));
+      biomeOptions.forEach(option => {
+        biomeSelect.append(new Option(`${option.name} (${option.missing}/${option.total})`, option.name));
+      });
+      biomeSelect.value = selectedCaptureBiome;
+      biomeSelect.addEventListener("change", event => {
+        selectedCaptureBiome = event.target.value;
+        render();
+      });
+
+      const periodSelect = tools.querySelector("#capture-period-select");
+      periodSelect.append(new Option("Todos os períodos", ""));
+      periodOptions.forEach(period => periodSelect.append(new Option(period, period)));
+      periodSelect.value = selectedCapturePeriod;
+      periodSelect.addEventListener("change", event => {
+        selectedCapturePeriod = event.target.value;
+        render();
+      });
+
+      const search = tools.querySelector("#capture-search");
+      search.value = captureSearch;
+      search.addEventListener("input", event => {
+        captureSearch = event.target.value;
+        focusCaptureSearchAfterRender = true;
+        render();
+      });
+
+      const statusFilters = tools.querySelector(".capture-status-filters");
+      [
+        { value: "missing", label: "Não capturados" },
+        { value: "all", label: "Todos" },
+        { value: "captured", label: "Já capturados" }
+      ].forEach(filter => statusFilters.append(createFilterChip({
+        label: filter.label,
+        active: captureStatusFilter === filter.value,
+        onClick: () => {
+          captureStatusFilter = filter.value;
+          render();
+        }
+      })));
+
+      tools.querySelector("#clear-capture-route").addEventListener("click", () => {
+        selectedCaptureBiome = "";
+        selectedCapturePeriod = "";
+        captureSearch = "";
+        captureStatusFilter = "missing";
+        render();
+      });
+
+      list.append(tools);
+      if (focusCaptureSearchAfterRender) {
+        focusCaptureSearchAfterRender = false;
+        search.focus();
+        search.setSelectionRange(search.value.length, search.value.length);
+      }
+    }
+
+    function renderCaptureLoadout(list, entries) {
+      const targetEntries = captureStatusFilter === "captured"
+        ? entries
+        : entries.filter(entry => !isOwned(entry));
+      const ballCounts = new Map();
+      targetEntries.forEach(entry => {
+        const ball = getSpecialBallOptions(entry)[0]?.name || getPokeballRecommendation(entry).primary;
+        ballCounts.set(ball, (ballCounts.get(ball) || 0) + 1);
+      });
+
+      const section = document.createElement("section");
+      section.className = "capture-loadout";
+      section.innerHTML = `
+        <div class="capture-loadout-header">
+          <div>
+            <p class="eyebrow">Mochila sugerida</p>
+            <h2>Plano do filtro atual</h2>
+          </div>
+          <span class="visible-count"></span>
+        </div>
+        <div class="capture-loadout-grid"></div>
+      `;
+      section.querySelector(".visible-count").textContent = captureStatusFilter === "captured"
+        ? `${targetEntries.length} capturado${targetEntries.length === 1 ? "" : "s"}`
+        : `${targetEntries.length} faltando`;
+      const grid = section.querySelector(".capture-loadout-grid");
+
+      if (!targetEntries.length) {
+        const empty = document.createElement("p");
+        empty.className = "capture-planner-note";
+        empty.textContent = captureStatusFilter === "captured"
+          ? "Nenhum capturado nesse filtro."
+          : "Nenhum faltante nesse filtro. Troque o bioma ou veja capturados para revisar.";
+        grid.append(empty);
+      } else {
+        [...ballCounts.entries()]
+          .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "pt-BR"))
+          .slice(0, 5)
+          .forEach(([ball, count]) => {
+            const item = document.createElement("article");
+            item.className = "capture-loadout-card";
+            item.innerHTML = `<strong></strong><span></span>`;
+            item.querySelector("strong").textContent = ball;
+            item.querySelector("span").textContent = `${count} alvo${count === 1 ? "" : "s"}`;
+            grid.append(item);
+          });
+      }
+
+      list.append(section);
+    }
+
+    function createCapturePlannerCard(entry) {
+      const recommendation = getPokeballRecommendation(entry);
+      const card = document.createElement("article");
+      card.className = `capture-planner-card${isOwned(entry) ? " is-owned" : ""}`;
+      card.tabIndex = 0;
+      card.setAttribute("role", "button");
+      card.setAttribute("aria-label", `Abrir detalhes de ${entry.name}`);
+      card.innerHTML = `
+        <div class="capture-card-top">
+          <span class="capture-card-image"></span>
+          <div class="pokeball-options" aria-label="Poké Bolas recomendadas"></div>
+        </div>
+        <div class="capture-card-main">
+          <div>
+            <p class="modal-kicker"></p>
+            <h3></h3>
+            <div class="raid-card-types"></div>
+          </div>
+        </div>
+        <p class="capture-reason"></p>
+      `;
+      card.querySelector(".capture-card-image").replaceWith(createPokemonImage(entry, ""));
+      card.querySelector(".modal-kicker").textContent = `#${String(entry.id).padStart(4, "0")} - ${getMethodFilterLabel(entry)}`;
+      card.querySelector("h3").textContent = entry.name;
+      entry.types.forEach(type => card.querySelector(".raid-card-types").append(createTypeBadge(type)));
+      getSpecialBallOptions(entry).forEach(item => {
+        card.querySelector(".pokeball-options").append(createPokeballOption(item));
+      });
+      card.querySelector(".capture-reason").textContent = recommendation.reason;
+
+      card.addEventListener("click", () => openPokemonModal(entry));
+      card.addEventListener("keydown", event => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
+        openPokemonModal(entry);
+      });
+      return card;
+    }
+
+    function renderCaptureFlow(list) {
+      activeTitle.textContent = "Captura por bioma";
+      renderCaptureTools(list);
+      const entries = getCaptureFilteredEntries();
+      const totalMissingWithBiomes = allEntries.filter(entry => getEntryBiomes(entry).length && !isOwned(entry)).length;
+      visibleCount.textContent = `${entries.length} alvo${entries.length === 1 ? "" : "s"}`;
+      captureFlowCount.textContent = totalMissingWithBiomes;
+      renderCaptureLoadout(list, entries);
+
+      const section = document.createElement("section");
+      section.className = "capture-planner-results";
+      section.innerHTML = `
+        <div class="category-heading">
+          <h2></h2>
+          <span class="category-count"></span>
+        </div>
+        <div class="capture-planner-grid"></div>
+      `;
+      const statusHeading = captureStatusFilter === "captured"
+        ? "Capturados"
+        : captureStatusFilter === "all"
+          ? "Todos os alvos"
+          : "Não capturados";
+      section.querySelector("h2").textContent = selectedCaptureBiome
+        ? `${statusHeading} em ${selectedCaptureBiome}`
+        : statusHeading;
+      section.querySelector(".category-count").textContent = `${entries.length} resultado${entries.length === 1 ? "" : "s"}`;
+      const grid = section.querySelector(".capture-planner-grid");
+
+      if (!entries.length) {
+        const empty = document.createElement("div");
+        empty.className = "empty";
+        empty.textContent = selectedCaptureBiome
+          ? "Nenhum Pokémon encontrado para esse grupo com os filtros atuais."
+          : "Nenhum Pokémon com bioma cadastrado encontrado com os filtros atuais.";
+        section.append(empty);
+      } else if (appUtils.appendProgressiveItems) {
+        appUtils.appendProgressiveItems({
+          container: grid,
+          items: entries,
+          renderItem: createCapturePlannerCard,
+          batchSize: 72,
+          buttonLabel: "Mostrar mais capturas"
+        });
+      } else {
+        entries.forEach(entry => grid.append(createCapturePlannerCard(entry)));
+      }
+
+      list.append(section);
+    }
+
     function getCounterCandidates(targetTypes, search = "") {
       if (!targetTypes.length) return [];
       const normalizedSearch = normalize(search.trim());
       return getBuildEligibleEntries()
+        .filter(entry => !counterOwnedOnly || isOwned(entry))
         .filter(entry => !normalizedSearch || matchesTextSearch(entry, normalizedSearch))
         .map(entry => {
           const builds = getBuildRecommendations(entry);
@@ -2657,6 +3280,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       searchWrap.className = "counter-results-search";
       searchWrap.innerHTML = `
         <input class="search-field" id="counter-search" type="search" list="pokemon-search-options" placeholder="Pesquisar nas sugestoes...">
+        <div class="counter-results-filters" aria-label="Filtros dos resultados de counters"></div>
       `;
       const input = searchWrap.querySelector("#counter-search");
       input.value = counterSearch;
@@ -2665,6 +3289,15 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
         focusCounterSearchAfterRender = true;
         render();
       });
+      const filters = searchWrap.querySelector(".counter-results-filters");
+      filters.append(createFilterChip({
+        label: "Somente capturados",
+        active: counterOwnedOnly,
+        onClick: () => {
+          counterOwnedOnly = !counterOwnedOnly;
+          render();
+        }
+      }));
       list.append(searchWrap);
       if (focusCounterSearchAfterRender) {
         focusCounterSearchAfterRender = false;
@@ -2801,33 +3434,52 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       `;
       section.querySelector(".category-count").textContent = `${results.length} sugestoes`;
       const grid = section.querySelector(".counter-grid");
-      results.slice(0, 80).forEach(result => grid.append(createCounterCard(result)));
+      if (appUtils.appendProgressiveItems) {
+        appUtils.appendProgressiveItems({
+          container: grid,
+          items: results,
+          renderItem: createCounterCard,
+          batchSize: 80,
+          buttonLabel: "Mostrar mais counters"
+        });
+      } else {
+        results.slice(0, 80).forEach(result => grid.append(createCounterCard(result)));
+      }
       list.append(section);
     }
 
     function applyViewTabs() {
       const checklistActive = activeView === "checklist";
+      const captureActive = activeView === "capture";
       const telemetryActive = activeView === "captured";
       const breedingActive = activeView === "breeding";
       const buildsActive = activeView === "builds";
+      const settingsActive = activeView === "settings";
       checklistTab.classList.toggle("active", checklistActive);
+      captureTab.classList.toggle("active", captureActive);
       capturedTab.classList.toggle("active", telemetryActive);
       breedingTab.classList.toggle("active", breedingActive);
       buildsTab.classList.toggle("active", buildsActive);
+      settingsTab.classList.toggle("active", settingsActive);
       checklistTab.setAttribute("aria-pressed", checklistActive ? "true" : "false");
+      captureTab.setAttribute("aria-pressed", captureActive ? "true" : "false");
       capturedTab.setAttribute("aria-pressed", telemetryActive ? "true" : "false");
       breedingTab.setAttribute("aria-pressed", breedingActive ? "true" : "false");
       buildsTab.setAttribute("aria-pressed", buildsActive ? "true" : "false");
-      document.body.classList.toggle("flow-without-kpis", breedingActive || buildsActive);
+      settingsTab.setAttribute("aria-pressed", settingsActive ? "true" : "false");
+      document.body.classList.toggle("flow-without-kpis", captureActive || breedingActive || buildsActive || settingsActive);
       checklistNavSections.hidden = !checklistActive;
       toolbar.hidden = !checklistActive;
       const owned = allEntries.filter(isOwned).length;
       const percent = percentValue(owned, CATALOG.length);
       const breedable = allEntries.filter(entry => !isUndiscovered(entry)).length;
+      const captureMissing = allEntries.filter(entry => getEntryBiomes(entry).length && !isOwned(entry)).length;
       checklistFlowCount.textContent = `${owned}/${CATALOG.length}`;
+      captureFlowCount.textContent = captureMissing;
       telemetryFlowCount.textContent = `${percent}%`;
       breedingFlowCount.textContent = breedable;
       buildsFlowCount.textContent = typeFilters.length;
+      settingsFlowCount.textContent = isTauriApp() ? "Desk" : "Web";
     }
 
     function formatCapturedDateTime(value) {
@@ -3005,14 +3657,260 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       list.append(wrapper);
     }
 
+    function downloadTextFile(filename, content, type = "text/plain;charset=utf-8") {
+      const blob = new Blob([content], { type });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = filename;
+      link.click();
+      URL.revokeObjectURL(link.href);
+    }
+
+    function exportCapturedBackup() {
+      const captured = getCapturedRecords();
+      const backup = {
+        app: "Pixelmon - Pokelist",
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        captured
+      };
+      downloadTextFile(
+        "pixelmon-pokelist-backup.json",
+        JSON.stringify(backup, null, 2),
+        "application/json;charset=utf-8"
+      );
+    }
+
+    function renderSettingsStatus(list, title, detail) {
+      const status = appUtils.createStatusBlock
+        ? appUtils.createStatusBlock(title, detail)
+        : document.createElement("div");
+      if (!appUtils.createStatusBlock) {
+        status.className = "settings-status";
+        status.textContent = `${title}: ${detail}`;
+      }
+      list.append(status);
+    }
+
+    function renderSettingsFlow(list) {
+      activeTitle.textContent = "Configuracoes";
+      visibleCount.textContent = isTauriApp() ? "Modo desktop" : "Modo navegador";
+
+      const grid = document.createElement("section");
+      grid.className = "settings-grid";
+      grid.setAttribute("aria-label", "Configuracoes do app");
+
+      const logPanel = document.createElement("article");
+      logPanel.className = "settings-panel is-wide";
+      logPanel.innerHTML = `
+        <div class="settings-panel-header">
+          <div>
+            <p class="eyebrow">Logs locais</p>
+            <h3 class="settings-panel-title">Captura automatica</h3>
+            <p class="settings-panel-note">A pasta real continua salva localmente; caminhos longos aparecem mascarados na interface.</p>
+          </div>
+        </div>
+        <div class="settings-row">
+          <label for="settings-log-path">Pasta de logs</label>
+          <div class="settings-path-row">
+            <input id="settings-log-path" type="text" placeholder="%APPDATA%\\CoreLauncher\\game\\instances\\Pixelmon Brasil - Gen 9\\logs">
+            <button class="modal-capture-button" id="settings-save-log-path" type="button">Salvar</button>
+          </div>
+          <p class="settings-row-note" id="settings-log-note"></p>
+        </div>
+        <div class="settings-action-row">
+          <button class="muted-button" id="settings-toggle-log-capture" type="button"></button>
+          <button class="muted-button" id="settings-refresh-log-capture" type="button">Atualizar logs</button>
+        </div>
+      `;
+      const settingsLogPath = logPanel.querySelector("#settings-log-path");
+      const settingsSaveLogPath = logPanel.querySelector("#settings-save-log-path");
+      const settingsLogNote = logPanel.querySelector("#settings-log-note");
+      const settingsToggleLogCapture = logPanel.querySelector("#settings-toggle-log-capture");
+      const settingsRefreshLogCapture = logPanel.querySelector("#settings-refresh-log-capture");
+      settingsLogPath.value = logCaptureState.configuredLogPath || logCaptureState.defaultLogPath;
+      settingsLogPath.disabled = !useFileDatabase;
+      settingsSaveLogPath.disabled = !useFileDatabase;
+      settingsToggleLogCapture.disabled = !useFileDatabase;
+      settingsRefreshLogCapture.disabled = !useFileDatabase;
+      settingsToggleLogCapture.textContent = logCaptureState.enabled ? "Desligar monitor" : "Ligar monitor";
+      settingsLogNote.textContent = useFileDatabase
+        ? `Atual: ${maskLocalPath(logCaptureState.activePath || logCaptureState.configuredLogPath || logCaptureState.defaultLogPath || "nao configurado")}`
+        : "Abra pelo app desktop ou pelo servidor local para usar captura por logs.";
+      settingsSaveLogPath.addEventListener("click", () => {
+        saveLogCapturePath(settingsLogPath.value, settingsSaveLogPath).then(render);
+      });
+      settingsLogPath.addEventListener("keydown", event => {
+        if (event.key !== "Enter") return;
+        event.preventDefault();
+        saveLogCapturePath(settingsLogPath.value, settingsSaveLogPath).then(render);
+      });
+      settingsToggleLogCapture.addEventListener("click", () => {
+        postLogCapture("/api/log-capture", { enabled: !logCaptureState.enabled }).then(render).catch(() => {
+          logCaptureState.lastError = "Nao foi possivel alterar o monitor de logs.";
+          render();
+        });
+      });
+      settingsRefreshLogCapture.addEventListener("click", () => refreshLogCaptureStatus().then(render));
+
+      const viewPanel = document.createElement("article");
+      viewPanel.className = "settings-panel";
+      viewPanel.innerHTML = `
+        <div>
+          <p class="eyebrow">Visual</p>
+          <h3 class="settings-panel-title">Tema e densidade</h3>
+          <p class="settings-panel-note">Preferencias salvas neste navegador/app.</p>
+        </div>
+        <div class="settings-action-row">
+          <button class="modal-capture-button" id="settings-theme-toggle" type="button"></button>
+          <button class="muted-button" id="settings-density-toggle" type="button"></button>
+        </div>
+      `;
+      const settingsThemeToggle = viewPanel.querySelector("#settings-theme-toggle");
+      const settingsDensityToggle = viewPanel.querySelector("#settings-density-toggle");
+      settingsThemeToggle.textContent = activeTheme === "dark" ? "Usar tema claro" : "Usar tema escuro";
+      settingsDensityToggle.textContent = isCompactMode ? "Usar cards normais" : "Usar modo compacto";
+      settingsThemeToggle.addEventListener("click", () => {
+        activeTheme = activeTheme === "dark" ? "light" : "dark";
+        localStorage.setItem(THEME_KEY, activeTheme);
+        applyViewPreferences();
+        render();
+      });
+      settingsDensityToggle.addEventListener("click", () => {
+        isCompactMode = !isCompactMode;
+        localStorage.setItem(DENSITY_KEY, isCompactMode ? "compact" : "normal");
+        applyViewPreferences();
+        render();
+      });
+
+      const updatePanel = document.createElement("article");
+      updatePanel.className = "settings-panel";
+      updatePanel.innerHTML = `
+        <div>
+          <p class="eyebrow">Update</p>
+          <h3 class="settings-panel-title">Atualizacoes</h3>
+          <p class="settings-panel-note">Fluxo manual, sem verificacao automatica ao abrir.</p>
+        </div>
+        <div class="settings-action-row">
+          <button class="modal-capture-button" id="settings-update-check" type="button">Buscar atualizacoes</button>
+        </div>
+      `;
+      const settingsUpdateCheck = updatePanel.querySelector("#settings-update-check");
+      settingsUpdateCheck.disabled = !isTauriApp() || updateCheckInProgress;
+      settingsUpdateCheck.textContent = updateInstallInProgress
+        ? "Instalando..."
+        : updateCheckInProgress
+          ? "Buscando..."
+          : "Buscar atualizacoes";
+      settingsUpdateCheck.addEventListener("click", checkForAppUpdateManually);
+      renderSettingsStatus(
+        updatePanel,
+        isTauriApp() ? "Updater disponivel" : "Updater indisponivel no navegador",
+        appUpdateStatus || (isTauriApp() ? "Pronto para buscar manualmente." : "Abra o app desktop para buscar updates assinados.")
+      );
+
+      const backupPanel = document.createElement("article");
+      backupPanel.className = "settings-panel is-wide";
+      backupPanel.innerHTML = `
+        <div>
+          <p class="eyebrow">Dados locais</p>
+          <h3 class="settings-panel-title">Backup e exportacao</h3>
+          <p class="settings-panel-note">Exporte seus capturados para guardar antes de trocar de PC ou reinstalar o Windows.</p>
+        </div>
+        <div class="settings-action-row">
+          <button class="modal-capture-button" id="settings-export-backup" type="button">Exportar backup</button>
+          <button class="muted-button" id="settings-export-missing" type="button">Exportar faltantes</button>
+        </div>
+      `;
+      backupPanel.querySelector("#settings-export-backup").addEventListener("click", exportCapturedBackup);
+      backupPanel.querySelector("#settings-export-missing").addEventListener("click", exportMissingPokemon);
+      renderSettingsStatus(
+        backupPanel,
+        `${getCapturedRecords().length} capturados salvos`,
+        useFileDatabase ? "Banco local do app em uso." : "Dados salvos no navegador atual."
+      );
+
+      grid.append(logPanel, viewPanel, updatePanel, backupPanel);
+      appendAboutSettingsPanels(grid);
+      list.append(grid);
+    }
+
+    function appendAboutSettingsPanels(grid) {
+      const appPanel = document.createElement("article");
+      appPanel.className = "settings-panel";
+      appPanel.innerHTML = `
+        <div>
+          <p class="eyebrow">Aplicativo</p>
+          <h3 class="settings-panel-title"></h3>
+          <p class="settings-panel-note">Checklist local para acompanhar capturas, breeding, counters e logs do Pixelmon.</p>
+        </div>
+        <div class="settings-action-row">
+          <button class="modal-capture-button" id="about-release-link" type="button">Abrir releases</button>
+        </div>
+      `;
+      appPanel.querySelector(".settings-panel-title").textContent = APP_META.name;
+      appPanel.querySelector("#about-release-link").disabled = !APP_META.releaseUrl;
+      appPanel.querySelector("#about-release-link").addEventListener("click", () => {
+        openExternalUrl(APP_META.releaseUrl).catch(() => {});
+      });
+      renderSettingsStatus(appPanel, "Versao atual", APP_META.version);
+
+      const dataPanel = document.createElement("article");
+      dataPanel.className = "settings-panel is-wide";
+      dataPanel.innerHTML = `
+        <div>
+          <p class="eyebrow">Dados</p>
+          <h3 class="settings-panel-title">Armazenamento local</h3>
+          <p class="settings-panel-note">Caminhos locais ficam mascarados na interface para facilitar prints e logs.</p>
+        </div>
+      `;
+      renderSettingsStatus(
+        dataPanel,
+        "Capturados",
+        `${getCapturedRecords().length} de ${CATALOG.length} especies`
+      );
+      renderSettingsStatus(
+        dataPanel,
+        "Banco",
+        useFileDatabase ? "Arquivo local na pasta de dados do app." : "localStorage do navegador atual."
+      );
+      renderSettingsStatus(
+        dataPanel,
+        "Pasta de logs",
+        maskLocalPath(logCaptureState.configuredLogPath || logCaptureState.defaultLogPath || "Nao configurada")
+      );
+
+      const techPanel = document.createElement("article");
+      techPanel.className = "settings-panel is-wide";
+      techPanel.innerHTML = `
+        <div>
+          <p class="eyebrow">Tecnico</p>
+          <h3 class="settings-panel-title">Fontes e pacote</h3>
+          <p class="settings-panel-note">Resumo rapido para conferir release e catalogo sem abrir arquivos internos.</p>
+        </div>
+      `;
+      renderSettingsStatus(techPanel, "Catalogo", `${CATALOG.length} especies carregadas`);
+      renderSettingsStatus(techPanel, "Endpoint de update", APP_META.updaterUrl || "Nao configurado");
+
+      grid.append(appPanel, dataPanel, techPanel);
+    }
+
     function render() {
       renderNavigation();
       renderFilterChips();
       applyViewTabs();
+      applyViewPreferences();
       const search = normalize(searchInput.value.trim());
       const list = document.querySelector("#list");
       list.replaceChildren();
       let visible = 0;
+
+      if (activeView === "capture") {
+        renderCaptureFlow(list);
+        updateStats();
+        renderLogCapturePanel();
+        return;
+      }
 
       if (activeView === "captured") {
         renderCapturedTelemetry(list);
@@ -3030,6 +3928,13 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
 
       if (activeView === "builds") {
         renderBuildsFlow(list);
+        updateStats();
+        renderLogCapturePanel();
+        return;
+      }
+
+      if (activeView === "settings") {
+        renderSettingsFlow(list);
         updateStats();
         renderLogCapturePanel();
         return;
@@ -3060,7 +3965,17 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
         section.querySelector("h2").textContent = group.name;
         section.querySelector(".category-count").textContent = `${entries.length} Pokémon`;
         const grid = section.querySelector(".grid");
-        entries.forEach(entry => grid.append(createCard(entry)));
+        if (appUtils.appendProgressiveItems) {
+          appUtils.appendProgressiveItems({
+            container: grid,
+            items: entries,
+            renderItem: createCard,
+            batchSize: isCompactMode ? 140 : 90,
+            buttonLabel: "Mostrar mais Pokemon"
+          });
+        } else {
+          entries.forEach(entry => grid.append(createCard(entry)));
+        }
         list.append(section);
       });
 
@@ -3115,6 +4030,10 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       activeView = "checklist";
       render();
     });
+    captureTab.addEventListener("click", () => {
+      activeView = "capture";
+      render();
+    });
     capturedTab.addEventListener("click", () => {
       activeView = "captured";
       render();
@@ -3125,6 +4044,10 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     });
     buildsTab.addEventListener("click", () => {
       activeView = "builds";
+      render();
+    });
+    settingsTab.addEventListener("click", () => {
+      activeView = "settings";
       render();
     });
     searchInput.addEventListener("input", render);
@@ -3200,8 +4123,18 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     pokemonModal.addEventListener("click", event => {
       if (event.target.matches("[data-close-modal]")) closePokemonModal();
     });
+    appDialogCancel.addEventListener("click", () => closeAppDialog(false));
+    appDialogConfirm.addEventListener("click", () => closeAppDialog(true));
+    appDialog.addEventListener("click", event => {
+      if (event.target.matches("[data-close-dialog]")) closeAppDialog(false);
+    });
     document.addEventListener("keydown", event => {
-      if (event.key === "Escape" && !pokemonModal.hidden) closePokemonModal();
+      if (event.key !== "Escape") return;
+      if (!appDialog.hidden) {
+        closeAppDialog(false);
+        return;
+      }
+      if (!pokemonModal.hidden) closePokemonModal();
     });
 
     loadPersistentData().then(refreshLogCaptureStatus);

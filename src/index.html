@@ -10,6 +10,8 @@
   <link rel="stylesheet" href="./styles/breeding.css">
   <link rel="stylesheet" href="./styles/builds.css">
   <link rel="stylesheet" href="./styles/pokemon-modal.css">
+  <link rel="stylesheet" href="./styles/capture-planner.css">
+  <link rel="stylesheet" href="./styles/settings.css">
   <link rel="stylesheet" href="./styles/log-capture.css">
   <link rel="stylesheet" href="./styles/responsive.css">
 </head>
@@ -32,6 +34,10 @@
               <span>Checklist</span>
               <span class="nav-count" id="flow-checklist-count">0</span>
             </button>
+            <button class="nav-button" id="flow-capture" type="button" aria-pressed="false">
+              <span>Captura</span>
+              <span class="nav-count" id="flow-capture-count">0</span>
+            </button>
             <button class="nav-button" id="flow-telemetry" type="button" aria-pressed="false">
               <span>Telemetria</span>
               <span class="nav-count" id="flow-telemetry-count">0%</span>
@@ -43,6 +49,10 @@
             <button class="nav-button" id="flow-builds" type="button" aria-pressed="false">
               <span>Counters</span>
               <span class="nav-count" id="flow-builds-count">0</span>
+            </button>
+            <button class="nav-button" id="flow-settings" type="button" aria-pressed="false">
+              <span>Configura&ccedil;&otilde;es</span>
+              <span class="nav-count" id="flow-settings-count">App</span>
             </button>
           </div>
         </section>
@@ -60,7 +70,7 @@
       <div class="view-controls" aria-label="Preferências de visualização">
         <button class="preference-button" id="theme-toggle" type="button" aria-pressed="false">Tema escuro</button>
         <button class="preference-button" id="density-toggle" type="button" aria-pressed="false">Modo compacto</button>
-        <button class="preference-button" id="update-check" type="button">Buscar atualiza&ccedil;&otilde;es</button>
+        <button class="preference-button" id="update-check" type="button" hidden>Buscar atualiza&ccedil;&otilde;es</button>
       </div>
     </aside>
 
@@ -174,6 +184,22 @@
     </section>
   </div>
 
+  <div class="app-dialog" id="app-dialog" hidden>
+    <div class="app-dialog-backdrop" data-close-dialog></div>
+    <section class="app-dialog-panel" role="dialog" aria-modal="true" aria-labelledby="app-dialog-title">
+      <div class="app-dialog-content">
+        <p class="app-dialog-kicker" id="app-dialog-kicker"></p>
+        <h2 class="app-dialog-title" id="app-dialog-title"></h2>
+        <p class="app-dialog-message" id="app-dialog-message"></p>
+        <p class="app-dialog-detail" id="app-dialog-detail"></p>
+      </div>
+      <div class="app-dialog-actions">
+        <button class="muted-button" id="app-dialog-cancel" type="button">Cancelar</button>
+        <button class="modal-capture-button" id="app-dialog-confirm" type="button">OK</button>
+      </div>
+    </section>
+  </div>
+
   <script src="./lista-falta-pokemon-data.js"></script>
   <script src="./pokemon-catalogo-data.js"></script>
   <script src="./pokemon-metodos-data.js"></script>
@@ -181,6 +207,7 @@
   <script src="./pokemon-types-data.js"></script>
   <script src="./pokemon-evolution-data.js"></script>
   <script src="./pokemon-breeding-data.js"></script>
+  <script src="./scripts/app-utils.js"></script>
   <script src="./scripts/app.js"></script>
 </body>
 </html>

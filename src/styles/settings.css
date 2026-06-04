@@ -1,0 +1,169 @@
+.settings-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.settings-panel {
+  min-width: 0;
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(22, 62, 75, .06);
+}
+
+.settings-panel.is-wide {
+  grid-column: 1 / -1;
+}
+
+.settings-panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.settings-panel-title {
+  margin: 0 0 4px;
+  font-size: 17px;
+  line-height: 1.15;
+}
+
+.settings-panel-note,
+.settings-row-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.settings-row {
+  display: grid;
+  gap: 7px;
+}
+
+.settings-row label,
+.settings-field-label {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.settings-action-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.settings-action-row .modal-capture-button,
+.settings-action-row .muted-button {
+  min-height: 36px;
+}
+
+.settings-path-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.settings-status {
+  padding: 10px 12px;
+  color: var(--muted);
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.settings-status strong {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--ink);
+}
+
+.app-dialog[hidden] {
+  display: none;
+}
+
+.app-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  padding: 22px;
+}
+
+.app-dialog-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(9, 20, 26, .48);
+}
+
+.app-dialog-panel {
+  position: relative;
+  z-index: 1;
+  width: min(460px, 100%);
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 24px 70px rgba(6, 18, 24, .28);
+}
+
+.app-dialog-kicker {
+  margin: 0 0 5px;
+  color: var(--red-dark);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.app-dialog-title {
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.15;
+}
+
+.app-dialog-message,
+.app-dialog-detail {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.app-dialog-detail {
+  color: var(--ink);
+}
+
+.app-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.app-dialog-actions button {
+  min-height: 36px;
+}
+
+@media (max-width: 760px) {
+  .settings-grid,
+  .settings-path-row {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-panel.is-wide {
+    grid-column: auto;
+  }
+}

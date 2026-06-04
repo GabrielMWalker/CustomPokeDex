@@ -15,7 +15,15 @@
         border-left: 0;
         border-top: 1px solid var(--line);
       }
-      .capture-sidebar.is-collapsed { padding: 10px 16px; }
+      .capture-sidebar.is-collapsed {
+        position: fixed;
+        left: 16px;
+        right: 16px;
+        bottom: 14px;
+        z-index: 70;
+        padding: 0;
+        border: 0;
+      }
       .capture-sidebar.is-collapsed .capture-rail-button {
         width: 100%;
         min-height: 48px;

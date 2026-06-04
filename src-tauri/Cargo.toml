@@ -1,6 +1,6 @@
 [package]
 name = "pixelmon-pokelist"
-version = "1.0.0"
+version = "1.0.1"
 description = "Pokelist local para Pixelmon"
 authors = ["GabrielMWalker"]
 edition = "2021"

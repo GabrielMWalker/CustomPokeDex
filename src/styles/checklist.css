@@ -325,6 +325,20 @@
     }
     .empty { padding: 44px 20px; color: var(--muted); text-align: center; background: color-mix(in srgb, var(--surface) 72%, transparent); border: 1px dashed #c8dadd; border-radius: 8px; }
 
+.progressive-list-sentinel {
+      display: flex;
+      justify-content: center;
+      margin: 12px 0 2px;
+    }
+    .progressive-list-button {
+      min-height: 34px;
+      padding: 0 14px;
+      color: var(--blue);
+      border-color: #cce4eb;
+      font-size: 12px;
+      box-shadow: none;
+    }
+
 .suggestions {
       margin-top: 14px;
       padding: 16px;

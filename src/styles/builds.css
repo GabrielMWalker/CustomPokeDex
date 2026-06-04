@@ -172,7 +172,17 @@
 
 .counter-results-search {
   width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
   margin: 0 0 16px;
+}
+
+.counter-results-filters {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .counter-grid {
@@ -524,5 +534,13 @@
   .counter-panel-header,
   .counter-summary-header {
     display: grid;
+  }
+
+  .counter-results-search {
+    grid-template-columns: 1fr;
+  }
+
+  .counter-results-filters {
+    justify-content: flex-start;
   }
 }

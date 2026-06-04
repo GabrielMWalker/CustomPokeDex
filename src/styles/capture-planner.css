@@ -1,0 +1,205 @@
+.capture-planner-tools,
+.capture-loadout,
+.capture-planner-results {
+  display: grid;
+  gap: 12px;
+  margin: 0 0 18px;
+}
+
+.capture-planner-panel,
+.capture-loadout {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 8px 22px rgba(22, 62, 75, .055);
+}
+
+.capture-planner-header,
+.capture-loadout-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.capture-planner-fields {
+  display: grid;
+  grid-template-columns: minmax(190px, .9fr) minmax(150px, .55fr) minmax(240px, 1fr);
+  gap: 14px;
+}
+
+.capture-planner-fields label {
+  display: grid;
+  gap: 6px;
+}
+
+.capture-planner-fields span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.capture-planner-fields select,
+.capture-planner-fields input {
+  width: 100%;
+  min-height: 43px;
+  padding: 0 12px;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font: inherit;
+}
+
+.capture-status-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 2px;
+}
+
+.capture-loadout-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 8px;
+}
+
+.capture-loadout-card {
+  min-width: 0;
+  padding: 11px 12px;
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.capture-loadout-card strong {
+  display: block;
+  margin-bottom: 3px;
+  font-size: 15px;
+}
+
+.capture-loadout-card span,
+.capture-planner-note {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.capture-planner-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+  gap: 10px;
+}
+
+.capture-planner-card {
+  min-width: 0;
+  display: grid;
+  gap: 9px;
+  padding: 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 8px 22px rgba(22, 62, 75, .045);
+  cursor: pointer;
+  transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease;
+}
+
+.capture-planner-card:hover,
+.capture-planner-card:focus-visible {
+  border-color: color-mix(in srgb, var(--blue) 45%, var(--line));
+  box-shadow: 0 12px 28px rgba(22, 62, 75, .11);
+  outline: none;
+  transform: translateY(-1px);
+}
+
+.capture-planner-card.is-owned {
+  border-color: #9fd4c3;
+  background: color-mix(in srgb, var(--green) 8%, var(--surface));
+}
+
+.capture-card-top {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  align-items: start;
+  gap: 12px;
+}
+
+.capture-card-top img {
+  width: 74px;
+  height: 74px;
+  object-fit: contain;
+}
+
+.pokeball-options {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.pokeball-option {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 7px;
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.pokeball-option img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.pokeball-option-name {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 850;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pokeball-option strong {
+  color: var(--blue);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.capture-card-main h3 {
+  margin: 0 0 6px;
+  font-size: 18px;
+  line-height: 1.1;
+}
+
+.capture-reason {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.capture-reason {
+  color: var(--ink);
+}
+
+@media (max-width: 780px) {
+  .capture-planner-fields,
+  .capture-planner-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .capture-planner-header,
+  .capture-loadout-header {
+    display: grid;
+  }
+}

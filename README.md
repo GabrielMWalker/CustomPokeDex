@@ -115,16 +115,38 @@ Isso evita que seu amigo precise baixar e executar o installer manualmente toda 
 
 ## Como Publicar Uma Release Com Update
 
-Antes de publicar uma nova release:
+### Fluxo automatico
+
+O caminho recomendado e deixar o GitHub Actions gerar o installer, a assinatura e o `latest.json`.
+
+Antes de disparar:
 
 1. Aumente a versao em `src-tauri/tauri.conf.json`.
-2. Rode o build:
+2. Deixe `package.json` com a mesma versao.
+3. Faca commit de todas as mudancas da release.
+4. Rode:
+
+```powershell
+npm.cmd run release:github
+```
+
+Esse comando valida a tag esperada, roda checks locais, cria a tag `vX.Y.Z`, envia a branch/tag para o GitHub e dispara o workflow `.github/workflows/release.yml`.
+
+Para testar sem enviar nada:
+
+```powershell
+npm.cmd run release:github -- --dry-run
+```
+
+### Fluxo manual
+
+Se precisar publicar sem GitHub Actions, rode o build:
 
 ```powershell
 npm run build
 ```
 
-3. Gere a assinatura e o arquivo de update:
+Depois gere a assinatura e o arquivo de update:
 
 ```powershell
 npm run release:latest-json

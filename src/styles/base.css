@@ -47,7 +47,7 @@
       min-height: 100vh;
       transition: grid-template-columns .2s ease;
     }
-    .app-shell.logs-collapsed { grid-template-columns: 280px minmax(0, 1fr) 74px; }
+    .app-shell.logs-collapsed { grid-template-columns: 280px minmax(0, 1fr); }
     .sidebar {
       position: sticky;
       top: 0;

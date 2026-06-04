@@ -1,12 +1,13 @@
 {
   "name": "pixelmon-pokelist",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "tauri dev",
     "build": "tauri build",
-    "release:latest-json": "node scripts/generate-latest-json.mjs"
+    "release:latest-json": "node scripts/generate-latest-json.mjs",
+    "release:github": "node scripts/release-github.mjs"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.0.0"

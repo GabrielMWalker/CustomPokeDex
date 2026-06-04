@@ -7,34 +7,38 @@
       transition: padding .2s ease;
     }
     .capture-sidebar.is-collapsed {
-      padding: 18px 10px;
-      display: grid;
-      place-items: start center;
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      z-index: 70;
+      min-height: 0;
+      padding: 0;
+      background: transparent;
+      border: 0;
+      box-shadow: none;
     }
     .capture-rail-button {
       display: none;
-      width: 52px;
-      min-height: 220px;
-      padding: 12px 0;
+      width: auto;
+      min-height: 42px;
+      padding: 0 13px;
       color: var(--ink);
       background: var(--surface);
       border: 1px solid var(--line);
-      border-radius: 10px;
-      box-shadow: 0 8px 18px rgba(22,62,75,.075);
-      writing-mode: vertical-rl;
-      text-orientation: mixed;
+      border-radius: 999px;
+      box-shadow: var(--shadow);
+      flex-direction: row;
       align-items: center;
       justify-content: center;
-      gap: 10px;
+      gap: 8px;
       font-size: 12px;
       font-weight: 900;
-      letter-spacing: .08em;
-      text-transform: uppercase;
+      letter-spacing: 0;
     }
     .capture-rail-button:hover {
       color: var(--red-dark);
-      border-color: #f1b5bb;
-      background: #fffafa;
+      border-color: color-mix(in srgb, var(--red) 32%, var(--line));
+      background: color-mix(in srgb, var(--red) 8%, var(--surface));
       transform: none;
     }
     .capture-rail-icon {

@@ -1,0 +1,71 @@
+name: Release Desktop
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  release-windows:
+    name: Windows NSIS
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "lts/*"
+          cache: "npm"
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate release tag
+        shell: pwsh
+        run: |
+          $config = Get-Content src-tauri\tauri.conf.json -Raw | ConvertFrom-Json
+          $expectedTag = "v$($config.version)"
+          if ($env:GITHUB_REF_NAME -ne $expectedTag) {
+            throw "A tag '$env:GITHUB_REF_NAME' nao bate com a versao do Tauri '$expectedTag'."
+          }
+
+      - name: Restore Tauri signing key
+        shell: pwsh
+        env:
+          TAURI_SIGNING_PRIVATE_KEY_B64: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_B64 }}
+        run: |
+          if (-not $env:TAURI_SIGNING_PRIVATE_KEY_B64) {
+            throw "Secret TAURI_SIGNING_PRIVATE_KEY_B64 nao configurada."
+          }
+          New-Item -ItemType Directory -Force .tauri | Out-Null
+          $key = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($env:TAURI_SIGNING_PRIVATE_KEY_B64))
+          [IO.File]::WriteAllText((Join-Path (Resolve-Path .tauri) "pixelmon-pokelist.key"), $key, [Text.UTF8Encoding]::new($false))
+
+      - name: Validate JavaScript
+        run: |
+          node --check src\scripts\app.js
+          node --check src\scripts\app-utils.js
+          node --check scripts\generate-latest-json.mjs
+
+      - name: Build NSIS installer
+        run: npm.cmd run build -- --bundles nsis
+
+      - name: Generate latest.json and signature
+        run: npm.cmd run release:latest-json
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            src-tauri/target/release/bundle/nsis/Pixelmon - Pokelist_*_x64-setup.exe
+            src-tauri/target/release/bundle/nsis/Pixelmon - Pokelist_*_x64-setup.exe.sig
+            src-tauri/target/release/bundle/nsis/latest.json
