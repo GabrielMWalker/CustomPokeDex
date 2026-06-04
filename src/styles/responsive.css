@@ -1,0 +1,61 @@
+@media (max-width: 960px) {
+      .app-shell,
+      .app-shell.logs-collapsed { grid-template-columns: 1fr; }
+      .sidebar {
+        position: relative;
+        height: auto;
+        padding: 16px;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+      .capture-sidebar {
+        position: relative;
+        height: auto;
+        padding: 16px;
+        border-left: 0;
+        border-top: 1px solid var(--line);
+      }
+      .capture-sidebar.is-collapsed { padding: 10px 16px; }
+      .capture-sidebar.is-collapsed .capture-rail-button {
+        width: 100%;
+        min-height: 48px;
+        flex-direction: row;
+        writing-mode: horizontal-tb;
+        justify-content: center;
+      }
+      .capture-sidebar.is-collapsed .capture-rail-icon { transform: none; }
+      .brand { padding-bottom: 12px; }
+      .nav-section { margin-top: 12px; }
+      .view-controls {
+        flex-direction: row;
+        align-items: center;
+        padding: 12px 0 0;
+      }
+      .preference-button { width: auto; }
+      .nav-group {
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        padding-bottom: 3px;
+      }
+      .nav-button { min-width: 138px; }
+      .main-area { padding: 18px 12px 32px; }
+      .stats { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+      .progress { grid-column: span 2; }
+      .stat { padding: 12px; }
+      .collection-note { width: 100%; margin-left: 0; }
+      .filter-panel { padding: 14px; }
+      .chip-group { grid-template-columns: 1fr; gap: 7px; }
+      .chip-label { padding-top: 0; }
+      .results-header { align-items: start; flex-direction: column; gap: 6px; }
+      .grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 560px) {
+      .stats { grid-template-columns: 1fr; }
+      .progress { grid-column: span 1; }
+      .nav-button { min-width: 132px; }
+      .filter-panel-header { align-items: flex-start; flex-direction: column; gap: 10px; }
+      .filter-actions { width: 100%; justify-content: space-between; }
+      .export-button { flex: 1 1 auto; }
+    }
