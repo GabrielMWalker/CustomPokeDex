@@ -1,0 +1,185 @@
+﻿<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Minha Pokédex | Checklist</title>
+  <link rel="stylesheet" href="./styles/base.css">
+  <link rel="stylesheet" href="./styles/checklist.css">
+  <link rel="stylesheet" href="./styles/telemetry.css">
+  <link rel="stylesheet" href="./styles/breeding.css">
+  <link rel="stylesheet" href="./styles/builds.css">
+  <link rel="stylesheet" href="./styles/pokemon-modal.css">
+  <link rel="stylesheet" href="./styles/log-capture.css">
+  <link rel="stylesheet" href="./styles/responsive.css">
+</head>
+<body>
+  <main class="app-shell" id="app-shell">
+    <aside class="sidebar" aria-label="Navega&ccedil;&atilde;o da Pok&eacute;dex">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <div>
+          <p class="eyebrow">Checklist pessoal</p>
+          <h1>Minha Pok&eacute;dex</h1>
+        </div>
+      </div>
+
+      <nav aria-label="Acesso r&aacute;pido">
+        <section class="nav-section" aria-label="Fluxos">
+          <p class="nav-label">Fluxos</p>
+          <div class="nav-group">
+            <button class="nav-button active" id="flow-checklist" type="button" aria-pressed="true">
+              <span>Checklist</span>
+              <span class="nav-count" id="flow-checklist-count">0</span>
+            </button>
+            <button class="nav-button" id="flow-telemetry" type="button" aria-pressed="false">
+              <span>Telemetria</span>
+              <span class="nav-count" id="flow-telemetry-count">0%</span>
+            </button>
+            <button class="nav-button" id="flow-breeding" type="button" aria-pressed="false">
+              <span>Breeding</span>
+              <span class="nav-count" id="flow-breeding-count">0</span>
+            </button>
+            <button class="nav-button" id="flow-builds" type="button" aria-pressed="false">
+              <span>Builds</span>
+              <span class="nav-count" id="flow-builds-count">0</span>
+            </button>
+          </div>
+        </section>
+        <div id="checklist-nav-sections">
+          <section class="nav-section" aria-label="Gera&ccedil;&otilde;es">
+            <p class="nav-label">Gera&ccedil;&otilde;es</p>
+            <div class="nav-group" id="generation-nav"></div>
+          </section>
+          <section class="nav-section" aria-label="Categorias especiais">
+            <p class="nav-label">Categorias especiais</p>
+            <div class="nav-group" id="special-nav"></div>
+          </section>
+        </div>
+      </nav>
+      <div class="view-controls" aria-label="Preferências de visualização">
+        <button class="preference-button" id="theme-toggle" type="button" aria-pressed="false">Tema escuro</button>
+        <button class="preference-button" id="density-toggle" type="button" aria-pressed="false">Modo compacto</button>
+      </div>
+    </aside>
+
+    <section class="main-area">
+    <section class="stats" aria-label="Resumo da lista">
+      <article class="stat"><strong id="owned-count">0</strong><span>Total de adquiridos</span></article>
+      <article class="stat"><strong id="remaining-count">0</strong><span>Faltantes</span></article>
+      <article class="stat"><strong id="percent-count">0%</strong><span>Progresso em %</span></article>
+      <article class="stat"><strong id="catalog-total-count">0</strong><span>Espécies no catálogo</span></article>
+      <div class="progress" aria-label="Progresso"><div id="progress-bar"></div></div>
+    </section>
+
+    <section class="collection-settings" aria-label="Resumo da coleção">
+      <strong>Pokédex Nacional completa</strong>
+      <span>Gerações 1 a 9: <b id="catalog-count">0</b> espécies</span>
+      <span class="collection-note" id="collection-note"></span>
+    </section>
+
+    <section class="toolbar" aria-label="Filtros">
+      <input class="search-field" id="search" type="search" list="pokemon-search-options" placeholder="Buscar por nome, item ou n&uacute;mero...">
+      <div class="filter-panel" aria-label="Filtros vis&iacute;veis">
+        <div class="filter-panel-header">
+          <h2 class="filter-title">Filtros</h2>
+          <div class="filter-actions" aria-label="A&ccedil;&otilde;es dos filtros">
+            <button class="muted-button export-button" id="export-missing" type="button">Exportar faltantes</button>
+            <button class="link-button" id="clear-filters" type="button">Limpar filtros</button>
+          </div>
+        </div>
+        <div class="chip-group" aria-label="Status">
+          <span class="chip-label">Status</span>
+          <div class="chip-list" id="status-chips"></div>
+        </div>
+        <div class="chip-group" aria-label="Requisito ou m&eacute;todo">
+          <span class="chip-label">M&eacute;todo</span>
+          <div class="chip-list" id="method-chips"></div>
+        </div>
+        <div class="chip-group" aria-label="Tipo do Pok&eacute;mon">
+          <span class="chip-label">Tipo</span>
+          <div class="chip-list" id="type-chips"></div>
+        </div>
+        <div class="chip-group" aria-label="Ordena&ccedil;&atilde;o">
+          <span class="chip-label">Ordenar</span>
+          <div class="chip-list" id="sort-chips"></div>
+        </div>
+      </div>
+    </section>
+    <datalist id="pokemon-search-options"></datalist>
+
+    <section class="results-header" aria-live="polite">
+      <div>
+        <p class="results-kicker">Resultados</p>
+        <h2 class="results-title" id="active-title">Todos os Pok&eacute;mon</h2>
+      </div>
+      <span class="visible-count" id="visible-count">0 Pok&eacute;mon</span>
+    </section>
+
+    <div id="list"></div>
+    <p class="footer" id="storage-info">As marcações ficam salvas neste navegador. Para usar o banco local, abra pelo arquivo iniciar-checklist.bat.</p>
+    </section>
+
+    <aside class="capture-sidebar" aria-label="Capturas detectadas nos logs">
+      <button class="capture-rail-button" id="log-sidebar-rail" type="button" aria-label="Abrir logs locais" title="Abrir logs locais">
+        <span class="capture-rail-icon" aria-hidden="true">&lsaquo;</span>
+        <span>Logs locais</span>
+        <span class="capture-rail-badge is-empty" id="log-sidebar-badge">0</span>
+      </button>
+      <section class="capture-panel">
+        <div class="capture-panel-header">
+          <div>
+            <p class="eyebrow">Logs locais</p>
+            <h2 class="capture-title">Capturas detectadas</h2>
+            <p class="capture-subtitle">Confirme apenas o que deve entrar na sua Pokédex.</p>
+          </div>
+          <div class="capture-header-actions">
+            <button class="icon-action-button" id="toggle-log-sidebar" type="button" aria-label="Recolher logs locais" title="Recolher logs locais">&rsaquo;</button>
+            <label class="switch-control" aria-label="Ativar captura por logs locais">
+              <input id="log-capture-toggle" type="checkbox">
+              <span class="switch-track" aria-hidden="true"></span>
+            </label>
+          </div>
+        </div>
+        <div class="capture-status" id="log-capture-status" aria-live="polite">
+          <div class="capture-monitor-header">
+            <strong>Monitor desligado</strong>
+            <button class="capture-monitor-toggle" id="toggle-monitor-details" type="button" aria-expanded="true">Minimizar</button>
+          </div>
+          <span class="capture-monitor-details">Ative pelo servidor local para acompanhar novas capturas.</span>
+        </div>
+        <div class="capture-config" aria-label="Configuração da pasta de logs">
+          <label for="log-path-input">Pasta de logs</label>
+          <div class="capture-path-row">
+            <input class="capture-path-input" id="log-path-input" type="text" placeholder="%APPDATA%\CoreLauncher\game\instances\Pixelmon Brasil - Gen 9\logs">
+            <button class="save-log-path-button" id="save-log-path" type="button">Salvar</button>
+          </div>
+          <p class="capture-config-hint" id="log-path-hint">Configure na primeira vez antes de ligar o monitor.</p>
+        </div>
+        <div class="capture-list" id="log-capture-list"></div>
+        <div class="capture-panel-footer">
+          <button class="link-button" id="refresh-log-captures" type="button">Atualizar</button>
+          <button class="link-button" id="clear-log-captures" type="button">Limpar fila</button>
+        </div>
+      </section>
+    </aside>
+  </main>
+
+  <div class="pokemon-modal" id="pokemon-modal" hidden>
+    <div class="pokemon-modal-backdrop" data-close-modal></div>
+    <section class="pokemon-modal-panel" role="dialog" aria-modal="true" aria-labelledby="pokemon-modal-title">
+      <button class="pokemon-modal-close" id="pokemon-modal-close" type="button" aria-label="Fechar detalhes">&times;</button>
+      <div class="pokemon-modal-content" id="pokemon-modal-content"></div>
+    </section>
+  </div>
+
+  <script src="./lista-falta-pokemon-data.js"></script>
+  <script src="./pokemon-catalogo-data.js"></script>
+  <script src="./pokemon-metodos-data.js"></script>
+  <script src="./pokemon-biomas-data.js"></script>
+  <script src="./pokemon-types-data.js"></script>
+  <script src="./pokemon-evolution-data.js"></script>
+  <script src="./pokemon-breeding-data.js"></script>
+  <script src="./scripts/app.js"></script>
+</body>
+</html>
