@@ -1,60 +1,81 @@
-# Pokédex Checklist para Pixelmon
+# Pixelmon Pokédex Checklist
 
-Aplicativo local para acompanhar o progresso de uma Pokédex no Pixelmon. Ele ajuda a visualizar quais Pokémon já foram adquiridos, quais ainda faltam e qual é o método mais provável para completar cada entrada.
+Aplicativo local para acompanhar o progresso de uma Pokédex no Pixelmon. Ele mostra quais Pokémon já foram adquiridos, quais ainda faltam e qual método ajuda a completar cada entrada.
 
-O projeto roda no próprio computador, salva o progresso localmente e não precisa de conta, banco externo ou instalação de dependências.
+O app foi pensado para uso local: o progresso fica salvo no próprio computador, sem conta, banco externo ou serviço online.
 
 ## Recursos
 
 - Pokédex Nacional com 1025 espécies, da Geração 1 à Geração 9.
-- Dashboard com total de capturados, faltantes e progresso em porcentagem.
+- Dashboard com capturados, faltantes e progresso em porcentagem.
 - Navegação lateral por gerações e categorias especiais.
 - Busca por nome, número ou item.
-- Filtros por status: faltando, capturados ou todos.
-- Filtros por método: encontrar/capturar, evoluir por nível, item, troca e especial.
-- Separação entre evolução por nível disponível e evolução por nível com Pokémon base ausente.
-- Cards compactos com sprite, número nacional, método e botão de captura.
-- Exportação da lista de Pokémon faltantes.
-- Monitor opcional de logs locais para sugerir capturas detectadas no Pixelmon.
+- Filtros visíveis em chips por status e método.
+- Separação entre evolução por nível disponível e evolução por nível com base ausente.
+- Cards com sprite, número nacional, método, tipo e ação de captura.
+- Tema claro, tema escuro e modo compacto.
+- Exportação em `.txt` da lista de Pokémon faltantes.
+- Monitor opcional de logs locais do Pixelmon, sempre com confirmação manual.
 
-## Como usar
+## Usar Como App Desktop
 
-No Windows, execute:
+Este é o modo recomendado para uma experiência mais limpa, sem janela de terminal aberta ao lado.
+
+Pré-requisitos:
+
+- Node.js com npm.
+- Rust com Cargo.
+
+Depois de instalar os pré-requisitos, rode:
+
+```powershell
+npm install
+npm run dev
+```
+
+Para gerar um instalador/app final:
+
+```powershell
+npm run build
+```
+
+No modo desktop, a base de capturados e a configuração da pasta de logs ficam salvas na pasta local de dados do aplicativo do Windows.
+
+## Usar Pelo Navegador
+
+Também é possível usar o modo anterior, com servidor local em PowerShell:
 
 ```powershell
 .\iniciar-checklist.bat
 ```
 
-Isso abre um servidor local e carrega o app no navegador. Mantenha a janela do terminal aberta enquanto estiver usando a Pokédex.
+Esse modo abre o app no navegador e salva o progresso em `pokemon-checklist-db.json`, criado automaticamente na pasta do projeto.
 
-Ao marcar ou desmarcar Pokémon, o progresso fica salvo no computador em um arquivo local criado automaticamente pelo app.
+## Monitor de Logs Locais
 
-## Monitor de logs locais
+O painel `Logs locais` acompanha o chat gravado nos logs do Pixelmon e sugere capturas detectadas.
 
-O painel `Logs locais` pode acompanhar o chat gravado nos arquivos de log do Pixelmon e sugerir capturas detectadas.
-
-Na primeira vez, informe no campo `Pasta de logs` o caminho da pasta de logs da sua instância do jogo. Um caminho comum é:
+Na primeira vez, informe a pasta de logs da sua instância do jogo. Um caminho comum é:
 
 ```text
 %APPDATA%\CoreLauncher\game\instances\Pixelmon Brasil - Gen 9\logs
 ```
 
-Esse caminho pode mudar conforme o launcher, o nome da instância ou a instalação do usuário.
+Esse caminho pode variar conforme o launcher, o nome da instância ou a instalação.
 
-As detecções aparecem como candidatos na lateral direita. Nada é marcado automaticamente: cada Pokémon precisa ser confirmado manualmente antes de entrar na Pokédex.
+As detecções aparecem como candidatos na lateral direita. Nada é marcado automaticamente: cada Pokémon precisa ser confirmado antes de entrar na Pokédex.
 
-## Estrutura dos arquivos
+## Estrutura
 
-- `pokemon-checklist.html`: interface principal do app.
-- `servidor-local.ps1`: servidor local responsável por abrir o app, salvar o progresso e monitorar logs.
-- `iniciar-checklist.bat`: atalho para iniciar o app no Windows.
-- `pokemon-catalogo-data.js`: catálogo nacional de Pokémon.
-- `lista-falta-pokemon-data.js`: lista base usada para classificar entradas e métodos iniciais.
-- `pokemon-metodos-data.js`: métodos de obtenção e evolução.
-- `pokemon-biomas-data.js`: informações de biomas e horários de encontro no Pixelmon.
+- `src/index.html`: interface principal do app.
+- `src/pokemon-catalogo-data.js`: catálogo nacional de Pokémon.
+- `src/lista-falta-pokemon-data.js`: lista base de entradas e classificações.
+- `src/pokemon-metodos-data.js`: métodos de obtenção e evolução.
+- `src/pokemon-biomas-data.js`: biomas e horários de encontro no Pixelmon.
+- `src-tauri/`: app desktop em Tauri.
+- `servidor-local.ps1`: servidor local para o modo navegador.
+- `iniciar-checklist.bat`: atalho para iniciar o modo navegador no Windows.
 
 ## Observações
 
-O app foi pensado para uso local e pessoal. O progresso e as configurações ficam no próprio computador do usuário.
-
-As informações de biomas e métodos podem variar conforme versão do Pixelmon e configuração do servidor, então use os detalhes como apoio prático e confirme casos especiais dentro do seu servidor.
+As informações de biomas e métodos podem variar conforme a versão do Pixelmon e a configuração do servidor. Use os detalhes como apoio prático e confirme casos especiais dentro do seu servidor.

@@ -6,6 +6,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 $root = $PSScriptRoot
+$webRoot = Join-Path $root "src"
 $databasePath = Join-Path $root "pokemon-checklist-db.json"
 $configPath = Join-Path $root "pokemon-checklist-config.json"
 $address = [Net.IPAddress]::Parse("127.0.0.1")
@@ -655,13 +656,13 @@ try {
       $requestPath = ($request.Path -split "\?")[0]
 
       if ($request.Method -eq "GET" -and ($requestPath -eq "/" -or $requestPath -eq "/pokemon-checklist.html")) {
-        Write-Response -Stream $stream -StatusCode 200 -ContentType "text/html; charset=utf-8" -Body ([IO.File]::ReadAllBytes((Join-Path $root "pokemon-checklist.html")))
+        Write-Response -Stream $stream -StatusCode 200 -ContentType "text/html; charset=utf-8" -Body ([IO.File]::ReadAllBytes((Join-Path $webRoot "index.html")))
       } elseif ($request.Method -eq "GET" -and $requestPath -eq "/lista-falta-pokemon-data.js") {
-        Write-Response -Stream $stream -StatusCode 200 -ContentType "application/javascript; charset=utf-8" -Body ([IO.File]::ReadAllBytes((Join-Path $root "lista-falta-pokemon-data.js")))
+        Write-Response -Stream $stream -StatusCode 200 -ContentType "application/javascript; charset=utf-8" -Body ([IO.File]::ReadAllBytes((Join-Path $webRoot "lista-falta-pokemon-data.js")))
       } elseif ($request.Method -eq "GET" -and $requestPath -match "^/[a-z0-9-]+-data\.js$") {
         $fileName = $requestPath.TrimStart("/")
-        $filePath = [IO.Path]::GetFullPath((Join-Path $root $fileName))
-        if ($filePath.StartsWith($root + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase) -and (Test-Path -LiteralPath $filePath)) {
+        $filePath = [IO.Path]::GetFullPath((Join-Path $webRoot $fileName))
+        if ($filePath.StartsWith($webRoot + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase) -and (Test-Path -LiteralPath $filePath)) {
           Write-Response -Stream $stream -StatusCode 200 -ContentType "application/javascript; charset=utf-8" -Body ([IO.File]::ReadAllBytes($filePath))
         } else {
           Write-Response -Stream $stream -StatusCode 404 -ContentType "text/plain; charset=utf-8" -Body ($utf8.GetBytes("Pagina nao encontrada."))

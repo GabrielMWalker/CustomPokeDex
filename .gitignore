@@ -1,5 +1,8 @@
 .chrome-preview/
 .codex-db-function-test-*/
+node_modules/
+dist/
+src-tauri/target/
 logs-game/
 logs-launcher/
 *.tmp
