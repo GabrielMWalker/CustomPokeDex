@@ -137,6 +137,68 @@
   box-shadow: 0 8px 22px rgba(22, 62, 75, .055);
 }
 
+.counter-team-summary {
+  display: grid;
+  gap: 12px;
+  margin: 0 0 18px;
+  padding: 14px;
+  background: color-mix(in srgb, var(--green) 7%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--green) 34%, var(--line));
+  border-radius: 8px;
+}
+
+.counter-team-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 8px;
+}
+
+.counter-team-option {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  padding: 9px;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid color-mix(in srgb, var(--green) 38%, var(--line));
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.counter-team-option:hover {
+  border-color: color-mix(in srgb, var(--green) 68%, var(--line));
+}
+
+.counter-team-option img {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+}
+
+.counter-team-option span {
+  min-width: 0;
+  display: grid;
+}
+
+.counter-team-option strong,
+.counter-team-option small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.counter-team-option small {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 760;
+}
+
+.counter-team-option b {
+  color: var(--green);
+}
+
 .counter-summary h2 {
   margin: 2px 0 0;
   font-size: 20px;
@@ -212,6 +274,11 @@
   border-color: color-mix(in srgb, var(--green) 36%, var(--line));
 }
 
+.counter-card.is-ready {
+  border-color: color-mix(in srgb, var(--green) 66%, var(--line));
+  box-shadow: 0 10px 28px color-mix(in srgb, var(--green) 18%, transparent);
+}
+
 .counter-card-main {
   display: grid;
   grid-template-columns: 56px minmax(0, 1fr);
@@ -235,6 +302,88 @@
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+}
+
+.counter-matchup-row {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  background: color-mix(in srgb, var(--blue) 8%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--blue) 24%, var(--line));
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 780;
+}
+
+.counter-matchup-row div {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.counter-matchup-row span {
+  color: var(--muted);
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+.counter-matchup-row b {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.counter-matchup-row strong {
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.counter-ready-build[hidden] {
+  display: none;
+}
+
+.counter-ready-build {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+  background: color-mix(in srgb, var(--green) 16%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--green) 58%, var(--line));
+  border-radius: 8px;
+}
+
+.counter-ready-build strong {
+  display: block;
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.counter-ready-build span {
+  display: block;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 780;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.counter-ready-build .muted-button {
+  min-height: 32px;
+  padding: 0 10px;
+  font-size: 11px;
 }
 
 .raid-panel {
@@ -336,6 +485,52 @@
   border-radius: 99px;
   font-size: 10px;
   font-weight: 850;
+}
+
+.text-badge.is-strong {
+  color: #073725;
+  background: #b7f1d5;
+  border-color: #55c68f;
+}
+
+.counter-modal-list {
+  display: grid;
+  gap: 8px;
+}
+
+.counter-modal-row {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 3px 10px;
+  padding: 10px;
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.counter-modal-row span,
+.counter-modal-row small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.counter-modal-row strong {
+  color: var(--ink);
+  font-size: 15px;
+}
+
+.counter-modal-row small {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 760;
+}
+
+.modal-detail-layout.is-single {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .raid-note {

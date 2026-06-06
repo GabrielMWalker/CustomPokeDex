@@ -5,16 +5,19 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     const TYPE_DATA = window.POKEMON_TYPES_DATA || [];
     const EVOLUTION_DATA = window.POKEMON_EVOLUTION_DATA || { pokemon: [], chains: [] };
     const BREEDING_DATA = window.POKEMON_BREEDING_DATA || [];
+    const ABILITIES_DATA = window.POKEMON_ABILITIES_DATA || [];
     const BIOME_DATA_LOADED = Array.isArray(window.POKEMON_CAPTURE_BIOMES);
     const STORAGE_KEY = "pokemon-checklist-captured-v2";
     const LEGACY_STORAGE_KEY = "pokemon-checklist-status-v1";
+    const BREEDING_PARENT_STORAGE_KEY = "pokemon-breeding-parents-v1";
+    const TEAMS_STORAGE_KEY = "pokemon-teams-v1";
     const THEME_KEY = "pokemon-checklist-theme";
     const DENSITY_KEY = "pokemon-checklist-density";
     const LOG_SIDEBAR_COLLAPSED_KEY = "pokemon-checklist-log-sidebar-collapsed";
     const LOG_MONITOR_MINIMIZED_KEY = "pokemon-checklist-log-monitor-minimized";
     const APP_META = window.POKELIST_APP_META || {
       name: "Pixelmon - Pokelist",
-      version: "1.0.0",
+      version: "1.0.2",
       releaseUrl: "",
       updaterUrl: ""
     };
@@ -32,6 +35,23 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     let telemetrySearch = "";
     let breedingSearch = "";
     let breedingGroupFilter = "";
+    let breedingMode = "compatibility";
+    let breedingParentSearch = "";
+    let selectedBreedingParentEntryKey = "";
+    let breedingSavedSearch = "";
+    let breedingSavedParents = [];
+    let selectedBreedingParentAId = "";
+    let selectedBreedingParentBId = "";
+    let breedingCalculatorGoal = "improve";
+    let breedingRequireNature = false;
+    let breedingTargetStats = new Set(["hp"]);
+    let fragmentTypeFilter = "";
+    let fragmentSearch = "";
+    let fragmentOwnedOnly = true;
+    let teamsSearch = "";
+    let teamBuiltPokemon = [];
+    let savedTeams = [];
+    let activeTeamEditId = "";
     let buildSearch = "";
     let buildRoleFilter = "";
     let buildDamageFilter = "";
@@ -41,11 +61,16 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     let selectedCounterBossKey = "";
     let counterTargetTypes = new Set();
     let counterOwnedOnly = false;
+    let counterReadyOnly = false;
     let buildMetaOnly = false;
     let selectedBreedingKey = "";
     let focusTelemetrySearchAfterRender = false;
     let focusCaptureSearchAfterRender = false;
     let focusBreedingSearchAfterRender = false;
+    let focusBreedingParentSearchAfterRender = false;
+    let focusBreedingSavedSearchAfterRender = false;
+    let focusFragmentSearchAfterRender = false;
+    let focusTeamsSearchAfterRender = false;
     let focusBuildSearchAfterRender = false;
     let focusCounterSearchAfterRender = false;
     let focusCounterBossSearchAfterRender = false;
@@ -54,6 +79,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     let appUpdateStatus = "";
     let appDialogResolve = null;
     let activeModalEntry = null;
+    let lastRenderedView = "";
     const defaultNavigation = { type: "all", label: "Todos os Pok\u00e9mon" };
     const generationRanges = [
       { type: "generation", label: "Gera\u00e7\u00e3o 1", start: 1, end: 151 },
@@ -262,6 +288,32 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       fairy: "Fada"
     };
     const typeFilters = Object.entries(typeLabels).map(([value, label]) => ({ value, label }));
+    const breedingIvStats = [
+      { key: "hp", label: "HP" },
+      { key: "atk", label: "Atk" },
+      { key: "def", label: "Def" },
+      { key: "spa", label: "SpA" },
+      { key: "spd", label: "SpD" },
+      { key: "spe", label: "Spe" }
+    ];
+    const breedingHeldItems = [
+      { value: "", label: "Sem item" },
+      { value: "destiny-knot", label: "Destiny Knot" },
+      { value: "everstone", label: "Everstone" },
+      { value: "power-hp", label: "Power Weight", stat: "hp" },
+      { value: "power-atk", label: "Power Bracer", stat: "atk" },
+      { value: "power-def", label: "Power Belt", stat: "def" },
+      { value: "power-spa", label: "Power Lens", stat: "spa" },
+      { value: "power-spd", label: "Power Band", stat: "spd" },
+      { value: "power-spe", label: "Power Anklet", stat: "spe" }
+    ];
+    const breedingHeldItemByValue = new Map(breedingHeldItems.map(item => [item.value, item]));
+    const breedingGoalLabels = {
+      improve: "Melhorar",
+      specific: "IV alvo",
+      perfect: "Breeding perfeito",
+      keep: "Manter qualidade"
+    };
     const buildRoleFilters = [
       { value: "", label: "Todos" },
       { value: "physical-sweeper", label: "Físico veloz" },
@@ -283,6 +335,59 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       special: "Dano especial",
       mixed: "Dano misto",
       status: "Suporte"
+    };
+    const movePowerData = {
+      acrobatics: { type: "flying", power: 110 },
+      airslash: { type: "flying", power: 75 },
+      aquajet: { type: "water", power: 40 },
+      bodypress: { type: "fighting", power: 80 },
+      bravebird: { type: "flying", power: 120 },
+      closecombat: { type: "fighting", power: 120 },
+      crunch: { type: "dark", power: 80 },
+      darkpulse: { type: "dark", power: 80 },
+      dragonclaw: { type: "dragon", power: 80 },
+      dragondarts: { type: "dragon", power: 100 },
+      dragonpulse: { type: "dragon", power: 85 },
+      earthquake: { type: "ground", power: 100 },
+      extremespeed: { type: "normal", power: 80 },
+      fireblast: { type: "fire", power: 110 },
+      firefang: { type: "fire", power: 65 },
+      firepunch: { type: "fire", power: 75 },
+      flamethrower: { type: "fire", power: 90 },
+      flareblitz: { type: "fire", power: 120 },
+      flashcannon: { type: "steel", power: 80 },
+      freezedry: { type: "ice", power: 70 },
+      gigadrain: { type: "grass", power: 75 },
+      hex: { type: "ghost", power: 65 },
+      hurricane: { type: "flying", power: 110 },
+      hydropump: { type: "water", power: 110 },
+      icebeam: { type: "ice", power: 90 },
+      icepunch: { type: "ice", power: 75 },
+      icespinner: { type: "ice", power: 80 },
+      ironhead: { type: "steel", power: 80 },
+      knockoff: { type: "dark", power: 65 },
+      kowtowcleave: { type: "dark", power: 85 },
+      leafblade: { type: "grass", power: 90 },
+      moonblast: { type: "fairy", power: 95 },
+      outrage: { type: "dragon", power: 120 },
+      playrough: { type: "fairy", power: 90 },
+      powergem: { type: "rock", power: 80 },
+      psychic: { type: "psychic", power: 90 },
+      psyshock: { type: "psychic", power: 80 },
+      rockslide: { type: "rock", power: 75 },
+      scalesshot: { type: "dragon", power: 75 },
+      shadowball: { type: "ghost", power: 80 },
+      shadowclaw: { type: "ghost", power: 70 },
+      sludgebomb: { type: "poison", power: 90 },
+      suckerpunch: { type: "dark", power: 70 },
+      surf: { type: "water", power: 90 },
+      thunderbolt: { type: "electric", power: 90 },
+      thunderpunch: { type: "electric", power: 75 },
+      uturn: { type: "bug", power: 70 },
+      waterball: { type: "water", power: 100 },
+      waterfall: { type: "water", power: 80 },
+      weatherball: { type: "normal", power: 100 },
+      woodhammer: { type: "grass", power: 120 }
     };
     const typeEffectiveness = {
       normal: { rock: .5, ghost: 0, steel: .5 },
@@ -527,6 +632,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     const evolutionMembersByKey = new Map((EVOLUTION_DATA.pokemon || []).map(entry => [canonicalKey(entry.name), entry]));
     const evolutionChainsById = new Map((EVOLUTION_DATA.chains || []).map(chain => [chain.id, chain]));
     const breedingByKey = new Map(BREEDING_DATA.map(entry => [canonicalKey(entry.name), entry]));
+    const abilitiesByKey = new Map(ABILITIES_DATA.map(entry => [canonicalKey(entry.name), entry]));
     const allEntries = CATALOG.map(pokemon => {
       const nameKey = canonicalKey(pokemon.name);
       const manual = manualByKey.get(nameKey);
@@ -535,6 +641,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       const typeInfo = typesByKey.get(nameKey);
       const evolution = evolutionMembersByKey.get(nameKey);
       const breeding = breedingByKey.get(nameKey);
+      const abilities = abilitiesByKey.get(nameKey);
       const detail = manual?.detail || captureBiome?.detail || method?.detail || "";
       const rawCategory = manual?.sourceCategory || method?.category || (captureBiome ? encounterCategory : "");
       let sourceCategory = rawCategory
@@ -558,6 +665,8 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
         types: typeInfo?.types || [],
         evolution: evolution || null,
         breeding: breeding || null,
+        abilities: abilities?.abilities || [],
+        hiddenAbilities: abilities?.hiddenAbilities || [],
         showDetailInline: !isFindingInformation(sourceCategory)
       };
     });
@@ -768,7 +877,336 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       }
     }
 
+    function normalizeIvValue(value) {
+      const number = Number.parseInt(value, 10);
+      if (Number.isNaN(number)) return 0;
+      return Math.max(0, Math.min(31, number));
+    }
+
+    function createEmptyIvs() {
+      return Object.fromEntries(breedingIvStats.map(stat => [stat.key, 0]));
+    }
+
+    function countPerfectIvs(parent) {
+      return breedingIvStats.filter(stat => normalizeIvValue(parent.ivs?.[stat.key]) === 31).length;
+    }
+
+    function getBreedingGenderOptions(entry) {
+      const rate = entry?.breeding?.genderRate;
+      if (rate === -1) return [{ value: "genderless", label: "Sem genero" }];
+      if (rate === 0) return [{ value: "male", label: "Macho" }];
+      if (rate === 8) return [{ value: "female", label: "Femea" }];
+      if (typeof rate !== "number") {
+        return [
+          { value: "unknown", label: "Nao informado" },
+          { value: "male", label: "Macho" },
+          { value: "female", label: "Femea" },
+          { value: "genderless", label: "Sem genero" }
+        ];
+      }
+      return [
+        { value: "male", label: "Macho" },
+        { value: "female", label: "Femea" }
+      ];
+    }
+
+    function getBreedingGenderLabel(value) {
+      return getBreedingGenderOptions().find(option => option.value === value)?.label || "Nao informado";
+    }
+
+    function normalizeBreedingParent(record) {
+      if (!record || typeof record !== "object") return null;
+      const name = String(record.name || "").trim();
+      if (!name) return null;
+      const entry = catalogByKey.get(canonicalKey(name)) || allEntries.find(item => canonicalKey(item.name) === canonicalKey(name));
+      const ivs = createEmptyIvs();
+      breedingIvStats.forEach(stat => {
+        ivs[stat.key] = normalizeIvValue(record.ivs?.[stat.key]);
+      });
+      const item = breedingHeldItemByValue.has(record.item) ? record.item : "";
+      const genderOptions = getBreedingGenderOptions(entry);
+      const gender = genderOptions.some(option => option.value === record.gender)
+        ? record.gender
+        : genderOptions[0]?.value || "unknown";
+      return {
+        id: String(record.id || `${Date.now()}-${Math.random().toString(16).slice(2)}`),
+        name: entry?.name || name,
+        nickname: String(record.nickname || "").trim(),
+        gender,
+        ivs,
+        natureOk: Boolean(record.natureOk),
+        item
+      };
+    }
+
+    function loadBreedingParents() {
+      breedingSavedParents = readJsonStorage(BREEDING_PARENT_STORAGE_KEY, [])
+        .map(normalizeBreedingParent)
+        .filter(Boolean);
+    }
+
+    function saveBreedingParents() {
+      localStorage.setItem(BREEDING_PARENT_STORAGE_KEY, JSON.stringify(breedingSavedParents));
+    }
+
+    function getBreedingSavedParent(id) {
+      return breedingSavedParents.find(parent => parent.id === id) || null;
+    }
+
+    function getBreedingParentLabel(parent) {
+      if (!parent) return "Selecione";
+      const prefix = parent.nickname ? `${parent.nickname} - ` : "";
+      return `${prefix}${parent.name} F${countPerfectIvs(parent)}`;
+    }
+
+    const teamStatNames = {
+      hp: "HP",
+      atk: "Attack",
+      def: "Defense",
+      spa: "Special Attack",
+      spd: "Special Defense",
+      spe: "Speed"
+    };
+
+    function getTeamStatKey(label) {
+      const value = normalize(label || "");
+      if (value === "hp") return "hp";
+      if (value === "atk" || value === "attack") return "atk";
+      if (value === "def" || value === "defense") return "def";
+      if (value === "spa" || value === "specialattack") return "spa";
+      if (value === "spd" || value === "specialdefense") return "spd";
+      if (value === "spe" || value === "speed") return "spe";
+      return null;
+    }
+
+    function normalizeTeamStatSpread(spread, maxValue) {
+      const normalized = Object.fromEntries(breedingIvStats.map(stat => [stat.key, 0]));
+      if (Array.isArray(spread)) {
+        spread.forEach(([label, value]) => {
+          const key = getTeamStatKey(label);
+          if (key) normalized[key] = Math.max(0, Math.min(maxValue, Number.parseInt(value, 10) || 0));
+        });
+        return normalized;
+      }
+      if (spread && typeof spread === "object") {
+        breedingIvStats.forEach(stat => {
+          normalized[stat.key] = Math.max(0, Math.min(maxValue, Number.parseInt(spread[stat.key], 10) || 0));
+        });
+      }
+      return normalized;
+    }
+
+    function teamStatObjectToSpread(spread) {
+      return breedingIvStats
+        .map(stat => [teamStatNames[stat.key], Number.parseInt(spread?.[stat.key], 10) || 0])
+        .filter(([, value]) => value > 0);
+    }
+
+    function normalizeTeamMoves(moves) {
+      const values = Array.isArray(moves) ? moves : String(moves || "").split(/\n|,/);
+      return values.map(move => String(move || "").trim()).filter(Boolean).slice(0, 4);
+    }
+
+    function normalizeTeamPokemon(record) {
+      if (!record || typeof record !== "object") return null;
+      const name = String(record.name || "").trim();
+      if (!name) return null;
+      const entry = catalogByKey.get(canonicalKey(name)) || allEntries.find(item => canonicalKey(item.name) === canonicalKey(name));
+      if (!entry) return null;
+      const buildIndex = Number.parseInt(record.buildIndex, 10);
+      const builds = getBuildRecommendations(entry);
+      const safeBuildIndex = Number.isInteger(buildIndex) && buildIndex >= 0 && buildIndex < builds.length ? buildIndex : -1;
+      const suggested = safeBuildIndex >= 0 ? builds[safeBuildIndex] || {} : {};
+      const damageType = Object.prototype.hasOwnProperty.call(buildDamageLabels, record.damageType)
+        ? record.damageType
+        : suggested.damageType || "mixed";
+      const ivs = normalizeTeamStatSpread(record.ivs, 31);
+      const evs = normalizeTeamStatSpread(record.evs || suggested.evs, 252);
+      const moves = normalizeTeamMoves(record.moves?.length ? record.moves : suggested.moves);
+      return {
+        id: String(record.id || `${Date.now()}-${Math.random().toString(16).slice(2)}`),
+        name: entry.name,
+        nickname: String(record.nickname || "").trim(),
+        buildIndex: safeBuildIndex,
+        buildName: String(record.buildName || suggested.name || "Build custom").trim(),
+        role: String(record.role || suggested.role || "").trim(),
+        damageType,
+        level: Math.max(1, Math.min(100, Number.parseInt(record.level, 10) || 100)),
+        item: String(record.item || suggested.item || "").trim(),
+        nature: String(record.nature || suggested.nature || "").trim(),
+        ability: String(record.ability || "").trim(),
+        shiny: Boolean(record.shiny),
+        ivs,
+        evs,
+        moves,
+        notes: String(record.notes || "").trim(),
+        favorite: Boolean(record.favorite)
+      };
+    }
+
+    function normalizeSavedTeam(record) {
+      if (!record || typeof record !== "object") return null;
+      const name = String(record.name || "").trim() || "Time sem nome";
+      const memberIds = Array.isArray(record.memberIds)
+        ? record.memberIds.map(String).filter(Boolean).slice(0, 6)
+        : [];
+      return {
+        id: String(record.id || `${Date.now()}-${Math.random().toString(16).slice(2)}`),
+        name,
+        memberIds
+      };
+    }
+
+    function loadTeamsData() {
+      const data = readJsonStorage(TEAMS_STORAGE_KEY, {});
+      teamBuiltPokemon = (Array.isArray(data.builtPokemon) ? data.builtPokemon : [])
+        .map(normalizeTeamPokemon)
+        .filter(Boolean);
+      savedTeams = (Array.isArray(data.teams) ? data.teams : [])
+        .map(normalizeSavedTeam)
+        .filter(Boolean);
+    }
+
+    function saveTeamsData() {
+      localStorage.setItem(TEAMS_STORAGE_KEY, JSON.stringify({
+        builtPokemon: teamBuiltPokemon,
+        teams: savedTeams
+      }));
+    }
+
+    function getTeamPokemonEntry(record) {
+      return catalogByKey.get(canonicalKey(record?.name || "")) || null;
+    }
+
+    function getTeamPokemonBuild(record) {
+      const entry = getTeamPokemonEntry(record);
+      if (!entry) return null;
+      const suggestions = getBuildRecommendations(entry);
+      const suggested = record.buildIndex >= 0 ? suggestions[record.buildIndex] || {} : {};
+      return {
+        name: record.buildName || suggested.name || "Build custom",
+        role: record.role || suggested.role || "Custom",
+        roleKey: suggested.roleKey || "balanced",
+        source: "Cadastrada",
+        isMeta: Boolean(suggested.isMeta),
+        damageType: record.damageType || suggested.damageType || "mixed",
+        evs: teamStatObjectToSpread(record.evs),
+        nature: record.nature || suggested.nature || "Flex",
+        item: record.item || suggested.item || "Flex",
+        moves: record.moves?.length ? record.moves : suggested.moves || [],
+        note: record.notes || suggested.note || "",
+        attackTypes: suggested.attackTypes || entry.types
+      };
+    }
+
+    function formatAbilityList(abilities = []) {
+      return abilities.length ? abilities.join(" / ") : "Nao informado";
+    }
+
+    function getHiddenAbilityLabel(entry) {
+      return formatAbilityList(entry?.hiddenAbilities || []);
+    }
+
+    function isHiddenAbility(entry, ability = "") {
+      const value = normalize(ability);
+      return Boolean(value && (entry?.hiddenAbilities || []).some(hidden => normalize(hidden) === value));
+    }
+
+    function getKnownMoveInfo(move, build) {
+      const info = getMovePowerInfo(move, build);
+      return info?.known ? info : null;
+    }
+
+    function getTeamBuildWarnings(record, entry, build) {
+      const warnings = [];
+      if (!entry || !record) return warnings;
+      const moves = record.moves || [];
+      const knownMoveTypes = moves
+        .map(move => getKnownMoveInfo(move, build))
+        .filter(Boolean)
+        .map(info => info.type);
+      const hasKnownMoves = knownMoveTypes.length > 0;
+      const hasStab = knownMoveTypes.some(type => entry.types.includes(type));
+      const evTotal = getTeamEvTotal(record);
+
+      if (!record.item) warnings.push({ level: "warn", text: "Item nao preenchido." });
+      if (!record.nature) warnings.push({ level: "warn", text: "Nature nao preenchida." });
+      if (!record.ability) warnings.push({ level: "warn", text: `Ability nao preenchida. HA: ${getHiddenAbilityLabel(entry)}.` });
+      if (record.ability && isHiddenAbility(entry, record.ability)) warnings.push({ level: "ok", text: `${record.ability} e a Hidden Ability.` });
+      if (moves.length < 4) warnings.push({ level: "warn", text: "Moveset incompleto." });
+      if (hasKnownMoves && !hasStab) warnings.push({ level: "danger", text: "Nenhum golpe conhecido com STAB." });
+      if (!hasKnownMoves && moves.length) warnings.push({ level: "info", text: "Moves ainda sem dados de tipo/poder para validar STAB." });
+      if (evTotal > 510) warnings.push({ level: "danger", text: "EV total acima de 510." });
+      if (evTotal < 508) warnings.push({ level: "info", text: `EV total em ${evTotal}/510.` });
+      return warnings;
+    }
+
+    function getReadyTeamPokemon(entry) {
+      const key = canonicalKey(entry?.name || "");
+      return teamBuiltPokemon.filter(record => canonicalKey(record.name) === key);
+    }
+
+    function getTeamMembershipLabels(entry) {
+      const ids = new Set(getReadyTeamPokemon(entry).map(record => record.id));
+      if (!ids.size) return [];
+      return savedTeams
+        .filter(team => team.memberIds.some(id => ids.has(id)))
+        .map(team => team.name);
+    }
+
+    function getTeamAnalysisRecords(team) {
+      return (team?.memberIds || [])
+        .map(id => teamBuiltPokemon.find(record => record.id === id))
+        .filter(Boolean)
+        .map(record => {
+          const entry = getTeamPokemonEntry(record);
+          const build = getTeamPokemonBuild(record);
+          return entry ? { record, entry, build } : null;
+        })
+        .filter(Boolean);
+    }
+
+    function getOffensiveTypesForTeamRecord(item) {
+      const types = new Set(getBuildAttackTypes(item.entry, item.build || {}));
+      (item.record.moves || []).forEach(move => {
+        const info = getKnownMoveInfo(move, item.build);
+        if (info?.type) types.add(info.type);
+      });
+      return [...types];
+    }
+
+    function analyzeTeam(team) {
+      const records = getTeamAnalysisRecords(team);
+      const defensive = typeFilters.map(type => {
+        const matchups = records.map(item => getTypeEffectiveness(type.value, item.entry.types));
+        return {
+          type: type.value,
+          weak: matchups.filter(value => value > 1).length,
+          resist: matchups.filter(value => value > 0 && value < 1).length,
+          immune: matchups.filter(value => value === 0).length
+        };
+      });
+      const attackTypes = new Set();
+      records.forEach(item => getOffensiveTypesForTeamRecord(item).forEach(type => attackTypes.add(type)));
+      const coverage = typeFilters
+        .map(type => ({
+          type: type.value,
+          coveredBy: [...attackTypes].filter(attackType => getTypeEffectiveness(attackType, [type.value]) > 1)
+        }))
+        .filter(item => item.coveredBy.length);
+      const warnings = [];
+      const risky = defensive
+        .filter(item => item.weak >= 2 && item.resist + item.immune === 0)
+        .sort((a, b) => b.weak - a.weak || formatPokemonType(a.type).localeCompare(formatPokemonType(b.type), "pt-BR"));
+      risky.slice(0, 3).forEach(item => warnings.push(`Time sofre contra ${formatPokemonType(item.type)} (${item.weak} fracos, sem resist/imune).`));
+      if (records.length < 6) warnings.push(`Time incompleto: ${records.length}/6 membros.`);
+      if (coverage.length < 12) warnings.push(`Cobertura ofensiva baixa: ${coverage.length}/18 tipos.`);
+      return { records, defensive, coverage, warnings };
+    }
+
     initializeLocalCapturedState();
+    loadBreedingParents();
+    loadTeamsData();
 
     const searchInput = document.querySelector("#search");
     const pokemonSearchOptions = document.querySelector("#pokemon-search-options");
@@ -778,6 +1216,8 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     const captureTab = document.querySelector("#flow-capture");
     const capturedTab = document.querySelector("#flow-telemetry");
     const breedingTab = document.querySelector("#flow-breeding");
+    const fragmentsTab = document.querySelector("#flow-fragments");
+    const teamsTab = document.querySelector("#flow-teams");
     const buildsTab = document.querySelector("#flow-builds");
     const settingsTab = document.querySelector("#flow-settings");
     const checklistNavSections = document.querySelector("#checklist-nav-sections");
@@ -785,6 +1225,8 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     const captureFlowCount = document.querySelector("#flow-capture-count");
     const telemetryFlowCount = document.querySelector("#flow-telemetry-count");
     const breedingFlowCount = document.querySelector("#flow-breeding-count");
+    const fragmentsFlowCount = document.querySelector("#flow-fragments-count");
+    const teamsFlowCount = document.querySelector("#flow-teams-count");
     const buildsFlowCount = document.querySelector("#flow-builds-count");
     const settingsFlowCount = document.querySelector("#flow-settings-count");
     const themeToggleButton = document.querySelector("#theme-toggle");
@@ -1000,17 +1442,6 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
         }
         return;
       }
-      if (!useFileDatabase) return;
-
-      try {
-        await fetch("/api/state", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ version: 3, captured })
-        });
-      } catch {
-        document.querySelector("#storage-info").textContent = "Não foi possível atualizar o banco local. Mantenha o iniciador aberto enquanto usa a página.";
-      }
     }
 
     function saveState() {
@@ -1101,7 +1532,9 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
 
     function getSearchText(entry) {
       const dexNumber = String(entry.id).padStart(4, "0");
-      return normalize(`${entry.id} ${dexNumber} #${dexNumber} ${entry.name} ${entry.detail} ${entry.materials.join(" ")}`);
+      const abilities = (entry.abilities || []).map(item => item.name).join(" ");
+      const hiddenAbilities = (entry.hiddenAbilities || []).join(" ");
+      return normalize(`${entry.id} ${dexNumber} #${dexNumber} ${entry.name} ${entry.detail} ${entry.materials.join(" ")} ${abilities} ${hiddenAbilities}`);
     }
 
     function matchesTextSearch(entry, search) {
@@ -1482,29 +1915,9 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
         return;
       }
 
-      try {
-        const response = await fetch("/api/state");
-        if (!response.ok) throw new Error("Banco local indisponível");
-        const data = await response.json();
-        useFileDatabase = true;
-
-        if (Array.isArray(data.captured)) {
-          setCapturedFromRecords(data.captured);
-        } else if (data.status && typeof data.status === "object") {
-          setCapturedFromRecords(migrateLegacyStatus(data.status));
-          await persistData();
-        } else {
-          setCapturedFromRecords([]);
-          await persistData();
-        }
-
-        document.querySelector("#storage-info").textContent = BIOME_DATA_LOADED
-          ? "Banco local ativo: suas marcações ficam salvas no arquivo pokemon-checklist-db.json."
-          : "Banco local ativo, mas os biomas não carregaram. Feche a janela do iniciador e abra iniciar-checklist.bat novamente.";
-      } catch {
-        document.querySelector("#storage-info").textContent = "Banco local indisponível. As marcações continuam salvas neste navegador.";
-      }
-
+      setCapturedFromRecords(readJsonStorage(STORAGE_KEY, []));
+      useFileDatabase = false;
+      document.querySelector("#storage-info").textContent = "Modo navegador: as marcações ficam salvas neste navegador. Abra o app desktop para banco local, logs e updates.";
       render();
     }
 
@@ -1713,6 +2126,16 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
         entry.types.forEach(type => typeWrap.append(createTypeBadge(type)));
       }
       profileList.append(createModalInfoRow("Tipo", entry.types.length ? typeWrap : "Nao informado"));
+
+      const abilityWrap = document.createElement("div");
+      abilityWrap.className = "breeding-meta";
+      (entry.abilities || []).forEach(ability => {
+        const chip = createTextBadge(`${ability.name}${ability.isHidden ? " (HA)" : ""}`);
+        if (ability.isHidden) chip.classList.add("is-strong");
+        abilityWrap.append(chip);
+      });
+      profileList.append(createModalInfoRow("Abilities", abilityWrap.childElementCount ? abilityWrap : "Nao informado"));
+      profileList.append(createModalInfoRow("Hidden Ability", getHiddenAbilityLabel(entry)));
 
       const eggWrap = document.createElement("div");
       eggWrap.className = "breeding-meta";
@@ -2008,6 +2431,61 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       return "Log";
     }
 
+    function getLogIgnoredLabel(value) {
+      if (!value) return "";
+      if (typeof value === "string") return value;
+      return [value.pokemon, value.reason].filter(Boolean).join(" - ");
+    }
+
+    function getLogCaptureDiagnostic(pendingCount) {
+      if (!useFileDatabase) {
+        return {
+          title: "App desktop necessario",
+          detail: "Abra pelo aplicativo desktop para usar a captura por logs."
+        };
+      }
+      if (logCaptureState.lastError) {
+        return {
+          title: "Monitor com atencao",
+          detail: logCaptureState.lastError
+        };
+      }
+      if (logCaptureState.needsLogPathConfig) {
+        return {
+          title: "Configure a pasta de logs",
+          detail: "Salve o caminho da pasta antes de ligar o monitor."
+        };
+      }
+      if (!logCaptureState.enabled) {
+        return {
+          title: "Monitor desligado",
+          detail: "Ative para acompanhar novas capturas locais."
+        };
+      }
+      if (pendingCount > 0) {
+        return {
+          title: "Captura pendente",
+          detail: `${pendingCount} captura${pendingCount === 1 ? "" : "s"} aguardando confirmacao.`
+        };
+      }
+      if (logCaptureState.lastIgnored) {
+        return {
+          title: "Captura ignorada",
+          detail: getLogIgnoredLabel(logCaptureState.lastIgnored)
+        };
+      }
+      if (logCaptureState.lastChat && !logCaptureState.lastCapture) {
+        return {
+          title: "Lendo chat",
+          detail: "Arquivo certo; chat lido, mas nenhuma captura nova foi encontrada."
+        };
+      }
+      return {
+        title: "Aguardando novas linhas",
+        detail: "Arquivo certo; o monitor esta esperando novas mensagens de captura."
+      };
+    }
+
     function applyLogCaptureState(data = {}) {
       logCaptureState.enabled = Boolean(data.enabled);
       logCaptureState.configuredLogPath = data.configuredLogPath || "";
@@ -2040,26 +2518,16 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     }
 
     async function postLogCapture(path, body = {}) {
-      if (isTauriApp()) {
-        const commandMap = {
-          "/api/log-capture": ["set_log_capture_enabled", { enabled: Boolean(body.enabled) }],
-          "/api/log-capture/config": ["set_log_capture_config", { logPath: body.logPath || "" }],
-          "/api/log-capture/ack": ["ack_log_capture", { ids: body.ids || [] }],
-          "/api/log-capture/clear": ["clear_log_capture", {}]
-        };
-        const command = commandMap[path];
-        if (!command) throw new Error("Comando indisponível");
-        applyLogCaptureState(await invokeTauri(command[0], command[1]));
-        return;
-      }
-
-      const response = await fetch(path, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body)
-      });
-      if (!response.ok) throw new Error("Monitor indisponível");
-      applyLogCaptureState(await response.json());
+      if (!isTauriApp()) throw new Error("Monitor indisponível no navegador");
+      const commandMap = {
+        "/api/log-capture": ["set_log_capture_enabled", { enabled: Boolean(body.enabled) }],
+        "/api/log-capture/config": ["set_log_capture_config", { logPath: body.logPath || "" }],
+        "/api/log-capture/ack": ["ack_log_capture", { ids: body.ids || [] }],
+        "/api/log-capture/clear": ["clear_log_capture", {}]
+      };
+      const command = commandMap[path];
+      if (!command) throw new Error("Comando indisponível");
+      applyLogCaptureState(await invokeTauri(command[0], command[1]));
     }
 
     async function refreshLogCaptureStatus() {
@@ -2070,13 +2538,8 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       logCaptureState.frontendPollCount += 1;
       logCaptureState.lastFrontendPollAt = new Date().toISOString();
       try {
-        if (isTauriApp()) {
-          applyLogCaptureState(await invokeTauri("get_log_capture"));
-          return;
-        }
-        const response = await fetch("/api/log-capture");
-        if (!response.ok) throw new Error("Monitor indisponível");
-        applyLogCaptureState(await response.json());
+        if (!isTauriApp()) throw new Error("Monitor indisponível no navegador");
+        applyLogCaptureState(await invokeTauri("get_log_capture"));
       } catch {
         logCaptureState.lastError = "Não foi possível acessar o monitor de logs.";
         scheduleLogCapturePolling();
@@ -2126,6 +2589,8 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
 
     function renderLogCapturePanel() {
       applyLogPanelPreferences();
+      const visibleCandidates = getVisibleLogCaptureCandidates();
+      const diagnostic = getLogCaptureDiagnostic(visibleCandidates.length);
       logCaptureToggle.checked = logCaptureState.enabled;
       logCaptureToggle.disabled = !useFileDatabase;
       logPathInput.disabled = !useFileDatabase;
@@ -2136,14 +2601,9 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
         ? "Caminho salvo para este computador."
         : `Primeiro uso: cole a pasta de logs. Sugestão: ${maskLocalPath(logCaptureState.defaultLogPath || "%APPDATA%\\CoreLauncher\\game\\instances\\Pixelmon Brasil - Gen 9\\logs")}`;
 
-      if (!useFileDatabase) {
-        setLogCaptureStatus("Servidor local necessário", "Abra pelo iniciar-checklist.bat para usar a captura por logs.");
-      } else if (logCaptureState.lastError) {
-        setLogCaptureStatus("Monitor com atenção", escapeHtml(logCaptureState.lastError));
-      } else if (logCaptureState.needsLogPathConfig) {
-        setLogCaptureStatus("Configure a pasta de logs", "Salve o caminho da pasta antes de ligar o monitor.");
-      } else if (logCaptureState.enabled) {
+      if (useFileDatabase && logCaptureState.enabled && !logCaptureState.lastError && !logCaptureState.needsLogPathConfig) {
         const details = [];
+        details.push(diagnostic.detail);
         details.push(`Tela consultou: ${logCaptureState.frontendPollCount}x, ${formatDateTimeLabel(logCaptureState.lastFrontendPollAt)}`);
         details.push(`Servidor varreu: ${logCaptureState.pollCount}x, ${formatDateTimeLabel(logCaptureState.lastScanAt)}`);
         details.push(`Arquivo: ${formatBytesLabel(logCaptureState.currentSize)} | offset: ${formatBytesLabel(logCaptureState.offset)} | delta: ${formatBytesLabel(logCaptureState.lastDelta)} | resets: ${logCaptureState.pathResetCount}`);
@@ -2158,7 +2618,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
           details.push(`Última detecção lida: ${logCaptureState.lastCapture.pokemon} - ${getLogCandidateTypeLabel(logCaptureState.lastCapture.type)} (${logCaptureState.lastCapture.logTime || "--:--:--"})`);
         }
         if (logCaptureState.lastIgnored) {
-          details.push(`Ignorada: ${logCaptureState.lastIgnored.pokemon} - ${logCaptureState.lastIgnored.reason}`);
+          details.push(`Ignorada: ${getLogIgnoredLabel(logCaptureState.lastIgnored)}`);
         }
         if (logCaptureState.lastSignal) {
           details.push(`Último sinal sem nome: ${logCaptureState.lastSignal.logTime || "--:--:--"}`);
@@ -2167,12 +2627,11 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
           maskLocalPath(logCaptureState.activePath || logCaptureState.activeFile || "Aguardando arquivo ativo."),
           ...details
         ];
-        setLogCaptureStatus("Monitor ligado", detailLines.map(escapeHtml).join("<br>"));
+        setLogCaptureStatus(diagnostic.title, detailLines.map(escapeHtml).join("<br>"));
       } else {
-        setLogCaptureStatus("Monitor desligado", "Ative para acompanhar novas capturas locais.");
+        setLogCaptureStatus(diagnostic.title, escapeHtml(diagnostic.detail));
       }
 
-      const visibleCandidates = getVisibleLogCaptureCandidates();
       logCaptureList.replaceChildren();
       if (!visibleCandidates.length) {
         const empty = document.createElement("div");
@@ -2281,10 +2740,271 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       return button;
     }
 
+    function combinations(values, size) {
+      if (size <= 0) return [[]];
+      if (size > values.length) return [];
+      const result = [];
+      const walk = (start, chosen) => {
+        if (chosen.length === size) {
+          result.push(chosen.slice());
+          return;
+        }
+        for (let index = start; index <= values.length - (size - chosen.length); index += 1) {
+          chosen.push(values[index]);
+          walk(index + 1, chosen);
+          chosen.pop();
+        }
+      };
+      walk(0, []);
+      return result;
+    }
+
+    function binomialProbability(atLeast, trials, successChance) {
+      if (atLeast <= 0) return 1;
+      if (atLeast > trials) return 0;
+      const choose = (n, k) => {
+        let value = 1;
+        for (let index = 1; index <= k; index += 1) {
+          value = value * (n - index + 1) / index;
+        }
+        return value;
+      };
+      let total = 0;
+      for (let successes = atLeast; successes <= trials; successes += 1) {
+        total += choose(trials, successes)
+          * successChance ** successes
+          * (1 - successChance) ** (trials - successes);
+      }
+      return total;
+    }
+
+    function getPowerItemStat(itemValue) {
+      return breedingHeldItemByValue.get(itemValue)?.stat || "";
+    }
+
+    function getForcedInheritanceOptions(parentA, parentB) {
+      const statA = getPowerItemStat(parentA.item);
+      const statB = getPowerItemStat(parentB.item);
+      if (statA && statB && statA === statB) {
+        return [
+          { probability: 0.5, forced: [{ stat: statA, parent: "a" }] },
+          { probability: 0.5, forced: [{ stat: statB, parent: "b" }] }
+        ];
+      }
+      const forced = [];
+      if (statA) forced.push({ stat: statA, parent: "a" });
+      if (statB) forced.push({ stat: statB, parent: "b" });
+      return [{ probability: 1, forced }];
+    }
+
+    function getNatureProbability(parentA, parentB, requireNature) {
+      if (!requireNature) return 1;
+      const aEverstone = parentA.item === "everstone";
+      const bEverstone = parentB.item === "everstone";
+      if (aEverstone && bEverstone) {
+        return (Number(parentA.natureOk) + Number(parentB.natureOk)) / 2;
+      }
+      if (aEverstone) return parentA.natureOk ? 1 : 0;
+      if (bEverstone) return parentB.natureOk ? 1 : 0;
+      return 1 / 25;
+    }
+
+    function evaluateBreedingOutcome({ parentA, parentB, goal, targetStats, requireNature }) {
+      if (!parentA || !parentB) return null;
+      const inheritedCount = parentA.item === "destiny-knot" || parentB.item === "destiny-knot" ? 5 : 3;
+      const bestParentPerfects = Math.max(countPerfectIvs(parentA), countPerfectIvs(parentB));
+      if (!canBreedingParentsBreed(parentA, parentB)) {
+        return {
+          successChance: 0,
+          averagePerfects: 0,
+          inheritedCount,
+          bestParentPerfects,
+          natureChance: 0,
+          compatible: false,
+          targetStats: [...(targetStats?.length ? targetStats : ["hp"])]
+        };
+      }
+      const statKeys = breedingIvStats.map(stat => stat.key);
+      const target = new Set(targetStats?.length ? targetStats : ["hp"]);
+      let successChance = 0;
+      let averagePerfects = 0;
+      const forcedOptions = getForcedInheritanceOptions(parentA, parentB);
+
+      forcedOptions.forEach(option => {
+        const forcedStats = new Set(option.forced.map(item => item.stat));
+        const remainingNeeded = Math.max(0, inheritedCount - forcedStats.size);
+        const availableStats = statKeys.filter(stat => !forcedStats.has(stat));
+        const statChoices = combinations(availableStats, remainingNeeded);
+        const statChoiceProbability = statChoices.length ? 1 / statChoices.length : 0;
+
+        statChoices.forEach(choice => {
+          const inheritedStats = [...option.forced, ...choice.map(stat => ({ stat, parent: "" }))];
+          const sourceFree = inheritedStats.filter(item => !item.parent);
+          const sourceCombos = 2 ** sourceFree.length;
+          const sourceProbability = sourceCombos ? 1 / sourceCombos : 1;
+
+          for (let mask = 0; mask < Math.max(1, sourceCombos); mask += 1) {
+            const inheritedValues = new Map();
+            let freeIndex = 0;
+            inheritedStats.forEach(item => {
+              const source = item.parent || (((mask >> freeIndex++) & 1) ? "b" : "a");
+              const parent = source === "a" ? parentA : parentB;
+              inheritedValues.set(item.stat, normalizeIvValue(parent.ivs?.[item.stat]));
+            });
+
+            const inheritedPerfects = [...inheritedValues.values()].filter(value => value === 31).length;
+            const randomStats = statKeys.filter(stat => !inheritedValues.has(stat));
+            const scenarioProbability = option.probability * statChoiceProbability * sourceProbability;
+            averagePerfects += scenarioProbability * (inheritedPerfects + randomStats.length / 32);
+
+            if (goal === "specific") {
+              let randomTargets = 0;
+              let inheritedTargetsOk = true;
+              target.forEach(stat => {
+                if (inheritedValues.has(stat)) {
+                  if (inheritedValues.get(stat) !== 31) inheritedTargetsOk = false;
+                } else {
+                  randomTargets += 1;
+                }
+              });
+              if (inheritedTargetsOk) successChance += scenarioProbability * (1 / 32) ** randomTargets;
+              return;
+            }
+
+            if (goal === "perfect") {
+              const inheritedAllPerfect = [...inheritedValues.values()].every(value => value === 31);
+              if (inheritedAllPerfect) successChance += scenarioProbability * (1 / 32) ** randomStats.length;
+              return;
+            }
+
+            const threshold = goal === "keep" ? bestParentPerfects : bestParentPerfects + 1;
+            successChance += scenarioProbability * binomialProbability(threshold - inheritedPerfects, randomStats.length, 1 / 32);
+          }
+        });
+      });
+
+      const natureChance = getNatureProbability(parentA, parentB, requireNature);
+      successChance *= natureChance;
+      return {
+        successChance,
+        averagePerfects,
+        inheritedCount,
+        bestParentPerfects,
+        natureChance,
+        compatible: true,
+        targetStats: [...target]
+      };
+    }
+
+    function formatChance(value) {
+      if (!Number.isFinite(value) || value <= 0) return "0%";
+      if (value >= 0.01) return `${(value * 100).toFixed(2)}%`;
+      return `${(value * 100).toFixed(4)}%`;
+    }
+
+    function formatEggEstimate(value) {
+      if (!Number.isFinite(value) || value <= 0) return "Sem garantia prática";
+      return `~${Math.ceil(1 / value).toLocaleString("pt-BR")} ovo${Math.ceil(1 / value) === 1 ? "" : "s"}`;
+    }
+
+    function getBreedingEntryGroups(entry) {
+      return getEggGroups(entry).filter(group => group !== "no-eggs" && group !== "undiscovered");
+    }
+
+    function getBreedingParentCandidates(search = breedingParentSearch) {
+      const normalizedSearch = normalize(search.trim());
+      return allEntries
+        .filter(entry => getBreedingEntryGroups(entry).length)
+        .filter(entry => !breedingGroupFilter || getEggGroups(entry).includes(breedingGroupFilter))
+        .filter(entry => !normalizedSearch || matchesTextSearch(entry, normalizedSearch))
+        .sort((a, b) => a.id - b.id)
+        .slice(0, 10);
+    }
+
+    function selectBreedingParentEntry(entry) {
+      if (!entry) return;
+      selectedBreedingParentEntryKey = canonicalKey(entry.name);
+      breedingParentSearch = entry.name;
+      focusBreedingParentSearchAfterRender = true;
+      render();
+    }
+
+    function getSelectedBreedingParentEntry() {
+      return selectedBreedingParentEntryKey
+        ? catalogByKey.get(selectedBreedingParentEntryKey) || null
+        : findBreedingSearchEntry(breedingParentSearch);
+    }
+
+    function breedingParentMatchesGroup(parent, group = breedingGroupFilter) {
+      if (!group) return true;
+      const entry = catalogByKey.get(canonicalKey(parent.name));
+      return Boolean(entry && getEggGroups(entry).includes(group));
+    }
+
+    function canBreedingParentsBreed(parentA, parentB) {
+      const entryA = catalogByKey.get(canonicalKey(parentA?.name || ""));
+      const entryB = catalogByKey.get(canonicalKey(parentB?.name || ""));
+      if (!entryA || !entryB) return true;
+      if (isUndiscovered(entryA) || isUndiscovered(entryB)) return false;
+      if (isDitto(entryA) && isDitto(entryB)) return false;
+      if (isDitto(entryA) || isDitto(entryB)) return true;
+      const sharedGroup = getEggGroups(entryB).some(group => getEggGroups(entryA).includes(group));
+      if (!sharedGroup) return false;
+      return (parentA.gender === "male" && parentB.gender === "female")
+        || (parentA.gender === "female" && parentB.gender === "male");
+    }
+
+    function getFilteredBreedingParents() {
+      const normalizedSearch = normalize(breedingSavedSearch.trim());
+      return breedingSavedParents.filter(parent => {
+        const entry = catalogByKey.get(canonicalKey(parent.name));
+        const searchable = [
+          parent.name,
+          parent.nickname,
+          getBreedingGenderLabel(parent.gender),
+          breedingHeldItemByValue.get(parent.item)?.label || "",
+          entry ? getEggGroups(entry).map(formatEggGroup).join(" ") : "",
+          `F${countPerfectIvs(parent)}`
+        ].join(" ");
+        return breedingParentMatchesGroup(parent)
+          && (!normalizedSearch || normalize(searchable).includes(normalizedSearch));
+      });
+    }
+
+    function cloneBreedingParentWithItem(parent, item) {
+      return normalizeBreedingParent({ ...parent, item, id: parent.id });
+    }
+
+    function getBreedingItemRecommendations(parentA, parentB) {
+      if (!parentA || !parentB) return [];
+      return breedingHeldItems.flatMap(itemA =>
+        breedingHeldItems.map(itemB => ({
+          itemA,
+          itemB,
+          result: evaluateBreedingOutcome({
+            parentA: cloneBreedingParentWithItem(parentA, itemA.value),
+            parentB: cloneBreedingParentWithItem(parentB, itemB.value),
+            goal: breedingCalculatorGoal,
+            targetStats: [...breedingTargetStats],
+            requireNature: breedingRequireNature
+          })
+        }))
+      )
+        .filter(item => item.result)
+        .sort((a, b) =>
+          b.result.successChance - a.result.successChance
+          || b.result.averagePerfects - a.result.averagePerfects
+          || a.itemA.label.localeCompare(b.itemA.label, "pt-BR")
+          || a.itemB.label.localeCompare(b.itemB.label, "pt-BR")
+        )
+        .slice(0, 5);
+    }
+
     function renderBreedingTools(list, groups) {
       const wrapper = document.createElement("section");
       wrapper.className = "breeding-tools";
       wrapper.innerHTML = `
+        <div class="breeding-mode-tabs" aria-label="Modo de breeding"></div>
         <input class="search-field" id="breeding-search" type="search" list="pokemon-search-options" placeholder="Buscar Pokémon para ver compatíveis...">
         <div class="breeding-panel">
           <div class="chip-group" aria-label="Egg groups">
@@ -2294,6 +3014,21 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
         </div>
       `;
       const input = wrapper.querySelector("#breeding-search");
+      const modeTabs = wrapper.querySelector(".breeding-mode-tabs");
+      [
+        { value: "compatibility", label: "Compatibilidade" },
+        { value: "calculator", label: "Calculadora" }
+      ].forEach(mode => {
+        modeTabs.append(createFilterChip({
+          label: mode.label,
+          active: breedingMode === mode.value,
+          onClick: () => {
+            breedingMode = mode.value;
+            render();
+          }
+        }));
+      });
+      input.hidden = breedingMode !== "compatibility";
       input.value = breedingSearch;
       input.addEventListener("input", event => {
         breedingSearch = event.target.value;
@@ -2313,6 +3048,8 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
           onClick: () => {
             breedingGroupFilter = group.value;
             selectedBreedingKey = "";
+            selectedBreedingParentEntryKey = "";
+            breedingParentSearch = "";
             render();
           }
         }));
@@ -2320,9 +3057,542 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       list.append(wrapper);
       if (focusBreedingSearchAfterRender) {
         focusBreedingSearchAfterRender = false;
-        input.focus();
-        input.setSelectionRange(input.value.length, input.value.length);
+        focusInputEnd(input);
       }
+    }
+
+    function createBreedingParentOption(parent) {
+      return new Option(getBreedingParentLabel(parent), parent.id);
+    }
+
+    function createBreedingParentPickCard(entry) {
+      const button = document.createElement("button");
+      button.className = `counter-boss-option breeding-parent-option${selectedBreedingParentEntryKey === canonicalKey(entry.name) ? " is-selected" : ""}`;
+      button.type = "button";
+      button.innerHTML = `
+        <span class="counter-boss-image"></span>
+        <span class="counter-boss-text">
+          <strong></strong>
+          <span class="breeding-parent-option-groups"></span>
+        </span>
+      `;
+      button.querySelector(".counter-boss-image").replaceWith(createPokemonImage(entry, ""));
+      button.querySelector("strong").textContent = `#${String(entry.id).padStart(4, "0")} ${entry.name}`;
+      getBreedingEntryGroups(entry).forEach(group => button.querySelector(".breeding-parent-option-groups").append(createEggBadge(group)));
+      button.addEventListener("click", () => selectBreedingParentEntry(entry));
+      return button;
+    }
+
+    function renderBreedingIvInputs(container, prefix) {
+      breedingIvStats.forEach(stat => {
+        const label = document.createElement("label");
+        label.className = "breeding-iv-field";
+        label.innerHTML = `<span></span><input type="number" min="0" max="31" step="1" value="0">`;
+        label.querySelector("span").textContent = stat.label;
+        const input = label.querySelector("input");
+        input.id = `${prefix}-${stat.key}`;
+        input.name = stat.key;
+        container.append(label);
+      });
+    }
+
+    function renderBreedingParentPicker(section) {
+      const input = section.querySelector("#breeding-parent-name");
+      const suggestions = section.querySelector(".breeding-parent-suggestions");
+      const selectedWrap = section.querySelector(".breeding-selected-parent");
+      const genderSelect = section.querySelector("#breeding-parent-gender");
+      const selectedEntry = getSelectedBreedingParentEntry();
+      const candidates = selectedBreedingParentEntryKey ? [] : getBreedingParentCandidates();
+
+      input.value = breedingParentSearch;
+      input.addEventListener("input", event => {
+        breedingParentSearch = event.target.value;
+        selectedBreedingParentEntryKey = "";
+        focusBreedingParentSearchAfterRender = true;
+        render();
+      });
+      input.addEventListener("keydown", event => {
+        if (event.key !== "Enter") return;
+        const [firstCandidate] = getBreedingParentCandidates();
+        if (!firstCandidate) return;
+        event.preventDefault();
+        selectBreedingParentEntry(firstCandidate);
+      });
+
+      suggestions.replaceChildren();
+      suggestions.hidden = Boolean(selectedBreedingParentEntryKey) || (!breedingParentSearch.trim() && !breedingGroupFilter);
+      candidates.forEach(entry => suggestions.append(createBreedingParentPickCard(entry)));
+      if (!suggestions.hidden && !candidates.length) {
+        const empty = document.createElement("p");
+        empty.className = "breeding-note";
+        empty.textContent = "Nenhum Pokemon encontrado nesse filtro.";
+        suggestions.append(empty);
+      }
+
+      genderSelect.replaceChildren();
+      getBreedingGenderOptions(selectedEntry).forEach(option => genderSelect.append(new Option(option.label, option.value)));
+
+      selectedWrap.replaceChildren();
+      selectedWrap.hidden = !selectedEntry;
+      if (selectedEntry) {
+        selectedWrap.innerHTML = `
+          <span class="breeding-selected-image"></span>
+          <div>
+            <strong></strong>
+            <div class="breeding-parent-option-groups"></div>
+          </div>
+          <button class="muted-button" type="button">Trocar</button>
+        `;
+        selectedWrap.querySelector(".breeding-selected-image").replaceWith(createPokemonImage(selectedEntry, ""));
+        selectedWrap.querySelector("strong").textContent = selectedEntry.name;
+        getBreedingEntryGroups(selectedEntry).forEach(group => selectedWrap.querySelector(".breeding-parent-option-groups").append(createEggBadge(group)));
+        selectedWrap.querySelector("button").addEventListener("click", () => {
+          selectedBreedingParentEntryKey = "";
+          focusBreedingParentSearchAfterRender = true;
+          render();
+        });
+      }
+
+      if (focusBreedingParentSearchAfterRender) {
+        focusBreedingParentSearchAfterRender = false;
+        focusInputEnd(input);
+      }
+    }
+
+    function renderBreedingSavedParents(container, parents = getFilteredBreedingParents()) {
+      container.replaceChildren();
+      if (!breedingSavedParents.length) {
+        const empty = document.createElement("p");
+        empty.className = "breeding-note";
+        empty.textContent = "Nenhum pai salvo ainda.";
+        container.append(empty);
+        return;
+      }
+      if (!parents.length) {
+        const empty = document.createElement("p");
+        empty.className = "breeding-note";
+        empty.textContent = "Nenhum pai salvo passa pelos filtros atuais.";
+        container.append(empty);
+        return;
+      }
+
+      parents.forEach(parent => {
+        const entry = catalogByKey.get(canonicalKey(parent.name));
+        const card = document.createElement("article");
+        card.className = [
+          "breeding-parent-card",
+          selectedBreedingParentAId === parent.id ? "is-parent-a" : "",
+          selectedBreedingParentBId === parent.id ? "is-parent-b" : ""
+        ].filter(Boolean).join(" ");
+        card.innerHTML = `
+          <span class="breeding-parent-image"></span>
+          <button class="breeding-parent-remove" type="button" aria-label="Excluir pai salvo" title="Excluir">x</button>
+          <div>
+            <strong></strong>
+            <span></span>
+            <div class="breeding-parent-ivs"></div>
+          </div>
+          <div class="breeding-parent-actions"></div>
+        `;
+        if (entry) {
+          card.querySelector(".breeding-parent-image").replaceWith(createPokemonImage(entry, ""));
+        }
+        card.querySelector("strong").textContent = getBreedingParentLabel(parent);
+        card.querySelector("span").textContent = `${getBreedingGenderLabel(parent.gender)} - ${breedingHeldItemByValue.get(parent.item)?.label || "Sem item"}`;
+        const ivLine = card.querySelector(".breeding-parent-ivs");
+        breedingIvStats.forEach(stat => {
+          const badge = document.createElement("span");
+          badge.className = normalizeIvValue(parent.ivs[stat.key]) === 31 ? "is-perfect" : "";
+          badge.textContent = `${stat.label} ${normalizeIvValue(parent.ivs[stat.key])}`;
+          ivLine.append(badge);
+        });
+        const actions = card.querySelector(".breeding-parent-actions");
+        [
+          { label: "A", parentKey: "a", title: "Usar como Pai A", active: selectedBreedingParentAId === parent.id },
+          { label: "B", parentKey: "b", title: "Usar como Pai B", active: selectedBreedingParentBId === parent.id }
+        ].forEach(action => {
+          const button = document.createElement("button");
+          button.className = `breeding-parent-slot is-slot-${action.parentKey}${action.active ? " is-active" : ""}`;
+          button.type = "button";
+          button.textContent = action.label;
+          button.setAttribute("aria-label", action.title);
+          button.title = action.title;
+          button.addEventListener("click", () => {
+            if (action.parentKey === "a") selectedBreedingParentAId = parent.id;
+            else selectedBreedingParentBId = parent.id;
+            render();
+          });
+          actions.append(button);
+        });
+        const copyButton = document.createElement("button");
+        copyButton.className = "breeding-parent-copy";
+        copyButton.type = "button";
+        copyButton.textContent = "Copiar";
+        copyButton.title = "Copiar pai";
+        copyButton.addEventListener("click", async () => {
+          try {
+            await copyTextToClipboard(formatBreedingParentForCopy(parent));
+            copyButton.textContent = "OK";
+            setTimeout(() => {
+              copyButton.textContent = "Copiar";
+            }, 1200);
+          } catch {
+            copyButton.textContent = "Erro";
+          }
+        });
+        actions.append(copyButton);
+        const remove = card.querySelector(".breeding-parent-remove");
+        remove.addEventListener("click", () => {
+          breedingSavedParents = breedingSavedParents.filter(item => item.id !== parent.id);
+          if (selectedBreedingParentAId === parent.id) selectedBreedingParentAId = "";
+          if (selectedBreedingParentBId === parent.id) selectedBreedingParentBId = "";
+          saveBreedingParents();
+          render();
+        });
+        container.append(card);
+      });
+    }
+
+    function renderBreedingSavedSearch(section) {
+      const input = section.querySelector("#breeding-saved-search");
+      input.value = breedingSavedSearch;
+      input.addEventListener("input", event => {
+        breedingSavedSearch = event.target.value;
+        focusBreedingSavedSearchAfterRender = true;
+        render();
+      });
+      if (focusBreedingSavedSearchAfterRender) {
+        focusBreedingSavedSearchAfterRender = false;
+        focusInputEnd(input);
+      }
+    }
+
+    function renderBreedingCalculator(list) {
+      const section = document.createElement("section");
+      section.className = "breeding-calculator";
+      section.innerHTML = `
+        <article class="breeding-calc-panel breeding-parent-builder">
+          <div>
+            <p class="eyebrow">Pais salvos</p>
+            <h3>Adicionar Pokémon</h3>
+          </div>
+          <form class="breeding-parent-form">
+            <div class="breeding-parent-search">
+              <input class="search-field" id="breeding-parent-name" type="search" placeholder="Buscar Pokemon por nome ou numero...">
+              <div class="breeding-parent-suggestions" hidden></div>
+              <div class="breeding-selected-parent" hidden></div>
+            </div>
+            <div class="breeding-form-grid">
+              <label>
+                <span>Apelido</span>
+                <input id="breeding-parent-nickname" type="text" placeholder="Opcional">
+              </label>
+              <label>
+                <span>Genero</span>
+                <select id="breeding-parent-gender"></select>
+              </label>
+              <label>
+                <span>Item</span>
+                <select id="breeding-parent-item"></select>
+              </label>
+            </div>
+            <div class="breeding-iv-grid"></div>
+            <div class="breeding-quick-actions">
+              <button class="muted-button" id="breeding-clear-ivs" type="button">Limpar IVs</button>
+              <button class="muted-button" id="breeding-perfect-ivs" type="button">Tudo 31</button>
+            </div>
+            <label class="breeding-check-row">
+              <input id="breeding-parent-nature" type="checkbox">
+              <span>Natureza desejada</span>
+            </label>
+            <div class="breeding-import-actions">
+              <button class="modal-capture-button" type="submit">Salvar pai</button>
+              <button class="muted-button" id="breeding-toggle-import" type="button">Importar texto</button>
+            </div>
+            <div class="breeding-import-panel" hidden>
+              <p class="breeding-import-note">Cole o texto gerado pelo botao Copiar do pai salvo.</p>
+              <textarea id="breeding-import-text" rows="7" placeholder="Pokemon: Dratini (F4 macho)
+Genero: Macho
+Item: Destiny Knot
+Natureza desejada: Sim
+IVs: HP 31 / Atk 31 / Def 19 / SpA 31 / SpD 31 / Spe 31"></textarea>
+              <div class="breeding-import-actions">
+                <button class="modal-capture-button" id="breeding-confirm-import" type="button">Importar pai</button>
+                <button class="muted-button" id="breeding-cancel-import" type="button">Fechar</button>
+              </div>
+              <p class="breeding-import-error" hidden></p>
+            </div>
+          </form>
+        </article>
+        <article class="breeding-calc-panel breeding-saved-panel">
+          <div class="breeding-panel-header">
+            <div>
+              <p class="eyebrow">Armazenamento</p>
+              <h3>Pais salvos</h3>
+            </div>
+            <span class="category-count"></span>
+          </div>
+          <input class="search-field" id="breeding-saved-search" type="search" placeholder="Buscar nos salvos...">
+          <div class="breeding-action-legend">
+            <span><b>A</b> Pai A</span>
+            <span><b>B</b> Pai B</span>
+          </div>
+          <div class="breeding-saved-list"></div>
+        </article>
+        <article class="breeding-calc-panel breeding-result-area">
+          <div>
+            <p class="eyebrow">Calculadora</p>
+            <h3>Comparar cruzamento</h3>
+          </div>
+          <div class="breeding-form-grid">
+            <label>
+              <span>Pai A</span>
+              <select id="breeding-parent-a"></select>
+            </label>
+            <label>
+              <span>Pai B</span>
+              <select id="breeding-parent-b"></select>
+            </label>
+            <label>
+              <span>Objetivo</span>
+              <select id="breeding-goal"></select>
+            </label>
+          </div>
+          <div class="breeding-target-section" hidden>
+            <span class="breeding-target-title">IVs que precisam nascer 31</span>
+            <div class="breeding-targets" aria-label="IV alvo"></div>
+          </div>
+          <label class="breeding-check-row">
+            <input id="breeding-require-nature" type="checkbox">
+            <span>Exigir natureza correta</span>
+          </label>
+          <div class="breeding-result-panel"></div>
+          <div class="breeding-item-recommendations"></div>
+        </article>
+      `;
+
+      const itemSelect = section.querySelector("#breeding-parent-item");
+      breedingHeldItems.forEach(item => itemSelect.append(new Option(item.label, item.value)));
+      renderBreedingIvInputs(section.querySelector(".breeding-iv-grid"), "breeding-parent-iv");
+      renderBreedingParentPicker(section);
+
+      const form = section.querySelector(".breeding-parent-form");
+      const importPanel = section.querySelector(".breeding-import-panel");
+      const importText = section.querySelector("#breeding-import-text");
+      const importError = section.querySelector(".breeding-import-error");
+      section.querySelector("#breeding-toggle-import").addEventListener("click", () => {
+        importPanel.hidden = !importPanel.hidden;
+        if (!importPanel.hidden) importText.focus({ preventScroll: true });
+      });
+      section.querySelector("#breeding-cancel-import").addEventListener("click", () => {
+        importPanel.hidden = true;
+      });
+      section.querySelector("#breeding-confirm-import").addEventListener("click", () => {
+        const parsed = parseBreedingParentImport(importText.value);
+        if (parsed.error) {
+          importError.hidden = false;
+          importError.textContent = parsed.error;
+          return;
+        }
+        breedingSavedParents.push(parsed.parent);
+        saveBreedingParents();
+        render();
+      });
+      section.querySelector("#breeding-clear-ivs").addEventListener("click", () => {
+        breedingIvStats.forEach(stat => {
+          section.querySelector(`#breeding-parent-iv-${stat.key}`).value = 0;
+        });
+      });
+      section.querySelector("#breeding-perfect-ivs").addEventListener("click", () => {
+        breedingIvStats.forEach(stat => {
+          section.querySelector(`#breeding-parent-iv-${stat.key}`).value = 31;
+        });
+      });
+      form.addEventListener("submit", event => {
+        event.preventDefault();
+        const nameInput = section.querySelector("#breeding-parent-name");
+        const entry = getSelectedBreedingParentEntry() || findBreedingSearchEntry(nameInput.value) || catalogByKey.get(canonicalKey(nameInput.value));
+        if (!entry) return;
+        const name = entry.name;
+        const ivs = createEmptyIvs();
+        breedingIvStats.forEach(stat => {
+          ivs[stat.key] = normalizeIvValue(section.querySelector(`#breeding-parent-iv-${stat.key}`).value);
+        });
+        const parent = normalizeBreedingParent({
+          id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+          name,
+          nickname: section.querySelector("#breeding-parent-nickname").value,
+          gender: section.querySelector("#breeding-parent-gender").value,
+          item: itemSelect.value,
+          natureOk: section.querySelector("#breeding-parent-nature").checked,
+          ivs
+        });
+        if (!parent) return;
+        breedingSavedParents.push(parent);
+        selectedBreedingParentAId ||= parent.id;
+        selectedBreedingParentBId = selectedBreedingParentBId || (selectedBreedingParentAId !== parent.id ? parent.id : "");
+        breedingParentSearch = "";
+        selectedBreedingParentEntryKey = "";
+        saveBreedingParents();
+        render();
+      });
+
+      const filteredParents = getFilteredBreedingParents();
+      if (selectedBreedingParentAId && !filteredParents.some(parent => parent.id === selectedBreedingParentAId)) selectedBreedingParentAId = "";
+      if (selectedBreedingParentBId && !filteredParents.some(parent => parent.id === selectedBreedingParentBId)) selectedBreedingParentBId = "";
+      const selectA = section.querySelector("#breeding-parent-a");
+      const selectB = section.querySelector("#breeding-parent-b");
+      [selectA, selectB].forEach(select => select.append(new Option("Selecione", "")));
+      filteredParents.forEach(parent => {
+        selectA.append(createBreedingParentOption(parent));
+        selectB.append(createBreedingParentOption(parent));
+      });
+      selectA.value = selectedBreedingParentAId;
+      selectB.value = selectedBreedingParentBId;
+      selectA.addEventListener("change", event => {
+        selectedBreedingParentAId = event.target.value;
+        render();
+      });
+      selectB.addEventListener("change", event => {
+        selectedBreedingParentBId = event.target.value;
+        render();
+      });
+
+      const goalSelect = section.querySelector("#breeding-goal");
+      Object.entries(breedingGoalLabels).forEach(([value, label]) => goalSelect.append(new Option(label, value)));
+      goalSelect.value = breedingCalculatorGoal;
+      goalSelect.addEventListener("change", event => {
+        breedingCalculatorGoal = event.target.value;
+        render();
+      });
+
+      const targetSection = section.querySelector(".breeding-target-section");
+      targetSection.hidden = breedingCalculatorGoal !== "specific";
+      const targetWrap = section.querySelector(".breeding-targets");
+      breedingIvStats.forEach(stat => {
+        const label = document.createElement("label");
+        label.className = "breeding-target-chip";
+        label.innerHTML = `<input type="checkbox"><span></span>`;
+        const input = label.querySelector("input");
+        input.checked = breedingTargetStats.has(stat.key);
+        input.addEventListener("change", () => {
+          if (input.checked) breedingTargetStats.add(stat.key);
+          else breedingTargetStats.delete(stat.key);
+          if (!breedingTargetStats.size) breedingTargetStats.add(stat.key);
+          render();
+        });
+        label.querySelector("span").textContent = stat.label;
+        targetWrap.append(label);
+      });
+
+      const requireNature = section.querySelector("#breeding-require-nature");
+      requireNature.checked = breedingRequireNature;
+      requireNature.addEventListener("change", event => {
+        breedingRequireNature = event.target.checked;
+        render();
+      });
+
+      renderBreedingSavedSearch(section);
+      section.querySelector(".category-count").textContent = `${filteredParents.length}/${breedingSavedParents.length}`;
+      renderBreedingSavedParents(section.querySelector(".breeding-saved-list"), filteredParents);
+      renderBreedingResult(section.querySelector(".breeding-result-panel"));
+      renderBreedingItemRecommendations(section.querySelector(".breeding-item-recommendations"));
+      list.append(section);
+      visibleCount.textContent = `${breedingSavedParents.length} salvos`;
+    }
+
+    function renderBreedingResult(container) {
+      const parentA = getBreedingSavedParent(selectedBreedingParentAId);
+      const parentB = getBreedingSavedParent(selectedBreedingParentBId);
+      if (!parentA || !parentB) {
+        container.innerHTML = `<p class="breeding-note">Selecione dois pais salvos para calcular.</p>`;
+        return;
+      }
+      const result = evaluateBreedingOutcome({
+        parentA,
+        parentB,
+        goal: breedingCalculatorGoal,
+        targetStats: [...breedingTargetStats],
+        requireNature: breedingRequireNature
+      });
+      if (!result) return;
+      if (result.compatible === false) {
+        container.innerHTML = `
+          <div class="breeding-result-main">
+            <strong>0%</strong>
+            <span>Incompativel</span>
+          </div>
+          <p class="breeding-note">Esses pais salvos nao cruzam com o genero/egg group atual. Use Ditto ou escolha macho/femea com egg group compartilhado.</p>
+        `;
+        return;
+      }
+      const targetLabel = result.targetStats
+        .map(key => breedingIvStats.find(stat => stat.key === key)?.label || key)
+        .join(", ");
+      container.innerHTML = `
+        <div class="breeding-result-main">
+          <strong></strong>
+          <span></span>
+        </div>
+        <div class="breeding-result-grid">
+          <div><span>Ovos esperados</span><strong></strong></div>
+          <div><span>IVs herdados</span><strong></strong></div>
+          <div><span>Média F</span><strong></strong></div>
+          <div><span>Natureza</span><strong></strong></div>
+        </div>
+        <p class="breeding-note"></p>
+      `;
+      container.querySelector(".breeding-result-main strong").textContent = formatChance(result.successChance);
+      container.querySelector(".breeding-result-main span").textContent = breedingGoalLabels[breedingCalculatorGoal];
+      const resultCells = container.querySelectorAll(".breeding-result-grid strong");
+      resultCells[0].textContent = formatEggEstimate(result.successChance);
+      resultCells[1].textContent = `${result.inheritedCount} de 6`;
+      resultCells[2].textContent = `F${result.averagePerfects.toFixed(2)}`;
+      resultCells[3].textContent = breedingRequireNature ? formatChance(result.natureChance) : "Ignorada";
+      const details = {
+        improve: `Sucesso = filhote com mais IVs 31 que o melhor pai atual (F${result.bestParentPerfects}).`,
+        keep: `Sucesso = filhote com pelo menos F${result.bestParentPerfects}.`,
+        specific: `Sucesso = filhote com ${targetLabel} em 31.`,
+        perfect: "Sucesso = filhote F6."
+      };
+      container.querySelector(".breeding-note").textContent = `${details[breedingCalculatorGoal]} Regras baseadas na wiki do Pixelmon; datapacks/servidores podem alterar detalhes.`;
+    }
+
+    function renderBreedingItemRecommendations(container) {
+      const parentA = getBreedingSavedParent(selectedBreedingParentAId);
+      const parentB = getBreedingSavedParent(selectedBreedingParentBId);
+      container.replaceChildren();
+      if (!parentA || !parentB) return;
+      const recommendations = getBreedingItemRecommendations(parentA, parentB)
+        .filter(item => item.result.compatible !== false);
+      if (!recommendations.length) return;
+      const title = document.createElement("div");
+      title.className = "breeding-recommendation-title";
+      title.innerHTML = "<strong>Melhores itens para esses pais</strong><span>Testando combinacoes especiais</span>";
+      container.append(title);
+
+      const list = document.createElement("div");
+      list.className = "breeding-recommendation-list";
+      recommendations.forEach(item => {
+        const row = document.createElement("article");
+        row.className = "breeding-recommendation-row";
+        row.innerHTML = `
+          <div>
+            <strong></strong>
+            <span></span>
+          </div>
+          <div>
+            <strong></strong>
+            <span></span>
+          </div>
+        `;
+        row.children[0].querySelector("strong").textContent = formatChance(item.result.successChance);
+        row.children[0].querySelector("span").textContent = formatEggEstimate(item.result.successChance);
+        row.children[1].querySelector("strong").textContent = `A: ${item.itemA.label} / B: ${item.itemB.label}`;
+        row.children[1].querySelector("span").textContent = `Media F${item.result.averagePerfects.toFixed(2)}`;
+        list.append(row);
+      });
+      container.append(list);
     }
 
     function renderSelectedBreeding(list, entry) {
@@ -2406,6 +3676,10 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       activeTitle.textContent = "Breeding";
       visibleCount.textContent = "";
       renderBreedingTools(list, groups);
+      if (breedingMode === "calculator") {
+        renderBreedingCalculator(list);
+        return;
+      }
 
       if (selected) {
         renderSelectedBreeding(list, selected);
@@ -2437,6 +3711,1205 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       const rows = section.querySelector(".breeding-list");
       filteredEntries.forEach(entry => rows.append(createBreedingRow(entry)));
       list.append(section);
+    }
+
+    function getFragmentTypes(entry) {
+      return Array.from(new Set(entry?.types || []));
+    }
+
+    function entryGeneratesFragmentType(entry, type) {
+      return getFragmentTypes(entry).includes(type);
+    }
+
+    function getFragmentPairTypes(entryA, entryB) {
+      return Array.from(new Set([...getFragmentTypes(entryA), ...getFragmentTypes(entryB)]));
+    }
+
+    function getFragmentPairReadyInfo(entryA, entryB) {
+      const readyA = getReadyTeamPokemon(entryA);
+      const readyB = getReadyTeamPokemon(entryB);
+      const teamLabels = Array.from(new Set([
+        ...getTeamMembershipLabels(entryA),
+        ...getTeamMembershipLabels(entryB)
+      ]));
+      return {
+        readyA,
+        readyB,
+        teamLabels,
+        readySideCount: Number(readyA.length > 0) + Number(readyB.length > 0)
+      };
+    }
+
+    function entryCanBreedAs(entry, gender) {
+      return getBreedingGenderOptions(entry).some(option => option.value === gender);
+    }
+
+    function getFragmentPairRoleLabel(entryA, entryB) {
+      if (isDitto(entryA)) return `${entryB.name} + Ditto`;
+      if (isDitto(entryB)) return `${entryA.name} + Ditto`;
+      if (entryA.id === entryB.id) return "Mesmo Pokémon: macho + fêmea";
+      return entryCanBreedAs(entryA, "male") && entryCanBreedAs(entryB, "female")
+        ? `${entryA.name} macho + ${entryB.name} fêmea`
+        : `${entryB.name} macho + ${entryA.name} fêmea`;
+    }
+
+    function canBreedAsFragmentPair(entryA, entryB) {
+      if (!entryA || !entryB) return false;
+      if (isUndiscovered(entryA) || isUndiscovered(entryB)) return false;
+      if (isDitto(entryA) && isDitto(entryB)) return false;
+      if (isDitto(entryA) || isDitto(entryB)) return true;
+      const sharedGroup = getEggGroups(entryA).some(group => getEggGroups(entryB).includes(group));
+      if (!sharedGroup) return false;
+      return (entryCanBreedAs(entryA, "male") && entryCanBreedAs(entryB, "female"))
+        || (entryCanBreedAs(entryB, "male") && entryCanBreedAs(entryA, "female"));
+    }
+
+    function getFragmentPairSourceLabel(pair) {
+      const sources = [pair.a, pair.b]
+        .filter(entry => entryGeneratesFragmentType(entry, pair.type))
+        .map(entry => entry.name);
+      if (sources.length === 2) return `Ambos geram ${formatPokemonType(pair.type)}`;
+      return `${sources[0]} gera ${formatPokemonType(pair.type)}`;
+    }
+
+    function getFragmentPairScore(entryA, entryB, type, readyInfo) {
+      const bothType = Number(entryGeneratesFragmentType(entryA, type) && entryGeneratesFragmentType(entryB, type));
+      const ownedScore = Number(isOwned(entryA)) + Number(isOwned(entryB));
+      const dittoScore = Number(isDitto(entryA) || isDitto(entryB));
+      const generatedTypeScore = getFragmentPairTypes(entryA, entryB).length * 10;
+      const readyScore = (readyInfo?.readySideCount || 0) * 3000;
+      const teamScore = (readyInfo?.teamLabels?.length || 0) * 350;
+      return readyScore + teamScore + bothType * 1000 + ownedScore * 100 + dittoScore * 20 + generatedTypeScore - (entryA.id + entryB.id) / 10000;
+    }
+
+    function fragmentPairMatchesSearch(pair, normalizedSearch) {
+      if (!normalizedSearch) return true;
+      const text = [
+        pair.a.name,
+        pair.b.name,
+        formatPokemonType(pair.type),
+        ...pair.types.map(formatPokemonType),
+        ...pair.a.types.map(formatPokemonType),
+        ...pair.b.types.map(formatPokemonType),
+        ...getEggGroups(pair.a).map(formatEggGroup),
+        ...getEggGroups(pair.b).map(formatEggGroup)
+      ].join(" ");
+      return normalize(text).includes(normalizedSearch);
+    }
+
+    function getFragmentPairs(type = fragmentTypeFilter, search = fragmentSearch) {
+      if (!type) return [];
+      const normalizedSearch = normalize(search.trim());
+      const entries = allEntries
+        .filter(entry => !isUndiscovered(entry))
+        .filter(entry => !fragmentOwnedOnly || isOwned(entry));
+      const pairs = [];
+      for (let left = 0; left < entries.length; left += 1) {
+        for (let right = left; right < entries.length; right += 1) {
+          const entryA = entries[left];
+          const entryB = entries[right];
+          const generatedTypes = getFragmentPairTypes(entryA, entryB);
+          if (!generatedTypes.includes(type)) continue;
+          if (!canBreedAsFragmentPair(entryA, entryB)) continue;
+          const readyInfo = getFragmentPairReadyInfo(entryA, entryB);
+          const pair = {
+            a: entryA,
+            b: entryB,
+            type,
+            types: generatedTypes,
+            ...readyInfo,
+            score: getFragmentPairScore(entryA, entryB, type, readyInfo)
+          };
+          if (!fragmentPairMatchesSearch(pair, normalizedSearch)) continue;
+          pairs.push(pair);
+        }
+      }
+      return pairs.sort((a, b) => b.score - a.score || a.a.id - b.a.id || a.b.id - b.b.id);
+    }
+
+    function createFragmentPokemonBlock(entry, type) {
+      const block = document.createElement("div");
+      const isSource = entryGeneratesFragmentType(entry, type);
+      block.className = `fragment-pokemon${isSource ? " is-source" : ""}${isOwned(entry) ? " is-owned" : ""}`;
+      block.innerHTML = `
+        <span class="fragment-pokemon-image"></span>
+        <div>
+          <strong></strong>
+          <span></span>
+          <div class="fragment-type-row"></div>
+        </div>
+      `;
+      block.querySelector(".fragment-pokemon-image").replaceWith(createPokemonImage(entry, ""));
+      block.querySelector("strong").textContent = `#${String(entry.id).padStart(4, "0")} ${entry.name}`;
+      block.querySelector("span").textContent = isSource ? "Gera este fragmento" : "Parceiro compatível";
+      entry.types.forEach(item => block.querySelector(".fragment-type-row").append(createTypeBadge(item)));
+      return block;
+    }
+
+    function createFragmentPairCard(pair) {
+      const card = document.createElement("article");
+      card.className = `fragment-pair-card${pair.readySideCount ? " is-ready" : ""}${pair.readySideCount >= 2 ? " is-ready-pair" : ""}`;
+      card.innerHTML = `
+        <div class="fragment-pair-main"></div>
+        <div class="fragment-generated-types"></div>
+        <div class="fragment-pair-tags"></div>
+        <div class="fragment-pair-meta">
+          <strong></strong>
+          <span></span>
+        </div>
+      `;
+      const main = card.querySelector(".fragment-pair-main");
+      main.append(createFragmentPokemonBlock(pair.a, pair.type));
+      const connector = document.createElement("span");
+      connector.className = "fragment-pair-connector";
+      connector.textContent = "+";
+      main.append(connector);
+      main.append(createFragmentPokemonBlock(pair.b, pair.type));
+      const generatedTypes = card.querySelector(".fragment-generated-types");
+      generatedTypes.append(document.createElement("span"));
+      generatedTypes.querySelector("span").textContent = "Gera";
+      pair.types.forEach(item => generatedTypes.append(createTypeBadge(item)));
+      const tags = card.querySelector(".fragment-pair-tags");
+      if (pair.readySideCount >= 2) {
+        tags.append(createTextBadge("Casal registrado"));
+      } else if (pair.readyA.length) {
+        tags.append(createTextBadge(`${pair.a.name} pronto`));
+      } else if (pair.readyB.length) {
+        tags.append(createTextBadge(`${pair.b.name} pronto`));
+      }
+      if (pair.teamLabels.length) tags.append(createTextBadge(`Time: ${pair.teamLabels.slice(0, 2).join(", ")}`));
+      card.querySelector(".fragment-pair-meta strong").textContent = getFragmentPairSourceLabel(pair);
+      card.querySelector(".fragment-pair-meta span").textContent = getFragmentPairRoleLabel(pair.a, pair.b);
+      card.addEventListener("click", () => openPokemonModal(pair.a));
+      return card;
+    }
+
+    function renderFragmentTools(list) {
+      const wrapper = document.createElement("section");
+      wrapper.className = "fragment-tools";
+      wrapper.innerHTML = `
+        <div class="fragment-panel">
+          <div class="fragment-panel-header">
+            <div>
+              <p class="eyebrow">Fragmentos</p>
+              <h2 class="filter-title">Casais por tipo</h2>
+            </div>
+            <button class="link-button" id="clear-fragment-filters" type="button">Limpar</button>
+          </div>
+          <input class="search-field" id="fragment-search" type="search" list="pokemon-search-options" placeholder="Buscar Pokémon, tipo gerado ou egg group...">
+          <div class="chip-group" aria-label="Tipo do fragmento">
+            <span class="chip-label">Tipo</span>
+            <div class="fragment-chip-list"></div>
+          </div>
+          <div class="fragment-result-filters"></div>
+        </div>
+      `;
+      const input = wrapper.querySelector("#fragment-search");
+      input.value = fragmentSearch;
+      input.addEventListener("input", event => {
+        fragmentSearch = event.target.value;
+        focusFragmentSearchAfterRender = true;
+        render();
+      });
+      const chipList = wrapper.querySelector(".fragment-chip-list");
+      typeFilters.forEach(type => {
+        chipList.append(createFilterChip({
+          label: type.label,
+          active: fragmentTypeFilter === type.value,
+          count: allEntries.filter(entry => entryGeneratesFragmentType(entry, type.value) && (!fragmentOwnedOnly || isOwned(entry))).length,
+          onClick: () => {
+            fragmentTypeFilter = fragmentTypeFilter === type.value ? "" : type.value;
+            render();
+          }
+        }));
+      });
+      wrapper.querySelector(".fragment-result-filters").append(createFilterChip({
+        label: "Somente capturados",
+        active: fragmentOwnedOnly,
+        onClick: () => {
+          fragmentOwnedOnly = !fragmentOwnedOnly;
+          render();
+        }
+      }));
+      wrapper.querySelector("#clear-fragment-filters").addEventListener("click", () => {
+        fragmentTypeFilter = "";
+        fragmentSearch = "";
+        fragmentOwnedOnly = true;
+        render();
+      });
+      list.append(wrapper);
+      if (focusFragmentSearchAfterRender) {
+        focusFragmentSearchAfterRender = false;
+        focusInputEnd(input);
+      }
+    }
+
+    function renderFragmentOverview(list) {
+      const grid = document.createElement("section");
+      grid.className = "fragment-type-grid";
+      typeFilters.forEach(type => {
+        const entries = allEntries.filter(entry => entryGeneratesFragmentType(entry, type.value) && !isUndiscovered(entry));
+        const owned = entries.filter(isOwned).length;
+        const button = document.createElement("button");
+        button.className = "fragment-type-card";
+        button.type = "button";
+        button.innerHTML = "<strong></strong><span></span><span></span>";
+        button.querySelector("strong").append(createTypeBadge(type.value));
+        button.children[1].textContent = `${entries.length} fontes`;
+        button.children[2].textContent = `${owned} capturadas`;
+        button.addEventListener("click", () => {
+          fragmentTypeFilter = type.value;
+          render();
+        });
+        grid.append(button);
+      });
+      list.append(grid);
+    }
+
+    function renderFragmentsFlow(list) {
+      activeTitle.textContent = "Fragmentos";
+      renderFragmentTools(list);
+      if (!fragmentTypeFilter) {
+        visibleCount.textContent = `${typeFilters.length} tipos`;
+        const empty = document.createElement("div");
+        empty.className = "empty";
+        empty.textContent = "Escolha o tipo de fragmento para ver os casais compatíveis.";
+        list.append(empty);
+        renderFragmentOverview(list);
+        return;
+      }
+
+      const pairs = getFragmentPairs();
+      visibleCount.textContent = `${pairs.length} casais`;
+      const section = document.createElement("section");
+      section.className = "fragment-results";
+      section.innerHTML = `
+        <div class="category-heading">
+          <h2></h2>
+          <span class="category-count"></span>
+        </div>
+        <p class="fragment-note"></p>
+        <div class="fragment-pair-grid"></div>
+      `;
+      section.querySelector("h2").textContent = `Fragmento ${formatPokemonType(fragmentTypeFilter)}`;
+      section.querySelector(".category-count").textContent = `${pairs.length} casais`;
+      section.querySelector(".fragment-note").textContent = "Baseado nos tipos dos dois Pokémon do casal e compatibilidade de breeding. Servidores com datapack podem mudar requisitos.";
+      const grid = section.querySelector(".fragment-pair-grid");
+      if (!pairs.length) {
+        const empty = document.createElement("div");
+        empty.className = "empty";
+        empty.textContent = fragmentOwnedOnly
+          ? "Nenhum casal capturado encontrado. Desative o filtro de capturados para ver opções gerais."
+          : "Nenhum casal compatível encontrado para esse filtro.";
+        section.append(empty);
+      } else if (appUtils.appendProgressiveItems) {
+        appUtils.appendProgressiveItems({
+          container: grid,
+          items: pairs,
+          renderItem: createFragmentPairCard,
+          batchSize: 60,
+          buttonLabel: "Mostrar mais casais"
+        });
+      } else {
+        pairs.slice(0, 80).forEach(pair => grid.append(createFragmentPairCard(pair)));
+      }
+      list.append(section);
+    }
+
+    function findTeamSearchEntry(value) {
+      return findBreedingSearchEntry(value) || catalogByKey.get(canonicalKey(value)) || null;
+    }
+
+    function getFilteredTeamPokemon() {
+      const normalizedSearch = normalize(teamsSearch.trim());
+      return teamBuiltPokemon.filter(record => {
+        const entry = getTeamPokemonEntry(record);
+        const build = getTeamPokemonBuild(record);
+        const text = [
+          record.name,
+          record.nickname,
+          record.item,
+          record.notes,
+          build?.name || "",
+          build?.role || "",
+          buildDamageLabels[build?.damageType] || "",
+          entry ? entry.types.map(formatPokemonType).join(" ") : ""
+        ].join(" ");
+        return !normalizedSearch || normalize(text).includes(normalizedSearch);
+      });
+    }
+
+    function getTeamMembershipLabelsForRecord(record) {
+      if (!record?.id) return [];
+      return savedTeams
+        .filter(team => team.memberIds.includes(record.id))
+        .map(team => team.name);
+    }
+
+    function getTeamPerfectIvCount(record) {
+      return breedingIvStats.filter(stat => Number.parseInt(record.ivs?.[stat.key], 10) === 31).length;
+    }
+
+    function getTeamEvTotal(record) {
+      return breedingIvStats.reduce((total, stat) => total + (Number.parseInt(record.evs?.[stat.key], 10) || 0), 0);
+    }
+
+    function renderTeamStatInputs(container, prefix, maxValue, values = {}) {
+      container.replaceChildren();
+      breedingIvStats.forEach(stat => {
+        const label = document.createElement("label");
+        label.innerHTML = `
+          <span></span>
+          <input type="number" min="0" max="${maxValue}" id="${prefix}-${stat.key}">
+        `;
+        label.querySelector("span").textContent = stat.label;
+        label.querySelector("input").value = Number.parseInt(values[stat.key], 10) || 0;
+        container.append(label);
+      });
+    }
+
+    function getTeamFormSpread(form, prefix) {
+      return Object.fromEntries(breedingIvStats.map(stat => {
+        const input = form.querySelector(`#${prefix}-${stat.key}`);
+        return [stat.key, Number.parseInt(input?.value, 10) || 0];
+      }));
+    }
+
+    function getTeamFormMoves(form) {
+      return [...form.querySelectorAll(".team-move-input")]
+        .map(input => input.value.trim())
+        .filter(Boolean);
+    }
+
+    function getTeamEvTotalFromSpread(spread) {
+      return breedingIvStats.reduce((total, stat) => total + (Number.parseInt(spread?.[stat.key], 10) || 0), 0);
+    }
+
+    function validateTeamPokemonForm(form, entry) {
+      if (!entry) return "Escolha um Pokemon valido pelo nome ou numero.";
+      const ivs = getTeamFormSpread(form, "team-iv");
+      const evs = getTeamFormSpread(form, "team-ev");
+      const moves = getTeamFormMoves(form);
+      const duplicateMoves = new Set();
+      moves.forEach((move, index) => {
+        if (moves.findIndex(value => normalize(value) === normalize(move)) !== index) duplicateMoves.add(move);
+      });
+      if (breedingIvStats.some(stat => ivs[stat.key] < 0 || ivs[stat.key] > 31)) return "IVs precisam ficar entre 0 e 31.";
+      if (breedingIvStats.some(stat => evs[stat.key] < 0 || evs[stat.key] > 252)) return "EVs por atributo precisam ficar entre 0 e 252.";
+      if (getTeamEvTotalFromSpread(evs) > 510) return "O total de EVs nao pode passar de 510.";
+      if (duplicateMoves.size) return `Moves duplicados: ${[...duplicateMoves].join(", ")}.`;
+      return "";
+    }
+
+    function fillTeamPokemonForm(form, record) {
+      if (!record) return;
+      form.querySelector("#team-pokemon-name").value = record.name;
+      form.querySelector("#team-pokemon-nickname").value = record.nickname || "";
+      form.querySelector("#team-pokemon-build-name").value = record.buildName || "";
+      form.querySelector("#team-pokemon-role").value = record.role || "";
+      form.querySelector("#team-pokemon-damage").value = record.damageType || "mixed";
+      form.querySelector("#team-pokemon-level").value = record.level || 100;
+      form.querySelector("#team-pokemon-item").value = record.item || "";
+      form.querySelector("#team-pokemon-nature").value = record.nature || "";
+      form.querySelector("#team-pokemon-ability").value = record.ability || "";
+      form.querySelector("#team-pokemon-notes").value = record.notes || "";
+      form.querySelector("#team-pokemon-shiny").checked = Boolean(record.shiny);
+      renderTeamStatInputs(form.querySelector(".team-iv-grid"), "team-iv", 31, record.ivs);
+      renderTeamStatInputs(form.querySelector(".team-ev-grid"), "team-ev", 252, record.evs);
+      [...form.querySelectorAll(".team-move-input")].forEach((input, index) => {
+        input.value = record.moves?.[index] || "";
+      });
+    }
+
+    function updateTeamAbilityHint(form, entry) {
+      const hint = form.querySelector("#team-pokemon-ha-hint");
+      if (!hint) return;
+      if (!entry) {
+        hint.textContent = "Escolha um Pokemon para ver a HA.";
+        hint.classList.remove("is-match");
+        return;
+      }
+      const abilityInput = form.querySelector("#team-pokemon-ability");
+      const hiddenLabel = getHiddenAbilityLabel(entry);
+      hint.textContent = `HA: ${hiddenLabel}`;
+      hint.classList.toggle("is-match", isHiddenAbility(entry, abilityInput?.value || ""));
+    }
+
+    function createTeamPokemonOption(record) {
+      const label = record.nickname ? `${record.nickname} - ${record.name}` : record.name;
+      return new Option(label, record.id);
+    }
+
+    function formatTeamBuildForCopy(record, entry, build) {
+      const teams = getTeamMembershipLabelsForRecord(record);
+      return [
+        `Pokemon: ${record.name}${record.nickname ? ` (${record.nickname})` : ""}`,
+        `Nivel: ${record.level}${record.shiny ? " | Shiny" : ""}`,
+        `Tipos: ${entry.types.map(formatPokemonType).join(" / ") || "Nao informado"}`,
+        `Build: ${record.buildName || build?.name || "Custom"}${record.role ? ` - ${record.role}` : ""}`,
+        `Dano: ${buildDamageLabels[record.damageType] || "Flex"}`,
+        `Nature: ${record.nature || "Nao informado"}`,
+        `Ability: ${record.ability || "Nao informado"}`,
+        `Item: ${record.item || "Nao informado"}`,
+        `IVs: ${breedingIvStats.map(stat => `${stat.label} ${record.ivs?.[stat.key] ?? 0}`).join(" / ")}`,
+        `EVs: ${breedingIvStats.map(stat => `${stat.label} ${record.evs?.[stat.key] ?? 0}`).join(" / ")}`,
+        `Moves: ${record.moves?.length ? record.moves.join(" / ") : "Nao informado"}`,
+        teams.length ? `Times: ${teams.join(", ")}` : "",
+        record.notes ? `Obs: ${record.notes}` : ""
+      ].filter(Boolean).join("\n");
+    }
+
+    function parseLabeledText(text = "") {
+      const fields = new Map();
+      String(text || "").split(/\r?\n/).forEach(line => {
+        const index = line.indexOf(":");
+        if (index < 0) return;
+        const key = normalize(line.slice(0, index)).replace(/[^a-z0-9]/g, "");
+        const value = line.slice(index + 1).trim();
+        if (key) fields.set(key, value);
+      });
+      return fields;
+    }
+
+    function parseNameAndNickname(value = "") {
+      const text = String(value || "").trim();
+      const match = text.match(/^(.+?)\s+\((.+)\)$/);
+      return {
+        name: (match ? match[1] : text).trim(),
+        nickname: match ? match[2].trim() : ""
+      };
+    }
+
+    function parseStatSpreadText(value = "", maxValue = 31) {
+      const spread = Object.fromEntries(breedingIvStats.map(stat => [stat.key, 0]));
+      String(value || "").split("/").forEach(part => {
+        const match = part.trim().match(/^([A-Za-z]+)\s+(-?\d+)/);
+        if (!match) return;
+        const key = getTeamStatKey(match[1]);
+        if (!key) return;
+        spread[key] = Math.max(0, Math.min(maxValue, Number.parseInt(match[2], 10) || 0));
+      });
+      return spread;
+    }
+
+    function parseTeamDamageLabel(value = "") {
+      const normalized = normalize(value);
+      return Object.entries(buildDamageLabels).find(([, label]) => normalize(label) === normalized)?.[0]
+        || buildDamageFilters.find(item => normalize(item.label) === normalized)?.value
+        || "mixed";
+    }
+
+    function parseTeamBuildImport(text = "") {
+      const fields = parseLabeledText(text);
+      const pokemon = parseNameAndNickname(fields.get("pokemon") || "");
+      const entry = findTeamSearchEntry(pokemon.name);
+      if (!entry) return { error: "Nao encontrei o Pokemon no texto importado." };
+      const levelText = fields.get("nivel") || "";
+      const buildText = fields.get("build") || "";
+      const [buildName, ...roleParts] = buildText.split(" - ");
+      const record = normalizeTeamPokemon({
+        id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        name: entry.name,
+        nickname: pokemon.nickname,
+        buildIndex: -1,
+        buildName: buildName && buildName !== "Custom" ? buildName : "Build custom",
+        role: roleParts.join(" - "),
+        damageType: parseTeamDamageLabel(fields.get("dano") || ""),
+        level: Number.parseInt(levelText, 10) || 100,
+        item: fields.get("item") || "",
+        nature: fields.get("nature") || "",
+        ability: fields.get("ability") || "",
+        shiny: normalize(levelText).includes("shiny"),
+        ivs: parseStatSpreadText(fields.get("ivs") || "", 31),
+        evs: parseStatSpreadText(fields.get("evs") || "", 252),
+        moves: (fields.get("moves") || "")
+          .split("/")
+          .map(move => move.trim())
+          .filter(move => move && normalize(move).replace(/[^a-z0-9]/g, "") !== "naoinformado")
+          .slice(0, 4),
+        notes: fields.get("obs") || ""
+      });
+      if (!record) return { error: "Nao foi possivel montar o Pokemon importado." };
+      const teams = (fields.get("times") || "")
+        .split(",")
+        .map(team => team.trim())
+        .filter(Boolean);
+      return { record, teams };
+    }
+
+    function addImportedTeamRecord(record, teamNames = []) {
+      teamBuiltPokemon.push(record);
+      teamNames.forEach(name => {
+        let team = savedTeams.find(item => normalize(item.name) === normalize(name));
+        if (!team) {
+          team = normalizeSavedTeam({ id: `${Date.now()}-${Math.random().toString(16).slice(2)}`, name, memberIds: [] });
+          if (team) savedTeams.push(team);
+        }
+        if (team && team.memberIds.length < 6 && !team.memberIds.includes(record.id)) team.memberIds.push(record.id);
+      });
+      saveTeamsData();
+    }
+
+    function formatBreedingParentForCopy(parent) {
+      return [
+        `Pokemon: ${parent.name}${parent.nickname ? ` (${parent.nickname})` : ""}`,
+        `Genero: ${getBreedingGenderLabel(parent.gender)}`,
+        `Item: ${breedingHeldItemByValue.get(parent.item)?.label || "Sem item"}`,
+        `Natureza desejada: ${parent.natureOk ? "Sim" : "Nao"}`,
+        `IVs: ${breedingIvStats.map(stat => `${stat.label} ${parent.ivs?.[stat.key] ?? 0}`).join(" / ")}`
+      ].join("\n");
+    }
+
+    function parseBreedingParentImport(text = "") {
+      const fields = parseLabeledText(text);
+      const pokemon = parseNameAndNickname(fields.get("pokemon") || "");
+      const entry = findBreedingSearchEntry(pokemon.name) || catalogByKey.get(canonicalKey(pokemon.name));
+      if (!entry) return { error: "Nao encontrei o Pokemon do pai importado." };
+      const genderText = normalize(fields.get("genero") || "");
+      const gender = getBreedingGenderOptions(entry).find(option => normalize(option.label) === genderText || normalize(option.value) === genderText)?.value
+        || getBreedingGenderOptions(entry)[0]?.value
+        || "unknown";
+      const itemText = normalize(fields.get("item") || "");
+      const item = breedingHeldItems.find(option => normalize(option.label) === itemText || normalize(option.value) === itemText)?.value || "";
+      const parent = normalizeBreedingParent({
+        id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        name: entry.name,
+        nickname: pokemon.nickname,
+        gender,
+        item,
+        natureOk: normalize(fields.get("naturezadesejada") || "").startsWith("sim"),
+        ivs: parseStatSpreadText(fields.get("ivs") || "", 31)
+      });
+      if (!parent) return { error: "Nao foi possivel montar o pai importado." };
+      return { parent };
+    }
+
+    function formatCatalogBuildForCopy(entry, build) {
+      return [
+        `Pokemon: ${entry.name}`,
+        `Tipos: ${entry.types.map(formatPokemonType).join(" / ") || "Nao informado"}`,
+        `Build: ${build.name}${build.role ? ` - ${build.role}` : ""}`,
+        `Fonte: ${build.source || "Sugerida"}`,
+        `Dano: ${buildDamageLabels[build.damageType] || "Flex"}`,
+        `Nature: ${build.nature || "Nao informado"}`,
+        `Item: ${build.item || "Nao informado"}`,
+        `EVs: ${build.evs?.length ? build.evs.map(([stat, value]) => `${formatStatName(stat)} ${value}`).join(" / ") : "Nao informado"}`,
+        `Tipos de ataque: ${getBuildAttackTypes(entry, build).map(formatPokemonType).join(" / ") || "Nao informado"}`,
+        `Moves: ${build.moves?.length ? build.moves.join(" / ") : "Nao informado"}`,
+        build.note ? `Obs: ${build.note}` : ""
+      ].filter(Boolean).join("\n");
+    }
+
+    async function copyTextToClipboard(text) {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+        return;
+      }
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      textarea.setAttribute("readonly", "");
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.append(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      textarea.remove();
+    }
+
+    function openTeamPokemonModal(record) {
+      const entry = getTeamPokemonEntry(record);
+      const build = getTeamPokemonBuild(record);
+      if (!entry) return;
+      activeModalEntry = null;
+      pokemonModalContent.replaceChildren();
+
+      const hero = document.createElement("div");
+      hero.className = "modal-hero";
+      hero.append(createPokemonImage(entry, ""));
+      const heroText = document.createElement("div");
+      heroText.innerHTML = `
+        <p class="modal-kicker"></p>
+        <h2 class="modal-title" id="pokemon-modal-title"></h2>
+        <div class="modal-actions"></div>
+      `;
+      heroText.querySelector(".modal-kicker").textContent = `Lv. ${record.level} - ${buildDamageLabels[record.damageType] || "Build custom"}`;
+      heroText.querySelector(".modal-title").textContent = record.nickname ? `${record.nickname} - ${record.name}` : record.name;
+      if (record.shiny) heroText.querySelector(".modal-actions").append(createTextBadge("Shiny"));
+      getTeamMembershipLabelsForRecord(record).forEach(team => heroText.querySelector(".modal-actions").append(createTextBadge(team)));
+      hero.append(heroText);
+      pokemonModalContent.append(hero);
+
+      const layout = document.createElement("div");
+      layout.className = "modal-detail-layout";
+      const primaryColumn = document.createElement("div");
+      primaryColumn.className = "modal-primary-column";
+      const sideColumn = document.createElement("div");
+      sideColumn.className = "modal-side-column";
+
+      const overview = document.createElement("dl");
+      overview.className = "modal-definition-list";
+      [
+        ["Pokemon", record.name],
+        ["Build", `${record.buildName || "Build custom"}${record.role ? ` - ${record.role}` : ""}`],
+        ["Tipo de dano", buildDamageLabels[record.damageType] || "Flex"],
+        ["Item", record.item || "Nao informado"],
+        ["Nature", record.nature || "Nao informado"],
+        ["Ability", record.ability || "Nao informado"],
+        ["Shiny", record.shiny ? "Sim" : "Nao"]
+      ].forEach(([term, value]) => overview.append(createModalInfoRow(term, value)));
+      primaryColumn.append(createModalSection("Resumo da build", overview));
+
+      if (build) {
+        primaryColumn.append(createModalSection("EVs e moves", createBuildSummary(entry, { build })));
+      }
+
+      const warnings = getTeamBuildWarnings(record, entry, build);
+      const validationList = document.createElement("div");
+      validationList.className = "team-validation-list";
+      if (warnings.length) {
+        warnings.forEach(item => {
+          const row = document.createElement("div");
+          row.className = `team-validation-item is-${item.level}`;
+          row.textContent = item.text;
+          validationList.append(row);
+        });
+      } else {
+        const row = document.createElement("div");
+        row.className = "team-validation-item is-ok";
+        row.textContent = "Build sem alertas basicos.";
+        validationList.append(row);
+      }
+      primaryColumn.append(createModalSection("Validacao", validationList));
+
+      const ivList = document.createElement("dl");
+      ivList.className = "modal-definition-list";
+      breedingIvStats.forEach(stat => ivList.append(createModalInfoRow(stat.label, record.ivs?.[stat.key] ?? 0)));
+      sideColumn.append(createModalSection("IVs", ivList));
+
+      const evList = document.createElement("dl");
+      evList.className = "modal-definition-list";
+      breedingIvStats.forEach(stat => evList.append(createModalInfoRow(stat.label, record.evs?.[stat.key] ?? 0)));
+      sideColumn.append(createModalSection("EVs", evList));
+
+      const moveList = document.createElement("div");
+      moveList.className = "build-moves";
+      const moves = record.moves?.length ? record.moves : ["Nao informado"];
+      moves.forEach(move => {
+        const chip = document.createElement("span");
+        chip.textContent = move;
+        moveList.append(chip);
+      });
+      sideColumn.append(createModalSection("Moveset", moveList));
+
+      if (record.notes) sideColumn.append(createModalSection("Observacoes", record.notes));
+
+      const copyButton = document.createElement("button");
+      copyButton.className = "muted-button modal-capture-button";
+      copyButton.type = "button";
+      copyButton.textContent = "Copiar build";
+      copyButton.addEventListener("click", async () => {
+        try {
+          await copyTextToClipboard(formatTeamBuildForCopy(record, entry, build));
+          copyButton.textContent = "Copiado";
+          setTimeout(() => {
+            copyButton.textContent = "Copiar build";
+          }, 1400);
+        } catch {
+          copyButton.textContent = "Erro ao copiar";
+        }
+      });
+      const editButton = document.createElement("button");
+      editButton.className = "modal-capture-button";
+      editButton.type = "button";
+      editButton.textContent = "Editar";
+      editButton.addEventListener("click", () => {
+        activeTeamEditId = record.id;
+        closePokemonModal();
+        activeView = "teams";
+        render();
+      });
+      const actions = document.createElement("div");
+      actions.className = "team-modal-actions";
+      actions.append(editButton, copyButton);
+      primaryColumn.append(actions);
+
+      layout.append(primaryColumn, sideColumn);
+      pokemonModalContent.append(layout);
+      pokemonModal.hidden = false;
+    }
+
+    function createTeamPokemonCard(record) {
+      const entry = getTeamPokemonEntry(record);
+      const build = getTeamPokemonBuild(record);
+      const teams = getTeamMembershipLabelsForRecord(record);
+      const card = document.createElement("article");
+      card.className = "team-pokemon-card";
+      card.innerHTML = `
+        <div class="team-pokemon-header">
+          <span class="team-pokemon-image"></span>
+          <div>
+            <p class="modal-kicker"></p>
+            <h3></h3>
+            <div class="raid-card-types"></div>
+          </div>
+          <button class="team-remove-button" type="button" aria-label="Remover Pokémon pronto" title="Remover">x</button>
+        </div>
+        <div class="team-pokemon-summary"></div>
+        <div class="team-pokemon-meta"></div>
+      `;
+      if (entry) {
+        card.querySelector(".team-pokemon-image").replaceWith(createPokemonImage(entry, ""));
+        entry.types.forEach(type => card.querySelector(".raid-card-types").append(createTypeBadge(type)));
+      }
+      card.querySelector(".modal-kicker").textContent = `Lv. ${record.level} - ${buildDamageLabels[build?.damageType] || "Build flex"}`;
+      card.querySelector("h3").textContent = record.nickname ? `${record.nickname} - ${record.name}` : record.name;
+      const summary = card.querySelector(".team-pokemon-summary");
+      summary.innerHTML = `
+        <span>${record.buildName || "Build custom"}</span>
+        <span>${record.nature || "Nature flex"}</span>
+        <span>IV ${getTeamPerfectIvCount(record)}/6</span>
+        <span>EV ${getTeamEvTotal(record)}/510</span>
+      `;
+      const meta = card.querySelector(".team-pokemon-meta");
+      meta.append(createTextBadge(record.item || build?.item || "Item flex"));
+      if (record.shiny) meta.append(createTextBadge("Shiny"));
+      if (teams.length) meta.append(createTextBadge(`Time: ${teams.slice(0, 2).join(", ")}`));
+      if (record.ability) {
+        const abilityBadge = createTextBadge(isHiddenAbility(entry, record.ability) ? `${record.ability} (HA)` : record.ability);
+        if (isHiddenAbility(entry, record.ability)) abilityBadge.classList.add("is-strong");
+        meta.append(abilityBadge);
+      }
+      const warnings = getTeamBuildWarnings(record, entry, build).filter(item => item.level !== "ok");
+      if (warnings.length) meta.append(createTextBadge(`${warnings.length} ajuste${warnings.length === 1 ? "" : "s"}`));
+      card.querySelector(".team-remove-button").addEventListener("click", () => {
+        teamBuiltPokemon = teamBuiltPokemon.filter(item => item.id !== record.id);
+        if (activeTeamEditId === record.id) activeTeamEditId = "";
+        savedTeams = savedTeams.map(team => ({
+          ...team,
+          memberIds: team.memberIds.filter(id => id !== record.id)
+        }));
+        saveTeamsData();
+        render();
+      });
+      card.addEventListener("click", event => {
+        if (event.target.closest("button")) return;
+        openTeamPokemonModal(record);
+      });
+      return card;
+    }
+
+    function renderTeamBuilderForm(container) {
+      const editingRecord = teamBuiltPokemon.find(record => record.id === activeTeamEditId) || null;
+      const form = document.createElement("form");
+      form.className = "team-builder-form";
+      form.innerHTML = `
+        <div>
+          <p class="eyebrow">${editingRecord ? "Edicao" : "Cadastro"}</p>
+          <h2 class="filter-title">${editingRecord ? "Editar Pokemon pronto" : "Pokemon pronto"}</h2>
+        </div>
+        <div class="team-form-grid">
+          <label>
+            <span>Pokémon</span>
+            <input id="team-pokemon-name" type="search" list="pokemon-search-options" placeholder="Nome ou número" required>
+          </label>
+          <label>
+            <span>Apelido</span>
+            <input id="team-pokemon-nickname" type="text" placeholder="Opcional">
+          </label>
+          <label>
+            <span>Nome da build</span>
+            <input id="team-pokemon-build-name" type="text" placeholder="Ex: Setup físico">
+          </label>
+          <label>
+            <span>Função</span>
+            <input id="team-pokemon-role" type="text" placeholder="Ex: Sweeper, suporte...">
+          </label>
+          <label>
+            <span>Tipo de dano</span>
+            <select id="team-pokemon-damage">
+              <option value="physical">Físico</option>
+              <option value="special">Especial</option>
+              <option value="mixed">Misto</option>
+              <option value="status">Suporte</option>
+            </select>
+          </label>
+          <label>
+            <span>Nível</span>
+            <input id="team-pokemon-level" type="number" min="1" max="100" value="100">
+          </label>
+          <label>
+            <span>Item</span>
+            <input id="team-pokemon-item" type="text" placeholder="Item usado">
+          </label>
+          <label>
+            <span>Nature</span>
+            <input id="team-pokemon-nature" type="text" placeholder="Ex: Jolly, Modest...">
+          </label>
+          <label>
+            <span>Ability</span>
+            <input id="team-pokemon-ability" type="text" placeholder="Ability ou HA">
+            <small class="team-field-hint" id="team-pokemon-ha-hint">Escolha um Pokemon para ver a HA.</small>
+          </label>
+          <label>
+            <span>Observação</span>
+            <input id="team-pokemon-notes" type="text" placeholder="Ex: EV pronto, shiny, HA...">
+          </label>
+        </div>
+        <label class="team-check-row">
+          <input id="team-pokemon-shiny" type="checkbox">
+          <span>Shiny</span>
+        </label>
+        <div class="team-stat-section">
+          <span>IVs</span>
+          <div class="team-stat-grid team-iv-grid"></div>
+        </div>
+        <div class="team-stat-section">
+          <span>EVs</span>
+          <div class="team-stat-grid team-ev-grid"></div>
+        </div>
+        <div class="team-stat-section">
+          <span>Moveset</span>
+          <div class="team-move-grid">
+            <input class="team-move-input" type="text" placeholder="Move 1">
+            <input class="team-move-input" type="text" placeholder="Move 2">
+            <input class="team-move-input" type="text" placeholder="Move 3">
+            <input class="team-move-input" type="text" placeholder="Move 4">
+          </div>
+        </div>
+        <p class="team-form-error" hidden></p>
+        <div class="team-form-actions">
+          <button class="modal-capture-button" type="submit">${editingRecord ? "Salvar edicao" : "Salvar Pokemon"}</button>
+          <button class="muted-button" id="team-toggle-import" type="button">Importar texto</button>
+          <button class="muted-button" id="team-cancel-edit" type="button" ${editingRecord ? "" : "hidden"}>Cancelar</button>
+        </div>
+        <div class="team-import-panel" hidden>
+          <p class="team-import-note">Cole o texto gerado pelo botao Copiar build.</p>
+          <textarea id="team-import-text" rows="8" placeholder="Pokemon: Dragonite (Dnite F4)
+Nivel: 100 | Shiny
+Tipos: Dragao / Voador
+Build: Sweeper fisico - Dragon Dance
+Dano: Dano fisico
+Nature: Jolly
+Ability: Multiscale
+Item: Lum Berry
+IVs: HP 31 / Atk 31 / Def 31 / SpA 3 / SpD 31 / Spe 31
+EVs: HP 0 / Atk 252 / Def 0 / SpA 0 / SpD 4 / Spe 252
+Moves: Dragon Dance / Outrage / Earthquake / Extreme Speed
+Times: Principal
+Obs: pronto para boss"></textarea>
+          <div class="team-form-actions">
+            <button class="modal-capture-button" id="team-confirm-import" type="button">Importar Pokemon</button>
+            <button class="muted-button" id="team-cancel-import" type="button">Fechar</button>
+          </div>
+        </div>
+      `;
+      const nameInput = form.querySelector("#team-pokemon-name");
+      renderTeamStatInputs(form.querySelector(".team-iv-grid"), "team-iv", 31);
+      renderTeamStatInputs(form.querySelector(".team-ev-grid"), "team-ev", 252);
+      if (editingRecord) fillTeamPokemonForm(form, editingRecord);
+      updateTeamAbilityHint(form, editingRecord ? getTeamPokemonEntry(editingRecord) : findTeamSearchEntry(nameInput.value));
+      nameInput.addEventListener("input", () => updateTeamAbilityHint(form, findTeamSearchEntry(nameInput.value)));
+      form.querySelector("#team-pokemon-ability").addEventListener("input", () => updateTeamAbilityHint(form, findTeamSearchEntry(nameInput.value)));
+      const importPanel = form.querySelector(".team-import-panel");
+      const importText = form.querySelector("#team-import-text");
+      form.querySelector("#team-toggle-import").addEventListener("click", () => {
+        importPanel.hidden = !importPanel.hidden;
+        if (!importPanel.hidden) importText.focus({ preventScroll: true });
+      });
+      form.querySelector("#team-cancel-import").addEventListener("click", () => {
+        importPanel.hidden = true;
+      });
+      form.querySelector("#team-confirm-import").addEventListener("click", () => {
+        const parsed = parseTeamBuildImport(importText.value);
+        const errorElement = form.querySelector(".team-form-error");
+        if (parsed.error) {
+          errorElement.hidden = false;
+          errorElement.textContent = parsed.error;
+          return;
+        }
+        addImportedTeamRecord(parsed.record, parsed.teams);
+        activeTeamEditId = "";
+        render();
+      });
+      form.querySelector("#team-cancel-edit").addEventListener("click", () => {
+        activeTeamEditId = "";
+        render();
+      });
+      form.addEventListener("submit", event => {
+        event.preventDefault();
+        const entry = findTeamSearchEntry(nameInput.value);
+        const error = validateTeamPokemonForm(form, entry);
+        const errorElement = form.querySelector(".team-form-error");
+        errorElement.hidden = !error;
+        errorElement.textContent = error;
+        if (error) return;
+        const record = normalizeTeamPokemon({
+          id: editingRecord?.id || `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+          name: entry.name,
+          nickname: form.querySelector("#team-pokemon-nickname").value,
+          buildIndex: -1,
+          buildName: form.querySelector("#team-pokemon-build-name").value,
+          role: form.querySelector("#team-pokemon-role").value,
+          damageType: form.querySelector("#team-pokemon-damage").value,
+          level: form.querySelector("#team-pokemon-level").value,
+          item: form.querySelector("#team-pokemon-item").value,
+          nature: form.querySelector("#team-pokemon-nature").value,
+          ability: form.querySelector("#team-pokemon-ability").value,
+          shiny: form.querySelector("#team-pokemon-shiny").checked,
+          ivs: getTeamFormSpread(form, "team-iv"),
+          evs: getTeamFormSpread(form, "team-ev"),
+          moves: getTeamFormMoves(form),
+          notes: form.querySelector("#team-pokemon-notes").value
+        });
+        if (!record) return;
+        if (editingRecord) {
+          teamBuiltPokemon = teamBuiltPokemon.map(item => item.id === editingRecord.id ? record : item);
+          activeTeamEditId = "";
+        } else {
+          teamBuiltPokemon.push(record);
+        }
+        saveTeamsData();
+        render();
+      });
+      container.append(form);
+    }
+
+    function renderSavedTeams(container) {
+      const panel = document.createElement("section");
+      panel.className = "teams-panel";
+      panel.innerHTML = `
+        <div class="team-panel-header">
+          <div>
+            <p class="eyebrow">Times</p>
+            <h2 class="filter-title">Montar time</h2>
+          </div>
+          <span class="category-count"></span>
+        </div>
+        <form class="team-create-form">
+          <input id="team-name" type="text" placeholder="Nome do time">
+          <button class="modal-capture-button" type="submit">Criar time</button>
+        </form>
+        <div class="team-list"></div>
+      `;
+      panel.querySelector(".category-count").textContent = `${savedTeams.length} time${savedTeams.length === 1 ? "" : "s"}`;
+      panel.querySelector(".team-create-form").addEventListener("submit", event => {
+        event.preventDefault();
+        const input = panel.querySelector("#team-name");
+        const team = normalizeSavedTeam({
+          id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+          name: input.value,
+          memberIds: []
+        });
+        if (!team) return;
+        savedTeams.push(team);
+        saveTeamsData();
+        render();
+      });
+      const teamList = panel.querySelector(".team-list");
+      if (!savedTeams.length) {
+        const empty = document.createElement("p");
+        empty.className = "team-note";
+        empty.textContent = "Nenhum time criado ainda.";
+        teamList.append(empty);
+      }
+      savedTeams.forEach(team => {
+        const card = document.createElement("article");
+        card.className = "team-card";
+        card.innerHTML = `
+          <div class="team-card-header">
+            <strong></strong>
+            <button class="team-remove-button" type="button" aria-label="Excluir time" title="Excluir">x</button>
+          </div>
+          <div class="team-member-grid"></div>
+          <div class="team-add-row">
+            <select></select>
+            <button class="muted-button" type="button">Adicionar</button>
+          </div>
+        `;
+        card.querySelector("strong").textContent = `${team.name} (${team.memberIds.length}/6)`;
+        const memberGrid = card.querySelector(".team-member-grid");
+        team.memberIds.forEach(id => {
+          const record = teamBuiltPokemon.find(item => item.id === id);
+          if (!record) return;
+          const entry = getTeamPokemonEntry(record);
+          const member = document.createElement("button");
+          member.className = "team-member";
+          member.type = "button";
+          member.innerHTML = `<span></span><strong></strong>`;
+          if (entry) member.querySelector("span").replaceWith(createPokemonImage(entry, ""));
+          member.querySelector("strong").textContent = record.nickname || record.name;
+          member.title = "Remover do time";
+          member.addEventListener("click", () => {
+            team.memberIds = team.memberIds.filter(memberId => memberId !== id);
+            saveTeamsData();
+            render();
+          });
+          memberGrid.append(member);
+        });
+        const select = card.querySelector("select");
+        teamBuiltPokemon
+          .filter(record => !team.memberIds.includes(record.id))
+          .forEach(record => select.append(createTeamPokemonOption(record)));
+        card.querySelector(".team-add-row button").disabled = team.memberIds.length >= 6 || !select.options.length;
+        card.querySelector(".team-add-row button").addEventListener("click", () => {
+          if (!select.value || team.memberIds.length >= 6) return;
+          team.memberIds.push(select.value);
+          saveTeamsData();
+          render();
+        });
+        card.querySelector(".team-remove-button").addEventListener("click", () => {
+          savedTeams = savedTeams.filter(item => item.id !== team.id);
+          saveTeamsData();
+          render();
+        });
+        teamList.append(card);
+      });
+      container.append(panel);
+    }
+
+    function renderTeamAnalysis(container) {
+      const panel = document.createElement("section");
+      panel.className = "teams-panel team-analysis-panel";
+      panel.innerHTML = `
+        <div class="team-panel-header">
+          <div>
+            <p class="eyebrow">Analise</p>
+            <h2 class="filter-title">Cobertura dos times</h2>
+          </div>
+          <span class="category-count"></span>
+        </div>
+        <div class="team-analysis-list"></div>
+      `;
+      const list = panel.querySelector(".team-analysis-list");
+      const teamsToAnalyze = savedTeams.filter(team => team.memberIds.length);
+      panel.querySelector(".category-count").textContent = `${teamsToAnalyze.length} time${teamsToAnalyze.length === 1 ? "" : "s"}`;
+      if (!teamsToAnalyze.length) {
+        const empty = document.createElement("p");
+        empty.className = "team-note";
+        empty.textContent = "Monte um time com Pokemon prontos para ver fraquezas, cobertura e alertas.";
+        list.append(empty);
+      }
+      teamsToAnalyze.forEach(team => {
+        const analysis = analyzeTeam(team);
+        const risky = analysis.defensive
+          .filter(item => item.weak)
+          .sort((a, b) => b.weak - a.weak || a.resist + a.immune - (b.resist + b.immune))
+          .slice(0, 5);
+        const card = document.createElement("article");
+        card.className = "team-analysis-card";
+        card.innerHTML = `
+          <div class="team-analysis-header">
+            <strong></strong>
+            <span></span>
+          </div>
+          <div class="team-analysis-section">
+            <span>Riscos</span>
+            <div class="team-analysis-tags is-risk"></div>
+          </div>
+          <div class="team-analysis-section">
+            <span>Cobertura</span>
+            <div class="team-analysis-tags is-coverage"></div>
+          </div>
+          <div class="team-analysis-warnings"></div>
+        `;
+        card.querySelector("strong").textContent = team.name;
+        card.querySelector(".team-analysis-header span").textContent = `${analysis.records.length}/6 membros`;
+        const riskWrap = card.querySelector(".team-analysis-tags.is-risk");
+        risky.forEach(item => riskWrap.append(createTextBadge(`${formatPokemonType(item.type)}: ${item.weak} fraco${item.weak === 1 ? "" : "s"}`)));
+        if (!risky.length) riskWrap.append(createTextBadge("Sem risco claro"));
+        const coverageWrap = card.querySelector(".team-analysis-tags.is-coverage");
+        analysis.coverage.slice(0, 10).forEach(item => coverageWrap.append(createTextBadge(formatPokemonType(item.type))));
+        if (analysis.coverage.length > 10) coverageWrap.append(createTextBadge(`+${analysis.coverage.length - 10}`));
+        const warningWrap = card.querySelector(".team-analysis-warnings");
+        (analysis.warnings.length ? analysis.warnings : ["Sem alertas basicos."]).forEach(text => {
+          const item = document.createElement("div");
+          item.className = "team-validation-item";
+          item.textContent = text;
+          warningWrap.append(item);
+        });
+        list.append(card);
+      });
+      container.append(panel);
+    }
+
+    function renderTeamLibraryGroups(container, records) {
+      const groupedIds = new Set();
+      const groups = savedTeams.map(team => {
+        const members = team.memberIds
+          .map(id => records.find(record => record.id === id))
+          .filter(Boolean);
+        members.forEach(record => groupedIds.add(record.id));
+        return { label: team.name, records: members };
+      }).filter(group => group.records.length);
+
+      const ungrouped = records.filter(record => !groupedIds.has(record.id));
+      if (ungrouped.length) groups.push({ label: savedTeams.length ? "Sem time" : "Todos os prontos", records: ungrouped });
+
+      if (!groups.length) {
+        const empty = document.createElement("p");
+        empty.className = "team-note";
+        empty.textContent = teamBuiltPokemon.length
+          ? "Nenhum Pokémon pronto encontrado com essa busca."
+          : "Cadastre os Pokémon que já estão upados e com build pronta.";
+        container.append(empty);
+        return;
+      }
+
+      groups.forEach(group => {
+        const section = document.createElement("section");
+        section.className = "team-group-section";
+        section.innerHTML = `
+          <div class="team-group-heading">
+            <h3></h3>
+            <span class="category-count"></span>
+          </div>
+          <div class="team-pokemon-grid"></div>
+        `;
+        section.querySelector("h3").textContent = group.label;
+        section.querySelector(".category-count").textContent = `${group.records.length} Pokémon`;
+        const grid = section.querySelector(".team-pokemon-grid");
+        group.records.forEach(record => grid.append(createTeamPokemonCard(record)));
+        container.append(section);
+      });
+    }
+
+    function renderTeamsFlow(list) {
+      activeTitle.textContent = "Times";
+      visibleCount.textContent = `${teamBuiltPokemon.length} prontos`;
+      const shell = document.createElement("section");
+      shell.className = "teams-layout";
+      const library = document.createElement("section");
+      library.className = "teams-panel teams-library";
+      library.innerHTML = `
+        <div class="team-panel-header">
+          <div>
+            <p class="eyebrow">Biblioteca</p>
+            <h2 class="filter-title">Pokémon upados e builds</h2>
+          </div>
+          <span class="category-count"></span>
+        </div>
+        <input class="search-field" id="teams-search" type="search" list="pokemon-search-options" placeholder="Buscar nos prontos...">
+        <div class="team-group-list"></div>
+      `;
+      library.querySelector(".category-count").textContent = `${teamBuiltPokemon.length} salvo${teamBuiltPokemon.length === 1 ? "" : "s"}`;
+      const search = library.querySelector("#teams-search");
+      search.value = teamsSearch;
+      search.addEventListener("input", event => {
+        teamsSearch = event.target.value;
+        focusTeamsSearchAfterRender = true;
+        render();
+      });
+      const filtered = getFilteredTeamPokemon();
+      renderTeamBuilderForm(shell);
+      renderSavedTeams(shell);
+      renderTeamAnalysis(shell);
+      renderTeamLibraryGroups(library.querySelector(".team-group-list"), filtered);
+      shell.append(library);
+      list.append(shell);
+      if (focusTeamsSearchAfterRender) {
+        focusTeamsSearchAfterRender = false;
+        focusInputEnd(search);
+      }
     }
 
     function renderBuildTools(list) {
@@ -2503,8 +4976,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       list.append(wrapper);
       if (focusBuildSearchAfterRender) {
         focusBuildSearchAfterRender = false;
-        input.focus();
-        input.setSelectionRange(input.value.length, input.value.length);
+        focusInputEnd(input);
       }
     }
 
@@ -2535,12 +5007,22 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       entry.types.forEach(type => card.querySelector(".breeding-meta").append(createTypeBadge(type)));
       card.querySelector(".build-card-body").append(createBuildSummary(entry, { compact: true, build }));
 
-      const openButton = document.createElement("button");
-      openButton.className = "muted-button";
-      openButton.type = "button";
-      openButton.textContent = "Detalhes";
-      openButton.addEventListener("click", () => openPokemonModal(entry));
-      card.querySelector(".build-card-actions").append(openButton);
+      const copyButton = document.createElement("button");
+      copyButton.className = "muted-button";
+      copyButton.type = "button";
+      copyButton.textContent = "Copiar build";
+      copyButton.addEventListener("click", async () => {
+        try {
+          await copyTextToClipboard(formatCatalogBuildForCopy(entry, build));
+          copyButton.textContent = "Copiado";
+          setTimeout(() => {
+            copyButton.textContent = "Copiar build";
+          }, 1400);
+        } catch {
+          copyButton.textContent = "Erro ao copiar";
+        }
+      });
+      card.querySelector(".build-card-actions").append(copyButton);
       return card;
     }
 
@@ -2665,28 +5147,150 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
         .sort((a, b) => b.multiplier - a.multiplier || formatPokemonType(a.type).localeCompare(formatPokemonType(b.type), "pt-BR"));
     }
 
-    function getCounterDefenseLabel(entry, targetTypes) {
-      if (!targetTypes.length) return "Neutro";
-      const incoming = targetTypes.map(type => getTypeEffectiveness(type, entry.types));
-      const worst = Math.max(...incoming);
-      const best = Math.min(...incoming);
-      if (worst === 0) return "Imune";
-      if (worst < 1) return "Resiste";
-      if (best === 0 && worst <= 1) return "Tem imunidade";
-      if (worst > 1) return "Cuidado";
-      return "Neutro";
+    function getSelectedCounterBoss() {
+      return selectedCounterBossKey ? catalogByKey.get(selectedCounterBossKey) || null : null;
     }
 
-    function getCounterDefenseScore(entry, targetTypes) {
-      if (!targetTypes.length) return 0;
-      const incoming = targetTypes.map(type => getTypeEffectiveness(type, entry.types));
-      const worst = Math.max(...incoming);
-      const best = Math.min(...incoming);
-      if (worst === 0) return 22;
-      if (worst < 1) return 14;
-      if (best === 0 && worst <= 1) return 12;
-      if (worst > 1) return -16;
-      return 0;
+    function getCounterTargetLabel(targetTypes) {
+      const boss = getSelectedCounterBoss();
+      if (boss) return boss.name;
+      return targetTypes.map(formatPokemonType).join(" / ") || "alvo";
+    }
+
+    function normalizeMoveLookupKey(move) {
+      return normalize(move).replace(/[^a-z0-9]/g, "");
+    }
+
+    function getMoveAlternatives(move) {
+      return String(move || "")
+        .split(/\s+ou\s+|\s+or\s+|\/|,/i)
+        .map(value => value.trim())
+        .filter(Boolean);
+    }
+
+    function getMovePowerInfo(move, build) {
+      const alternatives = getMoveAlternatives(move);
+      const attackTypes = new Set(build?.attackTypes || []);
+      for (const alternative of alternatives) {
+        const key = normalizeMoveLookupKey(alternative);
+        const info = movePowerData[key];
+        if (!info) continue;
+        if (key === "weatherball" && attackTypes.has("fire")) {
+          return { label: alternative, type: "fire", power: info.power, known: true };
+        }
+        return { label: alternative, type: info.type, power: info.power, known: true };
+      }
+      return null;
+    }
+
+    function createCounterAttackOption(entry, targetTypes, type, label, power, source) {
+      const multiplier = getTypeEffectiveness(type, targetTypes);
+      const stab = entry.types.includes(type) ? 1.5 : 1;
+      return {
+        type,
+        label,
+        power,
+        source,
+        multiplier,
+        stab,
+        estimatedPower: Math.round(power * multiplier * stab)
+      };
+    }
+
+    function getCounterAttackOptions(entry, builds, readyBuild, targetTypes) {
+      const options = [];
+      const evaluatedBuilds = [readyBuild, ...builds].filter(Boolean);
+      evaluatedBuilds.forEach(build => {
+        (build.moves || []).forEach(move => {
+          const info = getMovePowerInfo(move, build);
+          if (!info) return;
+          options.push(createCounterAttackOption(entry, targetTypes, info.type, info.label, info.power, "move"));
+        });
+      });
+
+      const fallbackTypes = new Set(entry.types);
+      evaluatedBuilds.forEach(build => getBuildAttackTypes(entry, build).forEach(type => fallbackTypes.add(type)));
+      fallbackTypes.forEach(type => {
+        const power = entry.types.includes(type) ? 90 : 80;
+        options.push(createCounterAttackOption(entry, targetTypes, type, `Ataque ${formatPokemonType(type)}`, power, "type"));
+      });
+
+      return options
+        .filter(option => option.multiplier > 0)
+        .sort((a, b) =>
+          b.estimatedPower - a.estimatedPower
+          || b.multiplier - a.multiplier
+          || formatPokemonType(a.type).localeCompare(formatPokemonType(b.type), "pt-BR")
+        );
+    }
+
+    function getCounterStrongTypes(attackOptions) {
+      const byType = new Map();
+      attackOptions
+        .filter(option => option.multiplier > 1)
+        .forEach(option => {
+          const current = byType.get(option.type);
+          if (!current || option.estimatedPower > current.estimatedPower) byType.set(option.type, option);
+        });
+      return [...byType.values()].sort((a, b) =>
+        b.multiplier - a.multiplier
+        || b.estimatedPower - a.estimatedPower
+        || formatPokemonType(a.type).localeCompare(formatPokemonType(b.type), "pt-BR")
+      );
+    }
+
+    function getCounterDefenseSummary(entry, targetTypes) {
+      if (!targetTypes.length) {
+        return { label: "Neutro", score: 0, worst: 1, best: 1, items: [] };
+      }
+      const items = targetTypes.map(type => {
+        const multiplier = getTypeEffectiveness(type, entry.types);
+        return {
+          type,
+          multiplier,
+          label: multiplier === 0
+            ? "Imune"
+            : multiplier < 1
+              ? "Resiste"
+              : multiplier > 1
+                ? "Fraco"
+                : "Neutro"
+        };
+      });
+      const worst = Math.max(...items.map(item => item.multiplier));
+      const best = Math.min(...items.map(item => item.multiplier));
+      const label = worst === 0
+        ? "Imune"
+        : worst < 1
+          ? "Resiste"
+          : best === 0 && worst <= 1
+            ? "Tem imunidade"
+            : worst >= 4
+              ? "Risco 4x"
+              : worst > 1
+                ? "Cuidado"
+                : "Neutro";
+      const score = worst === 0
+        ? 70
+        : best === 0 && worst <= 1
+          ? 52
+          : worst < 1
+            ? 44
+            : worst >= 4
+              ? -95
+              : worst > 1
+                ? -48
+                : 0;
+      return { label, score, worst, best, items };
+    }
+
+    function getCounterDefenseDescription(defense, targetLabel) {
+      if (defense.worst === 0) return `${targetLabel} nao acerta dano relevante nesse tipo.`;
+      if (defense.best === 0 && defense.worst <= 1) return `${targetLabel} tem pelo menos um tipo bloqueado por imunidade.`;
+      if (defense.worst < 1) return `Entra bem: resiste aos tipos principais de ${targetLabel}.`;
+      if (defense.worst >= 4) return `Alto risco: ${targetLabel} pode bater 4x nesse Pokemon.`;
+      if (defense.worst > 1) return `Cuidado: ${targetLabel} pode bater super efetivo nesse Pokemon.`;
+      return `Troca neutra: nao resiste, mas tambem nao toma super efetivo pelos tipos selecionados.`;
     }
 
     function entryHasCapturePeriod(entry, period) {
@@ -2975,8 +5579,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       list.append(tools);
       if (focusCaptureSearchAfterRender) {
         focusCaptureSearchAfterRender = false;
-        search.focus();
-        search.setSelectionRange(search.value.length, search.value.length);
+        focusInputEnd(search);
       }
     }
 
@@ -3129,30 +5732,38 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
         .filter(entry => !normalizedSearch || matchesTextSearch(entry, normalizedSearch))
         .map(entry => {
           const builds = getBuildRecommendations(entry);
-          const attackTypes = new Set(entry.types);
-          builds.forEach(build => getBuildAttackTypes(entry, build).forEach(type => attackTypes.add(type)));
-          const strongTypes = [...attackTypes]
-            .map(type => ({
-              type,
-              multiplier: getTypeEffectiveness(type, targetTypes)
-            }))
-            .filter(item => item.multiplier > 1)
-            .sort((a, b) => b.multiplier - a.multiplier || formatPokemonType(a.type).localeCompare(formatPokemonType(b.type), "pt-BR"));
+          const readyRecords = getReadyTeamPokemon(entry);
+          if (counterReadyOnly && !readyRecords.length) return null;
+          const readyRecord = readyRecords[0] || null;
+          const readyBuild = readyRecord ? getTeamPokemonBuild(readyRecord) : null;
+          const attackOptions = getCounterAttackOptions(entry, builds, readyBuild, targetTypes);
+          const strongTypes = getCounterStrongTypes(attackOptions);
           if (!strongTypes.length) return null;
-          const strongest = strongTypes[0]?.multiplier || 1;
+          const bestAttack = attackOptions[0] || strongTypes[0];
           const hasMetaBuild = builds.some(build =>
             build.isMeta && getBuildAttackTypes(entry, build).some(type => strongTypes.some(item => item.type === type))
           );
-          const score = strongest * 100
-            + (hasMetaBuild ? 20 : 0)
-            + (isOwned(entry) ? 8 : 0)
-            + getCounterDefenseScore(entry, targetTypes)
+          const teamLabels = getTeamMembershipLabels(entry);
+          const defense = getCounterDefenseSummary(entry, targetTypes);
+          const score = bestAttack.estimatedPower
+            + (hasMetaBuild ? 24 : 0)
+            + (readyRecords.length ? 105 : 0)
+            + (teamLabels.length ? 55 : 0)
+            + (isOwned(entry) ? 10 : 0)
+            + defense.score
             - entry.id / 10000;
           return {
             entry,
             strongTypes,
+            attackOptions,
+            bestAttack,
             hasMetaBuild,
-            defenseLabel: getCounterDefenseLabel(entry, targetTypes),
+            hasReadyBuild: Boolean(readyRecords.length),
+            readyRecord,
+            readyBuild,
+            teamLabels,
+            defense,
+            defenseLabel: defense.label,
             score
           };
         })
@@ -3270,8 +5881,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       list.append(wrapper);
       if (focusCounterBossSearchAfterRender) {
         focusCounterBossSearchAfterRender = false;
-        bossInput.focus();
-        bossInput.setSelectionRange(bossInput.value.length, bossInput.value.length);
+        focusInputEnd(bossInput);
       }
     }
 
@@ -3298,12 +5908,63 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
           render();
         }
       }));
+      filters.append(createFilterChip({
+        label: "Somente builds prontas",
+        active: counterReadyOnly,
+        onClick: () => {
+          counterReadyOnly = !counterReadyOnly;
+          render();
+        }
+      }));
       list.append(searchWrap);
       if (focusCounterSearchAfterRender) {
         focusCounterSearchAfterRender = false;
-        input.focus();
-        input.setSelectionRange(input.value.length, input.value.length);
+        focusInputEnd(input);
       }
+    }
+
+    function renderCounterTeamSummary(list, results) {
+      const readyResults = results.filter(result => result.hasReadyBuild).slice(0, 4);
+      if (!readyResults.length) return;
+      const section = document.createElement("section");
+      section.className = "counter-team-summary";
+      section.innerHTML = `
+        <div class="counter-summary-header">
+          <div>
+            <p class="eyebrow">Seus times</p>
+            <h2>Melhores prontos para este alvo</h2>
+          </div>
+          <span class="category-count"></span>
+        </div>
+        <div class="counter-team-list"></div>
+      `;
+      section.querySelector(".category-count").textContent = `${readyResults.length} opcoes`;
+      const listWrap = section.querySelector(".counter-team-list");
+      readyResults.forEach(result => {
+        const button = document.createElement("button");
+        button.className = "counter-team-option";
+        button.type = "button";
+        button.innerHTML = `
+          <span class="counter-team-image"></span>
+          <span>
+            <strong></strong>
+            <small></small>
+          </span>
+          <b></b>
+        `;
+        button.querySelector(".counter-team-image").replaceWith(createPokemonImage(result.entry, ""));
+        button.querySelector("strong").textContent = result.readyRecord.nickname
+          ? `${result.readyRecord.nickname} - ${result.entry.name}`
+          : result.entry.name;
+        button.querySelector("small").textContent = [
+          result.teamLabels.length ? result.teamLabels.join(", ") : "Build pronta",
+          result.defenseLabel
+        ].join(" | ");
+        button.querySelector("b").textContent = `${result.bestAttack.estimatedPower}`;
+        button.addEventListener("click", () => openCounterModal(result));
+        listWrap.append(button);
+      });
+      list.append(section);
     }
 
     function renderCounterSummary(list, targetTypes) {
@@ -3360,10 +6021,111 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       list.append(section);
     }
 
+    function openCounterModal(result) {
+      const { entry, bestAttack, attackOptions, strongTypes, readyRecord, readyBuild, teamLabels, defense } = result;
+      const targetTypes = getCounterTargetTypes();
+      const targetLabel = getCounterTargetLabel(targetTypes);
+      activeModalEntry = null;
+      pokemonModalContent.replaceChildren();
+
+      const hero = document.createElement("div");
+      hero.className = "modal-hero";
+      hero.append(createPokemonImage(entry, ""));
+      const heroText = document.createElement("div");
+      heroText.innerHTML = `
+        <p class="modal-kicker"></p>
+        <h2 class="modal-title" id="pokemon-modal-title"></h2>
+        <div class="modal-actions"></div>
+      `;
+      heroText.querySelector(".modal-kicker").textContent = `Counter de ${targetLabel}`;
+      heroText.querySelector(".modal-title").textContent = entry.name;
+      const detailButton = document.createElement("button");
+      detailButton.className = "modal-capture-button";
+      detailButton.type = "button";
+      detailButton.textContent = "Detalhes";
+      detailButton.addEventListener("click", () => openPokemonModal(entry));
+      heroText.querySelector(".modal-actions").append(detailButton);
+      if (readyRecord) {
+        const teamButton = document.createElement("button");
+        teamButton.className = "muted-button modal-capture-button";
+        teamButton.type = "button";
+        teamButton.textContent = "Times";
+        teamButton.addEventListener("click", () => openTeamPokemonModal(readyRecord));
+        heroText.querySelector(".modal-actions").append(teamButton);
+      }
+      hero.append(heroText);
+      pokemonModalContent.append(hero);
+
+      const layout = document.createElement("div");
+      layout.className = `modal-detail-layout${readyRecord && readyBuild ? "" : " is-single"}`;
+      const primaryColumn = document.createElement("div");
+      primaryColumn.className = "modal-primary-column";
+      const sideColumn = document.createElement("div");
+      sideColumn.className = "modal-side-column";
+
+      const summaryList = document.createElement("dl");
+      summaryList.className = "modal-definition-list";
+      summaryList.append(
+        createModalInfoRow("Alvo", targetLabel),
+        createModalInfoRow("Golpe sugerido", `${bestAttack.label} - ${formatPokemonType(bestAttack.type)}`),
+        createModalInfoRow("Dano estimado", `${bestAttack.estimatedPower} (${bestAttack.power} base, ${formatMultiplier(bestAttack.multiplier)}, STAB ${bestAttack.stab === 1.5 ? "sim" : "nao"})`),
+        createModalInfoRow("Defesa", defense.label),
+        createModalInfoRow("Origem", readyRecord ? `Build pronta${teamLabels.length ? ` em ${teamLabels.join(", ")}` : ""}` : "Catalogo e cobertura sugerida")
+      );
+      primaryColumn.append(createModalSection("Resumo", summaryList));
+
+      const attackBlock = document.createElement("div");
+      const attackNote = document.createElement("p");
+      attackNote.className = "modal-section-note";
+      attackNote.textContent = "Estes sao os melhores golpes estimados para usar contra o alvo. O calculo compara poder base, STAB e efetividade de tipo.";
+      const attackList = document.createElement("div");
+      attackList.className = "counter-modal-list";
+      attackOptions.slice(0, 8).forEach(option => {
+        const row = document.createElement("div");
+        row.className = "counter-modal-row";
+        row.innerHTML = `
+          <span></span>
+          <strong></strong>
+          <small></small>
+        `;
+        row.querySelector("span").textContent = `${option.label} (${formatPokemonType(option.type)})`;
+        row.querySelector("strong").textContent = `${option.estimatedPower}`;
+        row.querySelector("small").textContent = `${option.power} base | ${formatMultiplier(option.multiplier)} | STAB ${option.stab === 1.5 ? "sim" : "nao"}`;
+        attackList.append(row);
+      });
+      attackBlock.append(attackNote, attackList);
+      primaryColumn.append(createModalSection(`Golpes para usar contra ${targetLabel}`, attackBlock));
+
+      const strongWrap = document.createElement("div");
+      strongWrap.className = "breeding-meta";
+      strongTypes.slice(0, 8).forEach(item => strongWrap.append(createTextBadge(`${formatPokemonType(item.type)} ${formatMultiplier(item.multiplier)}`)));
+      primaryColumn.append(createModalSection("Tipos super efetivos", strongWrap));
+
+      const defenseList = document.createElement("dl");
+      defenseList.className = "modal-definition-list";
+      defense.items.forEach(item => {
+        defenseList.append(createModalInfoRow(`Ataque ${formatPokemonType(item.type)}`, `${formatMultiplier(item.multiplier)} - ${item.label}`));
+      });
+      primaryColumn.append(createModalSection("Risco defensivo", defenseList));
+
+      if (readyRecord && readyBuild) {
+        const readyWrap = document.createElement("div");
+        readyWrap.className = "build-summary-list";
+        readyWrap.append(createBuildSummary(entry, { build: readyBuild }));
+        sideColumn.append(createModalSection("Build pronta", readyWrap));
+      }
+
+      layout.append(primaryColumn);
+      if (readyRecord && readyBuild) layout.append(sideColumn);
+      pokemonModalContent.append(layout);
+      pokemonModal.hidden = false;
+    }
+
     function createCounterCard(result) {
-      const { entry, strongTypes, hasMetaBuild, defenseLabel } = result;
+      const { entry, strongTypes, bestAttack, hasMetaBuild, hasReadyBuild, readyRecord, readyBuild, teamLabels, defense, defenseLabel } = result;
+      const targetLabel = getCounterTargetLabel(getCounterTargetTypes());
       const card = document.createElement("article");
-      card.className = `counter-card${isOwned(entry) ? " is-owned" : ""}`;
+      card.className = `counter-card${isOwned(entry) ? " is-owned" : ""}${hasReadyBuild ? " is-ready" : ""}`;
       card.innerHTML = `
         <div class="counter-card-main">
           <span class="counter-card-image"></span>
@@ -3375,6 +6137,14 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
         </div>
         <div class="counter-strong-types"></div>
         <div class="raid-tags"></div>
+        <div class="counter-matchup-row">
+          <div>
+            <span>Melhor golpe sugerido</span>
+            <b></b>
+          </div>
+          <strong></strong>
+        </div>
+        <div class="counter-ready-build" hidden></div>
         <p class="raid-note"></p>
       `;
       card.querySelector(".counter-card-image").replaceWith(createPokemonImage(entry, ""));
@@ -3386,12 +6156,51 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
         card.querySelector(".counter-strong-types").append(chip);
       });
       const tags = card.querySelector(".raid-tags");
+      if (hasReadyBuild) {
+        const readyTag = createTextBadge("Build pronta");
+        readyTag.classList.add("is-strong");
+        tags.append(readyTag);
+      }
+      if (teamLabels?.length) tags.append(createTextBadge(`Time: ${teamLabels.slice(0, 2).join(", ")}`));
       tags.append(createTextBadge(isOwned(entry) ? "Capturado" : "Faltando"));
       tags.append(createTextBadge(defenseLabel));
       if (hasMetaBuild) tags.append(createTextBadge("Meta cadastrada"));
+      const matchup = card.querySelector(".counter-matchup-row");
+      matchup.querySelector("b").textContent = `${bestAttack.label} (${formatPokemonType(bestAttack.type)})`;
+      matchup.querySelector("strong").textContent = `${bestAttack.estimatedPower} dano estimado`;
+      if (readyRecord && readyBuild) {
+        const readyBox = card.querySelector(".counter-ready-build");
+        readyBox.hidden = false;
+        readyBox.innerHTML = `
+          <div>
+            <strong></strong>
+            <span></span>
+          </div>
+          <button class="muted-button" type="button">Copiar</button>
+        `;
+        readyBox.querySelector("strong").textContent = readyRecord.buildName || readyBuild.name || "Build salva";
+        readyBox.querySelector("span").textContent = [
+          readyRecord.item || readyBuild.item || "Item flex",
+          buildDamageLabels[readyRecord.damageType] || "Dano flex"
+        ].join(" - ");
+        readyBox.querySelector("button").addEventListener("click", event => {
+          event.stopPropagation();
+          const button = event.currentTarget;
+          copyTextToClipboard(formatTeamBuildForCopy(readyRecord, entry, readyBuild)).then(() => {
+            button.textContent = "Copiado";
+            setTimeout(() => {
+              button.textContent = "Copiar";
+            }, 1400);
+          }).catch(() => {
+            button.textContent = "Erro";
+          });
+        });
+      }
       card.querySelector(".raid-note").textContent =
-        `Leve para usar ${strongTypes.slice(0, 3).map(item => formatPokemonType(item.type)).join(" / ")} contra esse alvo.`;
-      card.addEventListener("click", () => openPokemonModal(entry));
+        `Contra ${targetLabel}. ${getCounterDefenseDescription(defense, targetLabel)}`;
+      card.addEventListener("click", () => {
+        openCounterModal(result);
+      });
       return card;
     }
 
@@ -3414,11 +6223,14 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       }
 
       renderCounterResultsSearch(list);
+      renderCounterTeamSummary(list, results);
 
       if (!results.length) {
         const empty = document.createElement("div");
         empty.className = "empty";
-        empty.textContent = "Nenhum Pokemon final encontrado com cobertura forte para esses tipos.";
+        empty.textContent = counterReadyOnly
+          ? "Nenhuma build pronta encontrada com cobertura forte para esses tipos."
+          : "Nenhum Pokemon final encontrado com cobertura forte para esses tipos.";
         list.append(empty);
         return;
       }
@@ -3453,21 +6265,27 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       const captureActive = activeView === "capture";
       const telemetryActive = activeView === "captured";
       const breedingActive = activeView === "breeding";
+      const fragmentsActive = activeView === "fragments";
+      const teamsActive = activeView === "teams";
       const buildsActive = activeView === "builds";
       const settingsActive = activeView === "settings";
       checklistTab.classList.toggle("active", checklistActive);
       captureTab.classList.toggle("active", captureActive);
       capturedTab.classList.toggle("active", telemetryActive);
       breedingTab.classList.toggle("active", breedingActive);
+      fragmentsTab.classList.toggle("active", fragmentsActive);
+      teamsTab.classList.toggle("active", teamsActive);
       buildsTab.classList.toggle("active", buildsActive);
       settingsTab.classList.toggle("active", settingsActive);
       checklistTab.setAttribute("aria-pressed", checklistActive ? "true" : "false");
       captureTab.setAttribute("aria-pressed", captureActive ? "true" : "false");
       capturedTab.setAttribute("aria-pressed", telemetryActive ? "true" : "false");
       breedingTab.setAttribute("aria-pressed", breedingActive ? "true" : "false");
+      fragmentsTab.setAttribute("aria-pressed", fragmentsActive ? "true" : "false");
+      teamsTab.setAttribute("aria-pressed", teamsActive ? "true" : "false");
       buildsTab.setAttribute("aria-pressed", buildsActive ? "true" : "false");
       settingsTab.setAttribute("aria-pressed", settingsActive ? "true" : "false");
-      document.body.classList.toggle("flow-without-kpis", captureActive || breedingActive || buildsActive || settingsActive);
+      document.body.classList.toggle("flow-without-kpis", captureActive || breedingActive || fragmentsActive || teamsActive || buildsActive || settingsActive);
       checklistNavSections.hidden = !checklistActive;
       toolbar.hidden = !checklistActive;
       const owned = allEntries.filter(isOwned).length;
@@ -3478,6 +6296,8 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       captureFlowCount.textContent = captureMissing;
       telemetryFlowCount.textContent = `${percent}%`;
       breedingFlowCount.textContent = breedable;
+      fragmentsFlowCount.textContent = typeFilters.length;
+      teamsFlowCount.textContent = teamBuiltPokemon.length;
       buildsFlowCount.textContent = typeFilters.length;
       settingsFlowCount.textContent = isTauriApp() ? "Desk" : "Web";
     }
@@ -3605,8 +6425,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       list.append(searchWrap);
       if (focusTelemetrySearchAfterRender) {
         focusTelemetrySearchAfterRender = false;
-        telemetrySearchInput.focus();
-        telemetrySearchInput.setSelectionRange(telemetrySearchInput.value.length, telemetrySearchInput.value.length);
+        focusInputEnd(telemetrySearchInput);
       }
 
       if (!rows.length) {
@@ -3666,19 +6485,110 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       URL.revokeObjectURL(link.href);
     }
 
-    function exportCapturedBackup() {
-      const captured = getCapturedRecords();
+    function createFullBackupPayload() {
       const backup = {
         app: "Pixelmon - Pokelist",
-        version: 1,
+        version: 2,
+        appVersion: APP_META.version,
         exportedAt: new Date().toISOString(),
-        captured
+        captured: getCapturedRecords(),
+        breedingParents: breedingSavedParents,
+        teamsData: {
+          builtPokemon: teamBuiltPokemon,
+          teams: savedTeams
+        },
+        preferences: {
+          theme: activeTheme,
+          density: isCompactMode ? "compact" : "normal",
+          logSidebarCollapsed: isLogSidebarCollapsed,
+          logMonitorMinimized: isLogMonitorMinimized
+        }
       };
+      return backup;
+    }
+
+    function exportCapturedBackup() {
+      const backup = createFullBackupPayload();
       downloadTextFile(
         "pixelmon-pokelist-backup.json",
         JSON.stringify(backup, null, 2),
         "application/json;charset=utf-8"
       );
+    }
+
+    async function importFullBackupFile(file) {
+      if (!file) return;
+      let backup;
+      try {
+        backup = JSON.parse(await file.text());
+      } catch {
+        await showAppDialog({
+          title: "Backup invalido",
+          message: "Nao foi possivel ler esse arquivo JSON.",
+          confirmLabel: "OK"
+        });
+        return;
+      }
+
+      if (!backup || backup.app !== "Pixelmon - Pokelist" || !Array.isArray(backup.captured)) {
+        await showAppDialog({
+          title: "Backup nao reconhecido",
+          message: "Escolha um arquivo exportado pelo Pixelmon - Pokelist.",
+          confirmLabel: "OK"
+        });
+        return;
+      }
+
+      const confirmed = await showAppDialog({
+        title: "Importar backup?",
+        message: "Os capturados, pais de breeding, Pokemon prontos e times salvos serao substituidos pelos dados do arquivo.",
+        detail: `Backup de ${backup.exportedAt || "data nao informada"}.`,
+        confirmLabel: "Importar",
+        cancelLabel: "Cancelar",
+        showCancel: true
+      });
+      if (!confirmed) return;
+
+      setCapturedFromRecords(backup.captured);
+      breedingSavedParents = (Array.isArray(backup.breedingParents) ? backup.breedingParents : [])
+        .map(normalizeBreedingParent)
+        .filter(Boolean);
+      const teamsData = backup.teamsData || {};
+      teamBuiltPokemon = (Array.isArray(teamsData.builtPokemon) ? teamsData.builtPokemon : [])
+        .map(normalizeTeamPokemon)
+        .filter(Boolean);
+      savedTeams = (Array.isArray(teamsData.teams) ? teamsData.teams : [])
+        .map(normalizeSavedTeam)
+        .filter(Boolean);
+      activeTeamEditId = "";
+
+      if (backup.preferences?.theme) activeTheme = backup.preferences.theme === "dark" ? "dark" : "light";
+      if (backup.preferences?.density) isCompactMode = backup.preferences.density === "compact";
+      localStorage.setItem(THEME_KEY, activeTheme);
+      localStorage.setItem(DENSITY_KEY, isCompactMode ? "compact" : "normal");
+      saveBreedingParents();
+      saveTeamsData();
+      await persistData();
+      applyViewPreferences();
+      render();
+    }
+
+    function selectBackupForImport() {
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = "application/json,.json";
+      input.addEventListener("change", () => {
+        importFullBackupFile(input.files?.[0]).catch(() => {
+          showAppDialog({
+            title: "Erro ao importar",
+            message: "Nao foi possivel concluir a importacao do backup.",
+            confirmLabel: "OK"
+          });
+        }).finally(() => input.remove());
+      }, { once: true });
+      input.hidden = true;
+      document.body.append(input);
+      input.click();
     }
 
     function renderSettingsStatus(list, title, detail) {
@@ -3736,7 +6646,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       settingsToggleLogCapture.textContent = logCaptureState.enabled ? "Desligar monitor" : "Ligar monitor";
       settingsLogNote.textContent = useFileDatabase
         ? `Atual: ${maskLocalPath(logCaptureState.activePath || logCaptureState.configuredLogPath || logCaptureState.defaultLogPath || "nao configurado")}`
-        : "Abra pelo app desktop ou pelo servidor local para usar captura por logs.";
+        : "Abra pelo app desktop para usar captura por logs.";
       settingsSaveLogPath.addEventListener("click", () => {
         saveLogCapturePath(settingsLogPath.value, settingsSaveLogPath).then(render);
       });
@@ -3815,19 +6725,21 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
         <div>
           <p class="eyebrow">Dados locais</p>
           <h3 class="settings-panel-title">Backup e exportacao</h3>
-          <p class="settings-panel-note">Exporte seus capturados para guardar antes de trocar de PC ou reinstalar o Windows.</p>
+          <p class="settings-panel-note">Exporte ou importe todos os dados salvos do app.</p>
         </div>
         <div class="settings-action-row">
-          <button class="modal-capture-button" id="settings-export-backup" type="button">Exportar backup</button>
+          <button class="modal-capture-button" id="settings-export-backup" type="button">Exportar tudo</button>
+          <button class="muted-button" id="settings-import-backup" type="button">Importar backup</button>
           <button class="muted-button" id="settings-export-missing" type="button">Exportar faltantes</button>
         </div>
       `;
       backupPanel.querySelector("#settings-export-backup").addEventListener("click", exportCapturedBackup);
+      backupPanel.querySelector("#settings-import-backup").addEventListener("click", selectBackupForImport);
       backupPanel.querySelector("#settings-export-missing").addEventListener("click", exportMissingPokemon);
       renderSettingsStatus(
         backupPanel,
-        `${getCapturedRecords().length} capturados salvos`,
-        useFileDatabase ? "Banco local do app em uso." : "Dados salvos no navegador atual."
+        `${getCapturedRecords().length} capturados | ${breedingSavedParents.length} pais | ${teamBuiltPokemon.length} prontos`,
+        useFileDatabase ? "Banco local do app e dados complementares exportaveis." : "Dados salvos no navegador atual."
       );
 
       grid.append(logPanel, viewPanel, updatePanel, backupPanel);
@@ -3895,7 +6807,100 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       grid.append(appPanel, dataPanel, techPanel);
     }
 
+    function getScrollableSnapshots() {
+      const selectors = [
+        ".breeding-saved-list",
+        ".breeding-list",
+        ".breeding-parent-suggestions",
+        ".telemetry-table-wrap",
+        ".pokemon-modal-card"
+      ];
+      return selectors.flatMap(selector =>
+        [...document.querySelectorAll(selector)].map((element, index) => ({
+          selector,
+          index,
+          top: element.scrollTop,
+          left: element.scrollLeft
+        }))
+      );
+    }
+
+    function getRenderScrollSnapshot() {
+      const root = document.scrollingElement || document.documentElement;
+      return {
+        top: root.scrollTop,
+        left: root.scrollLeft,
+        containers: getScrollableSnapshots()
+      };
+    }
+
+    function restoreRenderScroll(snapshot) {
+      if (!snapshot) return;
+      const root = document.scrollingElement || document.documentElement;
+      root.scrollTo({ top: snapshot.top, left: snapshot.left, behavior: "auto" });
+      snapshot.containers.forEach(item => {
+        const element = document.querySelectorAll(item.selector)[item.index];
+        if (!element) return;
+        element.scrollTop = item.top;
+        element.scrollLeft = item.left;
+      });
+    }
+
+    function scheduleRenderScrollRestore(snapshot) {
+      restoreRenderScroll(snapshot);
+      if (typeof requestAnimationFrame === "function") {
+        requestAnimationFrame(() => restoreRenderScroll(snapshot));
+      }
+    }
+
+    function focusInputEnd(input) {
+      if (!input) return;
+      try {
+        input.focus({ preventScroll: true });
+      } catch {
+        input.focus();
+      }
+      input.setSelectionRange(input.value.length, input.value.length);
+    }
+
+    function getActiveInputSnapshot() {
+      const element = document.activeElement;
+      if (!(element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement)) return null;
+      if (!element.id) return null;
+      return {
+        id: element.id,
+        start: element.selectionStart,
+        end: element.selectionEnd
+      };
+    }
+
+    function restoreActiveInput(snapshot) {
+      if (!snapshot) return;
+      const input = document.getElementById(snapshot.id);
+      if (!(input instanceof HTMLInputElement || input instanceof HTMLTextAreaElement)) return;
+      try {
+        input.focus({ preventScroll: true });
+      } catch {
+        input.focus();
+      }
+      if (typeof snapshot.start === "number" && typeof snapshot.end === "number") {
+        const end = input.value.length;
+        input.setSelectionRange(Math.min(snapshot.start, end), Math.min(snapshot.end, end));
+      }
+    }
+
     function render() {
+      const activeInputSnapshot = getActiveInputSnapshot();
+      const scrollSnapshot = getRenderScrollSnapshot();
+      const shouldRestoreScroll = activeView === lastRenderedView;
+      const finishRender = () => {
+        updateStats();
+        renderLogCapturePanel();
+        restoreActiveInput(activeInputSnapshot);
+        if (shouldRestoreScroll) scheduleRenderScrollRestore(scrollSnapshot);
+        lastRenderedView = activeView;
+      };
+
       renderNavigation();
       renderFilterChips();
       applyViewTabs();
@@ -3907,36 +6912,43 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
 
       if (activeView === "capture") {
         renderCaptureFlow(list);
-        updateStats();
-        renderLogCapturePanel();
+        finishRender();
         return;
       }
 
       if (activeView === "captured") {
         renderCapturedTelemetry(list);
-        updateStats();
-        renderLogCapturePanel();
+        finishRender();
         return;
       }
 
       if (activeView === "breeding") {
         renderBreedingFlow(list);
-        updateStats();
-        renderLogCapturePanel();
+        finishRender();
+        return;
+      }
+
+      if (activeView === "fragments") {
+        renderFragmentsFlow(list);
+        finishRender();
+        return;
+      }
+
+      if (activeView === "teams") {
+        renderTeamsFlow(list);
+        finishRender();
         return;
       }
 
       if (activeView === "builds") {
         renderBuildsFlow(list);
-        updateStats();
-        renderLogCapturePanel();
+        finishRender();
         return;
       }
 
       if (activeView === "settings") {
         renderSettingsFlow(list);
-        updateStats();
-        renderLogCapturePanel();
+        finishRender();
         return;
       }
 
@@ -3989,8 +7001,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       if (suggestions) list.append(suggestions);
       activeTitle.textContent = activeNavigation.label;
       visibleCount.textContent = `${visible} Pok\u00e9mon`;
-      updateStats();
-      renderLogCapturePanel();
+      finishRender();
     }
 
     function exportMissingPokemon() {
@@ -4040,6 +7051,14 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     });
     breedingTab.addEventListener("click", () => {
       activeView = "breeding";
+      render();
+    });
+    fragmentsTab.addEventListener("click", () => {
+      activeView = "fragments";
+      render();
+    });
+    teamsTab.addEventListener("click", () => {
+      activeView = "teams";
       render();
     });
     buildsTab.addEventListener("click", () => {

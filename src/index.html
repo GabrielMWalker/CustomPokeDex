@@ -8,6 +8,8 @@
   <link rel="stylesheet" href="./styles/checklist.css">
   <link rel="stylesheet" href="./styles/telemetry.css">
   <link rel="stylesheet" href="./styles/breeding.css">
+  <link rel="stylesheet" href="./styles/fragments.css">
+  <link rel="stylesheet" href="./styles/teams.css">
   <link rel="stylesheet" href="./styles/builds.css">
   <link rel="stylesheet" href="./styles/pokemon-modal.css">
   <link rel="stylesheet" href="./styles/capture-planner.css">
@@ -45,6 +47,14 @@
             <button class="nav-button" id="flow-breeding" type="button" aria-pressed="false">
               <span>Breeding</span>
               <span class="nav-count" id="flow-breeding-count">0</span>
+            </button>
+            <button class="nav-button" id="flow-fragments" type="button" aria-pressed="false">
+              <span>Fragmentos</span>
+              <span class="nav-count" id="flow-fragments-count">0</span>
+            </button>
+            <button class="nav-button" id="flow-teams" type="button" aria-pressed="false">
+              <span>Times</span>
+              <span class="nav-count" id="flow-teams-count">0</span>
             </button>
             <button class="nav-button" id="flow-builds" type="button" aria-pressed="false">
               <span>Counters</span>
@@ -128,7 +138,7 @@
     </section>
 
     <div id="list"></div>
-    <p class="footer" id="storage-info">As marcações ficam salvas neste navegador. Para usar o banco local, abra pelo arquivo iniciar-checklist.bat.</p>
+    <p class="footer" id="storage-info">As marcações ficam salvas neste navegador. Abra o app desktop para banco local, logs e updates.</p>
     </section>
 
     <aside class="capture-sidebar" aria-label="Capturas detectadas nos logs">
@@ -157,7 +167,7 @@
             <strong>Monitor desligado</strong>
             <button class="capture-monitor-toggle" id="toggle-monitor-details" type="button" aria-expanded="true">Minimizar</button>
           </div>
-          <span class="capture-monitor-details">Ative pelo servidor local para acompanhar novas capturas.</span>
+          <span class="capture-monitor-details">Ative no app desktop para acompanhar novas capturas.</span>
         </div>
         <div class="capture-config" aria-label="Configuração da pasta de logs">
           <label for="log-path-input">Pasta de logs</label>
@@ -207,6 +217,7 @@
   <script src="./pokemon-types-data.js"></script>
   <script src="./pokemon-evolution-data.js"></script>
   <script src="./pokemon-breeding-data.js"></script>
+  <script src="./pokemon-abilities-data.js"></script>
   <script src="./scripts/app-utils.js"></script>
   <script src="./scripts/app.js"></script>
 </body>

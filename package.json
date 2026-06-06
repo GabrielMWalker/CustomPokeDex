@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "tauri dev",
     "build": "tauri build",
+    "data:abilities": "node scripts/fetch-pokemon-abilities-data.mjs",
     "release:latest-json": "node scripts/generate-latest-json.mjs",
     "release:github": "node scripts/release-github.mjs"
   },

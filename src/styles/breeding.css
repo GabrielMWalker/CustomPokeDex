@@ -20,9 +20,600 @@
   gap: 8px;
 }
 
+.breeding-mode-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.breeding-calculator {
+  display: grid;
+  grid-template-columns: minmax(280px, .8fr) minmax(360px, 1.2fr);
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.breeding-calc-panel {
+  min-width: 0;
+  display: grid;
+  gap: 14px;
+  align-content: start;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 8px 22px rgba(22, 62, 75, .055);
+}
+
+.breeding-calc-panel h3 {
+  margin: 0;
+  font-size: 18px;
+  letter-spacing: 0;
+}
+
+.breeding-result-area {
+  grid-column: 1 / -1;
+}
+
+.breeding-saved-panel {
+  min-height: 620px;
+}
+
+.breeding-panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.breeding-parent-form,
+.breeding-form-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.breeding-form-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.breeding-form-grid label,
+.breeding-iv-field {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.breeding-form-grid span,
+.breeding-iv-field span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.breeding-form-grid input,
+.breeding-form-grid select,
+.breeding-iv-field input {
+  width: 100%;
+  min-height: 40px;
+  padding: 0 10px;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font: inherit;
+}
+
+.breeding-parent-search {
+  display: grid;
+  gap: 10px;
+}
+
+.breeding-parent-suggestions {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 8px;
+  max-height: 140px;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.breeding-parent-suggestions[hidden] {
+  display: none;
+}
+
+.breeding-parent-option {
+  cursor: pointer;
+}
+
+.breeding-parent-option.is-selected {
+  border-color: color-mix(in srgb, var(--blue) 50%, var(--line));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--blue) 18%, transparent);
+}
+
+.breeding-parent-option-groups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.breeding-selected-parent {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: color-mix(in srgb, var(--surface-soft) 80%, var(--blue) 6%);
+  border: 1px solid color-mix(in srgb, var(--blue) 36%, var(--line));
+  border-radius: 8px;
+}
+
+.breeding-selected-parent[hidden] {
+  display: none;
+}
+
+.breeding-selected-parent img {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+}
+
+.breeding-selected-parent strong {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+
+.breeding-iv-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(52px, 1fr));
+  gap: 8px;
+}
+
+.breeding-check-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.breeding-check-row input {
+  width: 16px;
+  height: 16px;
+}
+
+.breeding-quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.breeding-quick-actions button {
+  min-height: 32px;
+}
+
+.breeding-import-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.breeding-import-panel {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.breeding-import-panel[hidden] {
+  display: none;
+}
+
+.breeding-import-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 780;
+}
+
+.breeding-import-panel textarea {
+  width: 100%;
+  min-height: 130px;
+  resize: vertical;
+}
+
+.breeding-import-error {
+  margin: 0;
+  padding: 8px 10px;
+  color: #9f1f2a;
+  background: color-mix(in srgb, #d33543 9%, var(--surface));
+  border: 1px solid color-mix(in srgb, #d33543 34%, var(--line));
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 820;
+}
+
+.breeding-saved-list {
+  display: grid;
+  gap: 8px;
+  max-height: min(680px, calc(100vh - 245px));
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.breeding-parent-card {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr) auto 28px;
+  grid-template-areas: "image content actions remove";
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px 10px 10px;
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.breeding-parent-card.is-parent-a {
+  border-color: color-mix(in srgb, var(--blue) 48%, var(--line));
+}
+
+.breeding-parent-card.is-parent-b {
+  border-color: color-mix(in srgb, var(--green) 48%, var(--line));
+}
+
+.breeding-parent-card.is-parent-a.is-parent-b {
+  border-color: #9d7bd1;
+}
+
+.breeding-parent-card img {
+  grid-area: image;
+  width: 46px;
+  height: 46px;
+  object-fit: contain;
+}
+
+.breeding-parent-card > div:not(.breeding-parent-actions) {
+  grid-area: content;
+  min-width: 0;
+}
+
+.breeding-parent-card strong,
+.breeding-parent-card span {
+  display: block;
+}
+
+.breeding-parent-card strong {
+  overflow: hidden;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.breeding-parent-card span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 760;
+}
+
+.breeding-parent-ivs,
+.breeding-parent-actions,
+.breeding-targets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 7px;
+}
+
+.breeding-target-section {
+  display: grid;
+  gap: 8px;
+}
+
+.breeding-target-section[hidden] {
+  display: none;
+}
+
+.breeding-target-title {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.breeding-parent-ivs span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 8px;
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.breeding-targets {
+  margin-top: 0;
+  gap: 12px;
+}
+
+.breeding-parent-ivs span.is-perfect {
+  color: #14613f;
+  background: color-mix(in srgb, var(--green) 16%, var(--surface));
+  border-color: #9fd4c3;
+}
+
+.breeding-parent-actions {
+  grid-area: actions;
+  justify-content: flex-end;
+  align-items: center;
+  margin-top: 0;
+}
+
+.breeding-parent-slot,
+.breeding-parent-copy,
+.breeding-parent-remove {
+  box-sizing: border-box;
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  padding: 0;
+  margin: 0;
+  border-radius: 8px;
+  font-weight: 900;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.breeding-parent-slot {
+  width: 34px;
+  height: 34px;
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+
+.breeding-parent-copy {
+  width: auto;
+  height: 34px;
+  padding: 0 9px;
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  font-size: 10px;
+}
+
+.breeding-parent-copy:hover {
+  color: var(--ink);
+  border-color: #bad1d8;
+}
+
+.breeding-parent-slot.is-slot-a {
+  color: var(--blue);
+  border-color: color-mix(in srgb, var(--blue) 44%, var(--line));
+}
+
+.breeding-parent-slot.is-slot-b {
+  color: var(--green);
+  border-color: color-mix(in srgb, var(--green) 44%, var(--line));
+}
+
+.breeding-parent-slot:hover {
+  color: var(--ink);
+  border-color: #bad1d8;
+}
+
+.breeding-parent-slot.is-slot-a:hover {
+  color: var(--blue);
+  background: color-mix(in srgb, var(--blue) 10%, var(--surface));
+}
+
+.breeding-parent-slot.is-slot-b:hover {
+  color: var(--green);
+  background: color-mix(in srgb, var(--green) 10%, var(--surface));
+}
+
+.breeding-parent-slot.is-slot-a.is-active {
+  color: #fff;
+  background: var(--blue);
+  border-color: var(--blue);
+}
+
+.breeding-parent-slot.is-slot-b.is-active {
+  color: #fff;
+  background: var(--green);
+  border-color: var(--green);
+}
+
+.breeding-parent-remove {
+  grid-area: remove;
+  width: 28px;
+  height: 34px;
+  color: #b4232f;
+  background: transparent;
+  border: 0;
+  font-size: 14px;
+}
+
+.breeding-parent-remove:hover {
+  color: #fff;
+  background: #c73742;
+}
+
+.breeding-action-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.breeding-action-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.breeding-action-legend b {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  color: #fff;
+  border-radius: 6px;
+  font-size: 11px;
+}
+
+.breeding-action-legend span:first-child b {
+  background: var(--blue);
+}
+
+.breeding-action-legend span:last-child b {
+  background: var(--green);
+}
+
+.breeding-target-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.breeding-target-chip input {
+  width: 14px;
+  height: 14px;
+}
+
+.breeding-result-panel {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.breeding-result-main {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.breeding-result-main strong {
+  color: var(--blue);
+  font-size: 34px;
+  line-height: 1;
+}
+
+.breeding-result-main span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.breeding-result-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.breeding-result-grid div {
+  min-width: 0;
+  padding: 10px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.breeding-result-grid span {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.breeding-result-grid strong {
+  display: block;
+  margin-top: 4px;
+  color: var(--ink);
+  font-size: 14px;
+}
+
+.breeding-item-recommendations {
+  display: grid;
+  gap: 10px;
+}
+
+.breeding-recommendation-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.breeding-recommendation-title strong {
+  color: var(--ink);
+  font-size: 14px;
+}
+
+.breeding-recommendation-title span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.breeding-recommendation-list {
+  display: grid;
+  gap: 8px;
+}
+
+.breeding-recommendation-row {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(110px, .4fr) minmax(0, 1fr);
+  gap: 10px;
+  padding: 10px;
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.breeding-recommendation-row strong,
+.breeding-recommendation-row span {
+  display: block;
+}
+
+.breeding-recommendation-row strong {
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.breeding-recommendation-row span {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 780;
+}
+
 .breeding-summary {
   display: grid;
-  grid-template-columns: minmax(220px, .8fr) minmax(0, 1.2fr);
+  grid-template-columns: 1fr;
   gap: 14px;
   margin-bottom: 18px;
 }
@@ -35,6 +626,13 @@
   border: 1px solid var(--line);
   border-radius: 8px;
   box-shadow: 0 8px 22px rgba(22, 62, 75, .055);
+}
+
+.breeding-focus {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
 }
 
 .breeding-focus-header {
@@ -63,6 +661,12 @@
   flex-wrap: wrap;
   gap: 6px;
   margin-top: 10px;
+}
+
+.breeding-focus > .breeding-note {
+  max-width: 460px;
+  margin: 0;
+  text-align: right;
 }
 
 .egg-badge {
@@ -95,7 +699,7 @@
   display: grid;
   gap: 8px;
   margin-top: 12px;
-  max-height: min(680px, calc(100vh - 300px));
+  max-height: min(720px, calc(100vh - 330px));
   overflow: auto;
 }
 
@@ -181,5 +785,45 @@
 }
 
 @media (max-width: 900px) {
-  .breeding-summary { grid-template-columns: 1fr; }
+  .breeding-summary,
+  .breeding-calculator,
+  .breeding-form-grid,
+  .breeding-result-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .breeding-iv-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .breeding-saved-panel {
+    min-height: 0;
+  }
+
+  .breeding-saved-list {
+    max-height: 520px;
+  }
+
+  .breeding-focus {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .breeding-focus > .breeding-note {
+    max-width: none;
+    text-align: left;
+  }
+
+  .breeding-parent-card {
+    grid-template-columns: 42px minmax(0, 1fr) auto 28px;
+  }
+
+  .breeding-selected-parent,
+  .breeding-recommendation-row {
+    grid-template-columns: 1fr;
+  }
+
+  .breeding-parent-actions {
+    justify-content: flex-end;
+  }
 }

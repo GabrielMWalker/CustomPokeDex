@@ -1,0 +1,430 @@
+.teams-layout {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.teams-panel,
+.team-builder-form {
+  min-width: 0;
+  display: grid;
+  gap: 14px;
+  align-content: start;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 8px 22px rgba(22, 62, 75, .055);
+}
+
+.team-panel-header,
+.team-card-header,
+.team-pokemon-header,
+.team-group-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.team-create-form,
+.team-add-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 10px;
+}
+
+.team-form-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.team-form-grid label,
+.team-stat-grid label {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.team-form-grid span,
+.team-stat-section > span,
+.team-stat-grid span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.team-builder-form input,
+.team-builder-form select,
+.teams-panel input,
+.teams-panel select {
+  min-width: 0;
+  width: 100%;
+  min-height: 42px;
+  padding: 9px 12px;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font: inherit;
+}
+
+.team-builder-form input:focus,
+.team-builder-form select:focus,
+.teams-panel input:focus,
+.teams-panel select:focus {
+  border-color: var(--accent);
+  outline: 2px solid color-mix(in srgb, var(--accent) 24%, transparent);
+  outline-offset: 1px;
+}
+
+.team-check-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  color: var(--ink);
+  font-weight: 850;
+}
+
+.team-check-row input {
+  width: 16px;
+  min-height: auto;
+}
+
+.team-form-error {
+  margin: 0;
+  padding: 9px 11px;
+  color: #9f1f2a;
+  background: color-mix(in srgb, #d33543 9%, var(--surface));
+  border: 1px solid color-mix(in srgb, #d33543 34%, var(--line));
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 820;
+}
+
+.team-field-hint {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 760;
+}
+
+.team-field-hint.is-match {
+  color: var(--green);
+}
+
+.team-form-actions,
+.team-modal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.team-import-panel {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.team-import-panel[hidden] {
+  display: none;
+}
+
+.team-import-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 780;
+}
+
+.team-import-panel textarea {
+  width: 100%;
+  min-height: 150px;
+  resize: vertical;
+}
+
+.team-stat-section {
+  display: grid;
+  gap: 8px;
+}
+
+.team-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(74px, 1fr));
+  gap: 8px;
+}
+
+.team-stat-grid input {
+  text-align: center;
+}
+
+.team-move-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.team-group-list,
+.team-list,
+.team-group-section {
+  display: grid;
+  gap: 10px;
+}
+
+.team-group-heading {
+  align-items: center;
+  padding-top: 4px;
+}
+
+.team-group-heading h3 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 16px;
+}
+
+.team-pokemon-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.team-pokemon-card,
+.team-card {
+  min-width: 0;
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.team-pokemon-card {
+  cursor: pointer;
+}
+
+.team-pokemon-card:hover,
+.team-card:hover {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+}
+
+.team-pokemon-header {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr) 28px;
+  align-items: center;
+}
+
+.team-pokemon-header img {
+  width: 58px;
+  height: 58px;
+  object-fit: contain;
+  filter: drop-shadow(0 6px 6px rgba(18, 62, 75, .12));
+}
+
+.team-pokemon-card h3 {
+  margin: 0;
+  overflow: hidden;
+  font-size: 17px;
+  letter-spacing: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.team-pokemon-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.team-pokemon-summary span {
+  padding-right: 8px;
+  border-right: 1px solid var(--line);
+}
+
+.team-pokemon-summary span:last-child {
+  padding-right: 0;
+  border-right: 0;
+}
+
+.team-pokemon-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.team-validation-list {
+  display: grid;
+  gap: 7px;
+}
+
+.team-validation-item {
+  padding: 8px 10px;
+  color: var(--muted);
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 780;
+}
+
+.team-validation-item.is-ok {
+  color: #073725;
+  background: #d9f6e7;
+  border-color: #86d5aa;
+}
+
+.team-validation-item.is-danger {
+  color: #7c1515;
+  background: #ffe7e7;
+  border-color: #e9a5a5;
+}
+
+.team-analysis-list {
+  display: grid;
+  gap: 10px;
+}
+
+.team-analysis-card {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.team-analysis-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--ink);
+}
+
+.team-analysis-header span,
+.team-analysis-section > span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.team-analysis-section {
+  display: grid;
+  gap: 6px;
+}
+
+.team-analysis-tags,
+.team-analysis-warnings {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.team-analysis-warnings {
+  display: grid;
+}
+
+.team-member-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.team-member {
+  min-width: 0;
+  min-height: 72px;
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  text-align: left;
+}
+
+.team-member:hover {
+  border-color: color-mix(in srgb, var(--red) 35%, var(--line));
+}
+
+.team-member img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+.team-member strong {
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.team-remove-button {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  color: #b4232f;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.team-remove-button:hover {
+  color: #fff;
+  background: #c73742;
+}
+
+.team-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+@media (max-width: 1100px) {
+  .team-form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .team-stat-grid,
+  .team-member-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .team-move-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .team-form-grid,
+  .team-create-form,
+  .team-add-row,
+  .team-move-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .team-stat-grid,
+  .team-member-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

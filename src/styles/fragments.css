@@ -1,0 +1,325 @@
+.fragment-tools,
+.fragment-results {
+  display: grid;
+  gap: 14px;
+  margin: 0 0 18px;
+}
+
+.fragment-panel,
+.fragment-results {
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 8px 22px rgba(22, 62, 75, .055);
+}
+
+.fragment-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.fragment-panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.fragment-chip-list,
+.fragment-result-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.fragment-note {
+  margin: -4px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.fragment-type-grid,
+.fragment-pair-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.fragment-type-grid {
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+}
+
+.fragment-type-card {
+  min-height: 108px;
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  text-align: left;
+  box-shadow: 0 7px 17px rgba(22, 62, 75, .055);
+}
+
+.fragment-type-card:hover {
+  border-color: #bad1d8;
+  transform: translateY(-1px);
+}
+
+.fragment-type-card strong,
+.fragment-type-card span {
+  display: block;
+}
+
+.fragment-type-card .type-badge,
+.fragment-type-row .type-badge,
+.fragment-generated-types .type-badge {
+  width: fit-content;
+  min-height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
+  border: 1px solid rgba(0, 0, 0, .18);
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1;
+  text-shadow: none;
+  box-shadow: inset 0 -1px 0 rgba(0, 0, 0, .1), 0 1px 2px rgba(22, 62, 75, .08);
+}
+
+.fragment-type-card .type-normal,
+.fragment-type-row .type-normal,
+.fragment-generated-types .type-normal { color: #fff; background: #5f6d75; }
+.fragment-type-card .type-fire,
+.fragment-type-row .type-fire,
+.fragment-generated-types .type-fire { color: #fff; background: #b83f20; }
+.fragment-type-card .type-water,
+.fragment-type-row .type-water,
+.fragment-generated-types .type-water { color: #fff; background: #1f6cac; }
+.fragment-type-card .type-electric,
+.fragment-type-row .type-electric,
+.fragment-generated-types .type-electric { color: #332500; background: #f4cf4a; border-color: #b48914; }
+.fragment-type-card .type-grass,
+.fragment-type-row .type-grass,
+.fragment-generated-types .type-grass { color: #fff; background: #2f7f47; }
+.fragment-type-card .type-ice,
+.fragment-type-row .type-ice,
+.fragment-generated-types .type-ice { color: #0d3842; background: #98e0e8; border-color: #55aeb9; }
+.fragment-type-card .type-fighting,
+.fragment-type-row .type-fighting,
+.fragment-generated-types .type-fighting { color: #fff; background: #9c332b; }
+.fragment-type-card .type-poison,
+.fragment-type-row .type-poison,
+.fragment-generated-types .type-poison { color: #fff; background: #8440a2; }
+.fragment-type-card .type-ground,
+.fragment-type-row .type-ground,
+.fragment-generated-types .type-ground { color: #382302; background: #d39a3f; border-color: #987030; }
+.fragment-type-card .type-flying,
+.fragment-type-row .type-flying,
+.fragment-generated-types .type-flying { color: #fff; background: #5579be; }
+.fragment-type-card .type-psychic,
+.fragment-type-row .type-psychic,
+.fragment-generated-types .type-psychic { color: #fff; background: #c73e6d; }
+.fragment-type-card .type-bug,
+.fragment-type-row .type-bug,
+.fragment-generated-types .type-bug { color: #fff; background: #617f19; }
+.fragment-type-card .type-rock,
+.fragment-type-row .type-rock,
+.fragment-generated-types .type-rock { color: #fff; background: #80652e; }
+.fragment-type-card .type-ghost,
+.fragment-type-row .type-ghost,
+.fragment-generated-types .type-ghost { color: #fff; background: #4d477f; }
+.fragment-type-card .type-dragon,
+.fragment-type-row .type-dragon,
+.fragment-generated-types .type-dragon { color: #fff; background: #4259ad; }
+.fragment-type-card .type-dark,
+.fragment-type-row .type-dark,
+.fragment-generated-types .type-dark { color: #fff; background: #3e3432; }
+.fragment-type-card .type-steel,
+.fragment-type-row .type-steel,
+.fragment-generated-types .type-steel { color: #102932; background: #b8cdd6; border-color: #7e9aa5; }
+.fragment-type-card .type-fairy,
+.fragment-type-row .type-fairy,
+.fragment-generated-types .type-fairy { color: #fff; background: #c95f99; }
+
+.fragment-type-card span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 760;
+}
+
+.fragment-pair-grid {
+  grid-template-columns: repeat(auto-fill, minmax(390px, 1fr));
+}
+
+.fragment-pair-card {
+  min-width: 0;
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.fragment-pair-card:hover {
+  border-color: #bad1d8;
+}
+
+.fragment-pair-card.is-ready {
+  border-color: color-mix(in srgb, var(--green) 42%, var(--line));
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--green) 13%, transparent);
+}
+
+.fragment-pair-card.is-ready-pair {
+  background: color-mix(in srgb, var(--green) 8%, var(--surface-soft));
+}
+
+.fragment-pair-main {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 24px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+}
+
+.fragment-pair-connector {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.fragment-pokemon {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.fragment-pokemon.is-source {
+  border-color: color-mix(in srgb, var(--blue) 42%, var(--line));
+}
+
+.fragment-pokemon.is-owned {
+  background: color-mix(in srgb, var(--green) 5%, var(--surface));
+}
+
+.fragment-pokemon img {
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+}
+
+.fragment-pokemon strong,
+.fragment-pokemon span {
+  display: block;
+}
+
+.fragment-pokemon strong {
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fragment-pokemon span {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 780;
+}
+
+.fragment-type-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.fragment-generated-types {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 10px;
+  background: color-mix(in srgb, var(--blue) 6%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--blue) 20%, var(--line));
+  border-radius: 8px;
+}
+
+.fragment-generated-types > span:first-child {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.fragment-pair-tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.fragment-pair-tags:empty {
+  display: none;
+}
+
+.fragment-pair-tags .text-badge:first-child {
+  color: #073725;
+  background: #b7f1d5;
+  border-color: #55c68f;
+}
+
+.fragment-pair-meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.fragment-pair-meta strong {
+  color: var(--ink);
+}
+
+.fragment-pair-meta span {
+  text-align: right;
+}
+
+@media (max-width: 900px) {
+  .fragment-pair-grid,
+  .fragment-pair-main {
+    grid-template-columns: 1fr;
+  }
+
+  .fragment-pair-connector {
+    justify-self: center;
+  }
+
+  .fragment-pair-meta {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .fragment-pair-meta span {
+    text-align: left;
+  }
+}
