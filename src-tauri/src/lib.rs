@@ -637,24 +637,27 @@ fn parse_chat_line(line: &str) -> Option<(String, String)> {
 }
 
 fn parse_capture_event(text: &str) -> Option<ParsedEvent> {
+  let normalized_text = clean_minecraft_text(text);
+  let text = normalized_text.as_str();
   let lower = text.to_lowercase();
   if lower.contains("pokegacha") || lower.contains("pokégacha") {
     return None;
   }
 
-  if let Some(name) = capture_between(text, "Your party is full. ", " was sent to your PC") {
+  if let Some(name) = parse_english_pc_capture(text) {
     return Some(ParsedEvent {
       pokemon: name,
-      event_type: "capture".to_string(),
+      event_type: "local-capture-sent-to-pc".to_string(),
       confidence: "alta".to_string(),
       player_name: None,
     });
   }
 
   if let Some(name) = capture_between(text, "You captured ", "!") {
+    let name = clean_capture_name(&name)?;
     return Some(ParsedEvent {
       pokemon: name,
-      event_type: "capture".to_string(),
+      event_type: "local-capture".to_string(),
       confidence: "alta".to_string(),
       player_name: None,
     });
@@ -693,6 +696,19 @@ fn parse_capture_event(text: &str) -> Option<ParsedEvent> {
     player_name,
     confidence: "média".to_string(),
   })
+}
+
+fn parse_english_pc_capture(text: &str) -> Option<String> {
+  let lower = text.to_lowercase();
+  let start_marker = "your party is full";
+  let start_index = lower.find(start_marker)? + start_marker.len();
+  let after_start = text
+    .get(start_index..)?
+    .trim_start_matches(|character: char| character.is_whitespace() || matches!(character, '.' | '!' | ':' | '-'));
+  let after_lower = after_start.to_lowercase();
+  let end_marker = " was sent to your pc";
+  let end_index = after_lower.find(end_marker)?;
+  clean_capture_name(&after_start[..end_index])
 }
 
 fn parse_personal_portuguese_capture(text: &str) -> Option<String> {
@@ -736,7 +752,8 @@ fn split_capture_tail(value: &str) -> &str {
 }
 
 fn clean_capture_name(value: &str) -> Option<String> {
-  let output = value
+  let clean_value = clean_minecraft_text(value);
+  let output = clean_value
     .replace("Lendário", "")
     .replace("Lendario", "")
     .replace("LendÃ¡rio", "")
@@ -961,6 +978,37 @@ fn default_log_directory() -> String {
         .to_string()
     })
     .unwrap_or_default()
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn parses_party_full_capture_with_minecraft_formatting_codes() {
+    let event = parse_capture_event("Your party is full. &rHitmonchan&r was sent to your PC!&r").unwrap();
+
+    assert_eq!(event.pokemon, "Hitmonchan");
+    assert_eq!(event.event_type, "local-capture-sent-to-pc");
+    assert_eq!(event.confidence, "alta");
+    assert!(event.player_name.is_none());
+  }
+
+  #[test]
+  fn parses_party_full_capture_with_section_formatting_codes() {
+    let event = parse_capture_event("Your party is full! §aCharmander§r was sent to your PC!").unwrap();
+
+    assert_eq!(event.pokemon, "Charmander");
+    assert_eq!(event.event_type, "local-capture-sent-to-pc");
+  }
+
+  #[test]
+  fn parses_direct_capture_with_formatting_codes() {
+    let event = parse_capture_event("You captured &bSquirtle&r!").unwrap();
+
+    assert_eq!(event.pokemon, "Squirtle");
+    assert_eq!(event.event_type, "local-capture");
+  }
 }
 
 fn expand_windows_env_vars(value: &str) -> String {
