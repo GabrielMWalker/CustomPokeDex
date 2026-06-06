@@ -17,7 +17,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     const LOG_MONITOR_MINIMIZED_KEY = "pokemon-checklist-log-monitor-minimized";
     const APP_META = window.POKELIST_APP_META || {
       name: "Pixelmon - Pokelist",
-      version: "1.0.2",
+      version: "1.0.3",
       releaseUrl: "",
       updaterUrl: ""
     };
