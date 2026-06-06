@@ -189,21 +189,11 @@ Essa pasta esta no `.gitignore` e nao deve ser enviada para o GitHub.
 
 Guarde essa chave com cuidado. Se ela for perdida, updates futuros nao serao aceitos pelos apps ja instalados com essa chave publica.
 
-## Modo Navegador Legado
+## Modo Navegador
 
-Ainda existe o modo antigo via servidor local:
+Abrir `src/index.html` diretamente no navegador ainda funciona para consulta e progresso em `localStorage`.
 
-```powershell
-.\iniciar-checklist.bat
-```
-
-Nesse modo, o progresso fica em:
-
-```text
-pokemon-checklist-db.json
-```
-
-O modo desktop e o recomendado para uso normal.
+O modo desktop e o recomendado para uso normal, porque habilita banco local do app, logs locais e updates assinados.
 
 ## Estrutura Principal
 
@@ -221,6 +211,10 @@ src-tauri/
 
 scripts/
   generate-latest-json.mjs
+  release-github.mjs
+  fetch-pokemon-*.mjs
+  audit-missing-methods.mjs
+  fill-missing-pokemon-methods.mjs
 ```
 
 ## Observacoes
