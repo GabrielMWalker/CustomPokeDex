@@ -111,7 +111,8 @@
   gap: 8px;
 }
 
-.counter-chip-list {
+.counter-chip-list,
+.counter-shield-list {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;

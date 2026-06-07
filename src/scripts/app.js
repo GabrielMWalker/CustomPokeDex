@@ -15,6 +15,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     const DENSITY_KEY = "pokemon-checklist-density";
     const LOG_SIDEBAR_COLLAPSED_KEY = "pokemon-checklist-log-sidebar-collapsed";
     const LOG_MONITOR_MINIMIZED_KEY = "pokemon-checklist-log-monitor-minimized";
+    const COLLAPSED_SECTIONS_KEY = "pokemon-checklist-collapsed-sections-v1";
     const APP_META = window.POKELIST_APP_META || {
       name: "Pixelmon - Pokelist",
       version: "1.0.3",
@@ -56,6 +57,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     let buildRoleFilter = "";
     let buildDamageFilter = "";
     let raidShieldType = "";
+    let counterShieldType = "";
     let counterSearch = "";
     let counterBossSearch = "";
     let selectedCounterBossKey = "";
@@ -126,6 +128,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     let isCompactMode = localStorage.getItem(DENSITY_KEY) === "compact";
     let isLogSidebarCollapsed = localStorage.getItem(LOG_SIDEBAR_COLLAPSED_KEY) === "true";
     let isLogMonitorMinimized = localStorage.getItem(LOG_MONITOR_MINIMIZED_KEY) === "true";
+    let collapsedSections = new Set();
 
     const fixTextEncodingArtifacts = value => String(value)
       .replace(/\u00c3\u00a9/g, "\u00e9")
@@ -803,6 +806,63 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       } catch {
         return fallback;
       }
+    }
+
+    const storedCollapsedSections = readJsonStorage(COLLAPSED_SECTIONS_KEY, []);
+    collapsedSections = new Set(
+      (Array.isArray(storedCollapsedSections) ? storedCollapsedSections : [])
+        .filter(item => typeof item === "string" && item.trim())
+    );
+
+    function saveCollapsedSections() {
+      localStorage.setItem(COLLAPSED_SECTIONS_KEY, JSON.stringify([...collapsedSections]));
+    }
+
+    function getCollapsibleSectionKey(scope, label) {
+      const rawLabel = String(label || "secao");
+      return `${scope}:${canonicalKey(rawLabel) || imageSlug(rawLabel) || "secao"}`;
+    }
+
+    function attachSectionCollapseControl(section, options = {}) {
+      const heading = section.querySelector(options.headingSelector || ".category-heading");
+      if (!heading) return false;
+      const contentElements = (Array.isArray(options.content) ? options.content : [options.content]).filter(Boolean);
+      const label = String(options.label || "conteudo");
+      const key = options.key || getCollapsibleSectionKey(options.scope || activeView, label);
+      const collapsed = collapsedSections.has(key);
+
+      section.classList.toggle("is-content-collapsed", collapsed);
+      contentElements.forEach(element => {
+        element.hidden = collapsed;
+      });
+
+      let actions = heading.querySelector(".section-heading-actions");
+      if (!actions) {
+        actions = document.createElement("div");
+        actions.className = "section-heading-actions";
+        const count = heading.querySelector(".category-count");
+        if (count) {
+          count.replaceWith(actions);
+          actions.append(count);
+        } else {
+          heading.append(actions);
+        }
+      }
+
+      const button = document.createElement("button");
+      button.className = "section-collapse-button";
+      button.type = "button";
+      button.textContent = collapsed ? "Expandir" : "Minimizar";
+      button.setAttribute("aria-expanded", collapsed ? "false" : "true");
+      button.setAttribute("aria-label", `${collapsed ? "Expandir" : "Minimizar"} ${label}`);
+      button.addEventListener("click", () => {
+        if (collapsedSections.has(key)) collapsedSections.delete(key);
+        else collapsedSections.add(key);
+        saveCollapsedSections();
+        render();
+      });
+      actions.append(button);
+      return collapsed;
     }
 
     function normalizeCapturedRecords(records) {
@@ -2026,7 +2086,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
         section.append(content);
       } else {
         const paragraph = document.createElement("p");
-        paragraph.textContent = content || "Nao informado";
+        paragraph.textContent = content === "" || content == null ? "Nao informado" : String(content);
         section.append(paragraph);
       }
       return section;
@@ -2041,7 +2101,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       if (content instanceof Node) {
         value.append(content);
       } else {
-        value.textContent = String(content || "Nao informado");
+        value.textContent = content === "" || content == null ? "Nao informado" : String(content);
       }
       row.append(term, value);
       return row;
@@ -3709,7 +3769,12 @@ IVs: HP 31 / Atk 31 / Def 19 / SpA 31 / SpD 31 / Spe 31"></textarea>
       section.querySelector("h2").textContent = breedingGroupFilter ? formatEggGroup(breedingGroupFilter) : "Resultado";
       section.querySelector(".category-count").textContent = `${filteredEntries.length} Pokémon`;
       const rows = section.querySelector(".breeding-list");
-      filteredEntries.forEach(entry => rows.append(createBreedingRow(entry)));
+      const collapsed = attachSectionCollapseControl(section, {
+        scope: "breeding",
+        label: breedingGroupFilter ? formatEggGroup(breedingGroupFilter) : "Resultado",
+        content: rows
+      });
+      if (!collapsed) filteredEntries.forEach(entry => rows.append(createBreedingRow(entry)));
       list.append(section);
     }
 
@@ -3995,6 +4060,17 @@ IVs: HP 31 / Atk 31 / Def 19 / SpA 31 / SpD 31 / Spe 31"></textarea>
       section.querySelector(".category-count").textContent = `${pairs.length} casais`;
       section.querySelector(".fragment-note").textContent = "Baseado nos tipos dos dois Pokémon do casal e compatibilidade de breeding. Servidores com datapack podem mudar requisitos.";
       const grid = section.querySelector(".fragment-pair-grid");
+      const note = section.querySelector(".fragment-note");
+      const collapsed = attachSectionCollapseControl(section, {
+        scope: "fragments",
+        label: `Fragmento ${formatPokemonType(fragmentTypeFilter)}`,
+        content: [note, grid]
+      });
+      if (collapsed) {
+        list.append(section);
+        return;
+      }
+
       if (!pairs.length) {
         const empty = document.createElement("div");
         empty.className = "empty";
@@ -4157,6 +4233,24 @@ IVs: HP 31 / Atk 31 / Def 19 / SpA 31 / SpD 31 / Spe 31"></textarea>
         teams.length ? `Times: ${teams.join(", ")}` : "",
         record.notes ? `Obs: ${record.notes}` : ""
       ].filter(Boolean).join("\n");
+    }
+
+    function getTeamImportExampleText() {
+      return [
+        "Pokemon: Dragonite (Dnite F4)",
+        "Nivel: 100 | Shiny",
+        "Tipos: Dragao / Voador",
+        "Build: Sweeper fisico - Dragon Dance",
+        "Dano: Dano fisico",
+        "Nature: Jolly",
+        "Ability: Multiscale",
+        "Item: Lum Berry",
+        "IVs: HP 31 / Atk 31 / Def 31 / SpA 0 / SpD 31 / Spe 31",
+        "EVs: HP 0 / Atk 252 / Def 0 / SpA 0 / SpD 4 / Spe 252",
+        "Moves: Dragon Dance / Outrage / Earthquake / Extreme Speed",
+        "Times: Principal",
+        "Obs: pronto para boss"
+      ].join("\n");
     }
 
     function parseLabeledText(text = "") {
@@ -4592,12 +4686,13 @@ Dano: Dano fisico
 Nature: Jolly
 Ability: Multiscale
 Item: Lum Berry
-IVs: HP 31 / Atk 31 / Def 31 / SpA 3 / SpD 31 / Spe 31
+IVs: HP 31 / Atk 31 / Def 31 / SpA 0 / SpD 31 / Spe 31
 EVs: HP 0 / Atk 252 / Def 0 / SpA 0 / SpD 4 / Spe 252
 Moves: Dragon Dance / Outrage / Earthquake / Extreme Speed
 Times: Principal
 Obs: pronto para boss"></textarea>
           <div class="team-form-actions">
+            <button class="muted-button" id="team-example-import" type="button">Exemplo</button>
             <button class="modal-capture-button" id="team-confirm-import" type="button">Importar Pokemon</button>
             <button class="muted-button" id="team-cancel-import" type="button">Fechar</button>
           </div>
@@ -4618,6 +4713,10 @@ Obs: pronto para boss"></textarea>
       });
       form.querySelector("#team-cancel-import").addEventListener("click", () => {
         importPanel.hidden = true;
+      });
+      form.querySelector("#team-example-import").addEventListener("click", () => {
+        importText.value = getTeamImportExampleText();
+        importText.focus({ preventScroll: true });
       });
       form.querySelector("#team-confirm-import").addEventListener("click", () => {
         const parsed = parseTeamBuildImport(importText.value);
@@ -4718,7 +4817,9 @@ Obs: pronto para boss"></textarea>
         card.innerHTML = `
           <div class="team-card-header">
             <strong></strong>
-            <button class="team-remove-button" type="button" aria-label="Excluir time" title="Excluir">x</button>
+            <div class="section-heading-actions">
+              <button class="team-remove-button" type="button" aria-label="Excluir time" title="Excluir">x</button>
+            </div>
           </div>
           <div class="team-member-grid"></div>
           <div class="team-add-row">
@@ -4728,6 +4829,18 @@ Obs: pronto para boss"></textarea>
         `;
         card.querySelector("strong").textContent = `${team.name} (${team.memberIds.length}/6)`;
         const memberGrid = card.querySelector(".team-member-grid");
+        const teamAddRow = card.querySelector(".team-add-row");
+        const collapsed = attachSectionCollapseControl(card, {
+          scope: "team-builder",
+          label: team.name,
+          key: `team-builder:${team.id}`,
+          headingSelector: ".team-card-header",
+          content: [memberGrid, teamAddRow]
+        });
+        if (collapsed) {
+          teamList.append(card);
+          return;
+        }
         team.memberIds.forEach(id => {
           const record = teamBuiltPokemon.find(item => item.id === id);
           if (!record) return;
@@ -4800,7 +4913,7 @@ Obs: pronto para boss"></textarea>
         card.innerHTML = `
           <div class="team-analysis-header">
             <strong></strong>
-            <span></span>
+            <span class="category-count"></span>
           </div>
           <div class="team-analysis-section">
             <span>Riscos</span>
@@ -4814,6 +4927,20 @@ Obs: pronto para boss"></textarea>
         `;
         card.querySelector("strong").textContent = team.name;
         card.querySelector(".team-analysis-header span").textContent = `${analysis.records.length}/6 membros`;
+        const collapsed = attachSectionCollapseControl(card, {
+          scope: "team-analysis",
+          label: team.name,
+          key: `team-analysis:${team.id}`,
+          headingSelector: ".team-analysis-header",
+          content: [
+            ...card.querySelectorAll(".team-analysis-section"),
+            card.querySelector(".team-analysis-warnings")
+          ]
+        });
+        if (collapsed) {
+          list.append(card);
+          return;
+        }
         const riskWrap = card.querySelector(".team-analysis-tags.is-risk");
         risky.forEach(item => riskWrap.append(createTextBadge(`${formatPokemonType(item.type)}: ${item.weak} fraco${item.weak === 1 ? "" : "s"}`)));
         if (!risky.length) riskWrap.append(createTextBadge("Sem risco claro"));
@@ -4868,7 +4995,13 @@ Obs: pronto para boss"></textarea>
         section.querySelector("h3").textContent = group.label;
         section.querySelector(".category-count").textContent = `${group.records.length} Pokémon`;
         const grid = section.querySelector(".team-pokemon-grid");
-        group.records.forEach(record => grid.append(createTeamPokemonCard(record)));
+        const collapsed = attachSectionCollapseControl(section, {
+          scope: "team-library",
+          label: group.label,
+          headingSelector: ".team-group-heading",
+          content: grid
+        });
+        if (!collapsed) group.records.forEach(record => grid.append(createTeamPokemonCard(record)));
         container.append(section);
       });
     }
@@ -5136,6 +5269,18 @@ Obs: pronto para boss"></textarea>
       return [...counterTargetTypes];
     }
 
+    function getCounterOffenseTypes(targetTypes) {
+      return targetTypes;
+    }
+
+    function getCounterDefenseTypes(targetTypes, shieldType = counterShieldType) {
+      return [...new Set(targetTypes)];
+    }
+
+    function getCounterShieldLabel(shieldType = counterShieldType) {
+      return shieldType ? formatPokemonType(shieldType) : "Sem escudo";
+    }
+
     function getCounterAttackTypes(targetTypes) {
       if (!targetTypes.length) return [];
       return Object.keys(typeEffectiveness)
@@ -5153,8 +5298,10 @@ Obs: pronto para boss"></textarea>
 
     function getCounterTargetLabel(targetTypes) {
       const boss = getSelectedCounterBoss();
-      if (boss) return boss.name;
-      return targetTypes.map(formatPokemonType).join(" / ") || "alvo";
+      const baseLabel = boss
+        ? boss.name
+        : targetTypes.map(formatPokemonType).join(" / ") || "alvo";
+      return counterShieldType ? `${baseLabel} com escudo ${formatPokemonType(counterShieldType)}` : baseLabel;
     }
 
     function normalizeMoveLookupKey(move) {
@@ -5183,9 +5330,10 @@ Obs: pronto para boss"></textarea>
       return null;
     }
 
-    function createCounterAttackOption(entry, targetTypes, type, label, power, source) {
-      const multiplier = getTypeEffectiveness(type, targetTypes);
+    function createCounterAttackOption(entry, targetTypes, type, label, power, source, options = {}) {
+      const multiplier = targetTypes.length ? getTypeEffectiveness(type, targetTypes) : 1;
       const stab = entry.types.includes(type) ? 1.5 : 1;
+      const shieldMatch = options.requiredAttackType ? type === options.requiredAttackType : false;
       return {
         type,
         label,
@@ -5193,18 +5341,20 @@ Obs: pronto para boss"></textarea>
         source,
         multiplier,
         stab,
-        estimatedPower: Math.round(power * multiplier * stab)
+        shieldMatch,
+        estimatedPower: Math.round(power * (options.requiredAttackType ? 1 : multiplier) * stab)
       };
     }
 
-    function getCounterAttackOptions(entry, builds, readyBuild, targetTypes) {
+    function getCounterAttackOptions(entry, builds, readyBuild, targetTypes, settings = {}) {
       const options = [];
+      const requiredAttackType = settings.requiredAttackType || "";
       const evaluatedBuilds = [readyBuild, ...builds].filter(Boolean);
       evaluatedBuilds.forEach(build => {
         (build.moves || []).forEach(move => {
           const info = getMovePowerInfo(move, build);
           if (!info) return;
-          options.push(createCounterAttackOption(entry, targetTypes, info.type, info.label, info.power, "move"));
+          options.push(createCounterAttackOption(entry, targetTypes, info.type, info.label, info.power, "move", { requiredAttackType }));
         });
       });
 
@@ -5212,11 +5362,11 @@ Obs: pronto para boss"></textarea>
       evaluatedBuilds.forEach(build => getBuildAttackTypes(entry, build).forEach(type => fallbackTypes.add(type)));
       fallbackTypes.forEach(type => {
         const power = entry.types.includes(type) ? 90 : 80;
-        options.push(createCounterAttackOption(entry, targetTypes, type, `Ataque ${formatPokemonType(type)}`, power, "type"));
+        options.push(createCounterAttackOption(entry, targetTypes, type, `Ataque ${formatPokemonType(type)}`, power, "type", { requiredAttackType }));
       });
 
       return options
-        .filter(option => option.multiplier > 0)
+        .filter(option => option.multiplier > 0 && (!requiredAttackType || option.type === requiredAttackType))
         .sort((a, b) =>
           b.estimatedPower - a.estimatedPower
           || b.multiplier - a.multiplier
@@ -5224,10 +5374,10 @@ Obs: pronto para boss"></textarea>
         );
     }
 
-    function getCounterStrongTypes(attackOptions) {
+    function getCounterStrongTypes(attackOptions, requiredAttackType = "") {
       const byType = new Map();
       attackOptions
-        .filter(option => option.multiplier > 1)
+        .filter(option => requiredAttackType ? option.type === requiredAttackType : option.multiplier > 1)
         .forEach(option => {
           const current = byType.get(option.type);
           if (!current || option.estimatedPower > current.estimatedPower) byType.set(option.type, option);
@@ -5701,6 +5851,16 @@ Obs: pronto para boss"></textarea>
         : statusHeading;
       section.querySelector(".category-count").textContent = `${entries.length} resultado${entries.length === 1 ? "" : "s"}`;
       const grid = section.querySelector(".capture-planner-grid");
+      const collapsed = attachSectionCollapseControl(section, {
+        scope: "capture",
+        label: selectedCaptureBiome ? `${statusHeading} em ${selectedCaptureBiome}` : statusHeading,
+        content: grid
+      });
+
+      if (collapsed) {
+        list.append(section);
+        return;
+      }
 
       if (!entries.length) {
         const empty = document.createElement("div");
@@ -5724,8 +5884,11 @@ Obs: pronto para boss"></textarea>
       list.append(section);
     }
 
-    function getCounterCandidates(targetTypes, search = "") {
-      if (!targetTypes.length) return [];
+    function getCounterCandidates(targetTypes, search = "", options = {}) {
+      const shieldType = Object.prototype.hasOwnProperty.call(options, "shieldType") ? options.shieldType : counterShieldType;
+      const offenseTypes = getCounterOffenseTypes(targetTypes);
+      const defenseTypes = getCounterDefenseTypes(targetTypes, shieldType);
+      if (!offenseTypes.length && !shieldType) return [];
       const normalizedSearch = normalize(search.trim());
       return getBuildEligibleEntries()
         .filter(entry => !counterOwnedOnly || isOwned(entry))
@@ -5736,19 +5899,22 @@ Obs: pronto para boss"></textarea>
           if (counterReadyOnly && !readyRecords.length) return null;
           const readyRecord = readyRecords[0] || null;
           const readyBuild = readyRecord ? getTeamPokemonBuild(readyRecord) : null;
-          const attackOptions = getCounterAttackOptions(entry, builds, readyBuild, targetTypes);
-          const strongTypes = getCounterStrongTypes(attackOptions);
+          const attackOptions = getCounterAttackOptions(entry, builds, readyBuild, offenseTypes, { requiredAttackType: shieldType });
+          const strongTypes = getCounterStrongTypes(attackOptions, shieldType);
           if (!strongTypes.length) return null;
           const bestAttack = attackOptions[0] || strongTypes[0];
           const hasMetaBuild = builds.some(build =>
             build.isMeta && getBuildAttackTypes(entry, build).some(type => strongTypes.some(item => item.type === type))
           );
           const teamLabels = getTeamMembershipLabels(entry);
-          const defense = getCounterDefenseSummary(entry, targetTypes);
+          const defense = getCounterDefenseSummary(entry, defenseTypes);
+          const isRealCounter = defense.worst <= 1;
+          if (!isRealCounter && !readyRecords.length) return null;
           const score = bestAttack.estimatedPower
-            + (hasMetaBuild ? 24 : 0)
-            + (readyRecords.length ? 105 : 0)
-            + (teamLabels.length ? 55 : 0)
+            + (isRealCounter ? 80 : 0)
+            + (hasMetaBuild ? 20 : 0)
+            + (readyRecords.length ? 36 : 0)
+            + (teamLabels.length ? 18 : 0)
             + (isOwned(entry) ? 10 : 0)
             + defense.score
             - entry.id / 10000;
@@ -5764,6 +5930,10 @@ Obs: pronto para boss"></textarea>
             teamLabels,
             defense,
             defenseLabel: defense.label,
+            shieldType,
+            offenseTypes,
+            defenseTypes,
+            isRealCounter,
             score
           };
         })
@@ -5829,6 +5999,10 @@ Obs: pronto para boss"></textarea>
             <span class="chip-label">Tipo</span>
             <div class="counter-chip-list"></div>
           </div>
+          <div class="chip-group" aria-label="Escudo elemental">
+            <span class="chip-label">Escudo</span>
+            <div class="counter-shield-list"></div>
+          </div>
         </div>
       `;
       const bossInput = wrapper.querySelector("#counter-boss-search");
@@ -5860,7 +6034,7 @@ Obs: pronto para boss"></textarea>
         chipList.append(createFilterChip({
           label: type.label,
           active: counterTargetTypes.has(type.value),
-          count: getCounterCandidates(countTypes).length,
+          count: getCounterCandidates(countTypes, "", { shieldType: counterShieldType }).length,
           onClick: () => {
             if (counterTargetTypes.has(type.value)) counterTargetTypes.delete(type.value);
             else counterTargetTypes.add(type.value);
@@ -5871,10 +6045,33 @@ Obs: pronto para boss"></textarea>
         }));
       });
 
+      const shieldList = wrapper.querySelector(".counter-shield-list");
+      shieldList.append(createFilterChip({
+        label: "Sem escudo",
+        active: !counterShieldType,
+        count: getCounterCandidates(getCounterTargetTypes(), "", { shieldType: "" }).length,
+        onClick: () => {
+          counterShieldType = "";
+          render();
+        }
+      }));
+      typeFilters.forEach(type => {
+        shieldList.append(createFilterChip({
+          label: type.label,
+          active: counterShieldType === type.value,
+          count: getCounterCandidates(getCounterTargetTypes(), "", { shieldType: type.value }).length,
+          onClick: () => {
+            counterShieldType = counterShieldType === type.value ? "" : type.value;
+            render();
+          }
+        }));
+      });
+
       wrapper.querySelector("#clear-counter-types").addEventListener("click", () => {
         counterBossSearch = "";
         selectedCounterBossKey = "";
         counterTargetTypes = new Set();
+        counterShieldType = "";
         render();
       });
 
@@ -5924,7 +6121,7 @@ Obs: pronto para boss"></textarea>
     }
 
     function renderCounterTeamSummary(list, results) {
-      const readyResults = results.filter(result => result.hasReadyBuild).slice(0, 4);
+      const readyResults = results.filter(result => result.readyRecord && result.readyBuild).slice(0, 4);
       if (!readyResults.length) return;
       const section = document.createElement("section");
       section.className = "counter-team-summary";
@@ -5940,6 +6137,16 @@ Obs: pronto para boss"></textarea>
       `;
       section.querySelector(".category-count").textContent = `${readyResults.length} opcoes`;
       const listWrap = section.querySelector(".counter-team-list");
+      const collapsed = attachSectionCollapseControl(section, {
+        scope: "counters",
+        label: "Melhores prontos para este alvo",
+        headingSelector: ".counter-summary-header",
+        content: listWrap
+      });
+      if (collapsed) {
+        list.append(section);
+        return;
+      }
       readyResults.forEach(result => {
         const button = document.createElement("button");
         button.className = "counter-team-option";
@@ -5980,22 +6187,47 @@ Obs: pronto para boss"></textarea>
         </div>
         <div class="counter-type-grid"></div>
       `;
+      const offenseTypes = getCounterOffenseTypes(targetTypes);
       const title = targetTypes.length
         ? targetTypes.map(formatPokemonType).join(" / ")
         : "Escolha um ou mais tipos";
       section.querySelector("h2").textContent = targetTypes.length
-        ? `Bater forte contra ${title}`
-        : "O que levar contra cada elemento";
-      const strongAttackTypes = getCounterAttackTypes(targetTypes);
+        ? counterShieldType
+          ? `Golpe obrigatorio para escudo ${formatPokemonType(counterShieldType)}`
+          : `Bater forte contra ${title}`
+        : counterShieldType
+          ? `Golpe obrigatorio para escudo ${formatPokemonType(counterShieldType)}`
+          : "O que levar contra cada elemento";
+      const strongAttackTypes = counterShieldType
+        ? [{
+            type: counterShieldType,
+            multiplier: offenseTypes.length ? getTypeEffectiveness(counterShieldType, offenseTypes) : 1,
+            shieldRequired: true
+          }]
+        : getCounterAttackTypes(offenseTypes);
       section.querySelector(".category-count").textContent = targetTypes.length
-        ? `${strongAttackTypes.length} tipos fortes`
-        : "Selecione no filtro";
+        ? counterShieldType
+          ? `1 elemento obrigatorio | ${getCounterShieldLabel()}`
+          : `${strongAttackTypes.length} tipos fortes`
+        : counterShieldType
+          ? `1 elemento obrigatorio | ${getCounterShieldLabel()}`
+          : "Selecione no filtro";
 
       const grid = section.querySelector(".counter-type-grid");
-      if (!targetTypes.length) {
+      const collapsed = attachSectionCollapseControl(section, {
+        scope: "counters",
+        label: "Efetividade",
+        headingSelector: ".counter-summary-header",
+        content: grid
+      });
+      if (collapsed) {
+        list.append(section);
+        return;
+      }
+      if (!offenseTypes.length && !counterShieldType) {
         const note = document.createElement("p");
         note.className = "raid-note";
-        note.textContent = "Marque o tipo do Pokemon inimigo. Para tipo duplo, como Dragon + Dark, marque os dois.";
+        note.textContent = "Marque o tipo do Pokemon inimigo ou escolha um escudo elemental para simular raid.";
         grid.append(note);
       } else if (!strongAttackTypes.length) {
         const note = document.createElement("p");
@@ -6012,8 +6244,12 @@ Obs: pronto para boss"></textarea>
             <span></span>
           `;
           card.querySelector(".counter-type-card-main").append(createTypeBadge(item.type));
-          card.querySelector("strong").textContent = `${formatMultiplier(item.multiplier)} de dano`;
-          card.querySelector("span").textContent = `Ataques ${formatPokemonType(item.type)}`;
+          card.querySelector("strong").textContent = item.shieldRequired
+            ? "Obrigatorio no escudo"
+            : `${formatMultiplier(item.multiplier)} de dano`;
+          card.querySelector("span").textContent = item.shieldRequired
+            ? `Use golpes ${formatPokemonType(item.type)} para baixar o escudo`
+            : `Ataques ${formatPokemonType(item.type)}`;
           grid.append(card);
         });
       }
@@ -6022,9 +6258,12 @@ Obs: pronto para boss"></textarea>
     }
 
     function openCounterModal(result) {
-      const { entry, bestAttack, attackOptions, strongTypes, readyRecord, readyBuild, teamLabels, defense } = result;
+      const { entry, bestAttack, attackOptions, strongTypes, readyRecord, readyBuild, teamLabels, defense, shieldType, offenseTypes, isRealCounter } = result;
       const targetTypes = getCounterTargetTypes();
       const targetLabel = getCounterTargetLabel(targetTypes);
+      const attackTargetLabel = shieldType
+        ? `escudo ${formatPokemonType(shieldType)}`
+        : offenseTypes.map(formatPokemonType).join(" / ");
       activeModalEntry = null;
       pokemonModalContent.replaceChildren();
 
@@ -6067,9 +6306,13 @@ Obs: pronto para boss"></textarea>
       summaryList.className = "modal-definition-list";
       summaryList.append(
         createModalInfoRow("Alvo", targetLabel),
+        createModalInfoRow("Escudo", shieldType ? formatPokemonType(shieldType) : "Sem escudo"),
         createModalInfoRow("Golpe sugerido", `${bestAttack.label} - ${formatPokemonType(bestAttack.type)}`),
-        createModalInfoRow("Dano estimado", `${bestAttack.estimatedPower} (${bestAttack.power} base, ${formatMultiplier(bestAttack.multiplier)}, STAB ${bestAttack.stab === 1.5 ? "sim" : "nao"})`),
+        createModalInfoRow(shieldType ? "Forca no escudo" : "Dano estimado", shieldType
+          ? `${bestAttack.estimatedPower} (${bestAttack.power} base, STAB ${bestAttack.stab === 1.5 ? "sim" : "nao"})`
+          : `${bestAttack.estimatedPower} (${bestAttack.power} base, ${formatMultiplier(bestAttack.multiplier)}, STAB ${bestAttack.stab === 1.5 ? "sim" : "nao"})`),
         createModalInfoRow("Defesa", defense.label),
+        createModalInfoRow("Counter real", isRealCounter ? "Sim: bate forte e nao toma super efetivo" : "Risco: bate forte, mas pode apanhar"),
         createModalInfoRow("Origem", readyRecord ? `Build pronta${teamLabels.length ? ` em ${teamLabels.join(", ")}` : ""}` : "Catalogo e cobertura sugerida")
       );
       primaryColumn.append(createModalSection("Resumo", summaryList));
@@ -6077,7 +6320,7 @@ Obs: pronto para boss"></textarea>
       const attackBlock = document.createElement("div");
       const attackNote = document.createElement("p");
       attackNote.className = "modal-section-note";
-      attackNote.textContent = "Estes sao os melhores golpes estimados para usar contra o alvo. O calculo compara poder base, STAB e efetividade de tipo.";
+      attackNote.textContent = `Estes sao os melhores golpes estimados para usar contra ${attackTargetLabel}. O calculo compara poder base, STAB e efetividade de tipo.`;
       const attackList = document.createElement("div");
       attackList.className = "counter-modal-list";
       attackOptions.slice(0, 8).forEach(option => {
@@ -6090,16 +6333,29 @@ Obs: pronto para boss"></textarea>
         `;
         row.querySelector("span").textContent = `${option.label} (${formatPokemonType(option.type)})`;
         row.querySelector("strong").textContent = `${option.estimatedPower}`;
-        row.querySelector("small").textContent = `${option.power} base | ${formatMultiplier(option.multiplier)} | STAB ${option.stab === 1.5 ? "sim" : "nao"}`;
+        row.querySelector("small").textContent = shieldType
+          ? `${option.power} base | elemento do escudo | STAB ${option.stab === 1.5 ? "sim" : "nao"}`
+          : `${option.power} base | ${formatMultiplier(option.multiplier)} | STAB ${option.stab === 1.5 ? "sim" : "nao"}`;
         attackList.append(row);
       });
       attackBlock.append(attackNote, attackList);
-      primaryColumn.append(createModalSection(`Golpes para usar contra ${targetLabel}`, attackBlock));
+      primaryColumn.append(createModalSection(`Golpes para usar contra ${attackTargetLabel}`, attackBlock));
+
+      const whyText = [
+        shieldType
+          ? `Tem golpe ${formatPokemonType(shieldType)} para tirar vida do escudo com ${bestAttack.label}.`
+          : `Bate super efetivo com ${bestAttack.label} (${formatPokemonType(bestAttack.type)}) em ${attackTargetLabel}.`,
+        getCounterDefenseDescription(defense, targetLabel)
+      ].join(" ");
+      primaryColumn.append(createModalSection("Por que funciona", whyText));
 
       const strongWrap = document.createElement("div");
       strongWrap.className = "breeding-meta";
-      strongTypes.slice(0, 8).forEach(item => strongWrap.append(createTextBadge(`${formatPokemonType(item.type)} ${formatMultiplier(item.multiplier)}`)));
-      primaryColumn.append(createModalSection("Tipos super efetivos", strongWrap));
+      strongTypes.slice(0, 8).forEach(item => strongWrap.append(createTextBadge(shieldType
+        ? `${formatPokemonType(item.type)} obrigatorio`
+        : `${formatPokemonType(item.type)} ${formatMultiplier(item.multiplier)}`
+      )));
+      primaryColumn.append(createModalSection(shieldType ? "Elemento do escudo" : "Tipos super efetivos", strongWrap));
 
       const defenseList = document.createElement("dl");
       defenseList.className = "modal-definition-list";
@@ -6122,8 +6378,11 @@ Obs: pronto para boss"></textarea>
     }
 
     function createCounterCard(result) {
-      const { entry, strongTypes, bestAttack, hasMetaBuild, hasReadyBuild, readyRecord, readyBuild, teamLabels, defense, defenseLabel } = result;
+      const { entry, strongTypes, bestAttack, hasMetaBuild, hasReadyBuild, readyRecord, readyBuild, teamLabels, defense, defenseLabel, shieldType, offenseTypes, isRealCounter } = result;
       const targetLabel = getCounterTargetLabel(getCounterTargetTypes());
+      const attackTargetLabel = shieldType
+        ? `escudo ${formatPokemonType(shieldType)}`
+        : offenseTypes.map(formatPokemonType).join(" / ");
       const card = document.createElement("article");
       card.className = `counter-card${isOwned(entry) ? " is-owned" : ""}${hasReadyBuild ? " is-ready" : ""}`;
       card.innerHTML = `
@@ -6152,7 +6411,10 @@ Obs: pronto para boss"></textarea>
       card.querySelector("h3").textContent = entry.name;
       entry.types.forEach(type => card.querySelector(".raid-card-types").append(createTypeBadge(type)));
       strongTypes.slice(0, 4).forEach(item => {
-        const chip = createTextBadge(`${formatPokemonType(item.type)} ${formatMultiplier(item.multiplier)}`);
+        const chip = createTextBadge(shieldType
+          ? `${formatPokemonType(item.type)} obrigatorio`
+          : `${formatPokemonType(item.type)} ${formatMultiplier(item.multiplier)}`
+        );
         card.querySelector(".counter-strong-types").append(chip);
       });
       const tags = card.querySelector(".raid-tags");
@@ -6163,11 +6425,16 @@ Obs: pronto para boss"></textarea>
       }
       if (teamLabels?.length) tags.append(createTextBadge(`Time: ${teamLabels.slice(0, 2).join(", ")}`));
       tags.append(createTextBadge(isOwned(entry) ? "Capturado" : "Faltando"));
+      tags.append(createTextBadge(shieldType ? `Escudo ${formatPokemonType(shieldType)}` : "Sem escudo"));
+      tags.append(createTextBadge(isRealCounter ? "Counter real" : "Risco alto"));
       tags.append(createTextBadge(defenseLabel));
       if (hasMetaBuild) tags.append(createTextBadge("Meta cadastrada"));
       const matchup = card.querySelector(".counter-matchup-row");
+      matchup.querySelector("span").textContent = shieldType ? "Golpe para baixar escudo" : "Melhor golpe sugerido";
       matchup.querySelector("b").textContent = `${bestAttack.label} (${formatPokemonType(bestAttack.type)})`;
-      matchup.querySelector("strong").textContent = `${bestAttack.estimatedPower} dano estimado`;
+      matchup.querySelector("strong").textContent = shieldType
+        ? `${bestAttack.estimatedPower} forca no escudo`
+        : `${bestAttack.estimatedPower} dano estimado`;
       if (readyRecord && readyBuild) {
         const readyBox = card.querySelector(".counter-ready-build");
         readyBox.hidden = false;
@@ -6197,7 +6464,9 @@ Obs: pronto para boss"></textarea>
         });
       }
       card.querySelector(".raid-note").textContent =
-        `Contra ${targetLabel}. ${getCounterDefenseDescription(defense, targetLabel)}`;
+        shieldType
+          ? `Usa golpe ${formatPokemonType(shieldType)} para baixar o escudo. ${getCounterDefenseDescription(defense, targetLabel)}`
+          : `Bate ${attackTargetLabel}. ${getCounterDefenseDescription(defense, targetLabel)}`;
       card.addEventListener("click", () => {
         openCounterModal(result);
       });
@@ -6207,17 +6476,20 @@ Obs: pronto para boss"></textarea>
     function renderBuildsFlow(list) {
       activeTitle.textContent = "Counters por tipo";
       const targetTypes = getCounterTargetTypes();
+      const offenseTypes = getCounterOffenseTypes(targetTypes);
       renderCounterTools(list);
       renderCounterSummary(list, targetTypes);
       const results = getCounterCandidates(targetTypes, counterSearch);
       visibleCount.textContent = targetTypes.length
         ? `${results.length} sugestoes`
-        : `${typeFilters.length} tipos`;
+        : counterShieldType
+          ? `${results.length} sugestoes`
+          : `${typeFilters.length} tipos`;
 
-      if (!targetTypes.length) {
+      if (!offenseTypes.length) {
         const empty = document.createElement("div");
         empty.className = "empty";
-        empty.textContent = "Selecione o tipo do inimigo acima para ver o que levar.";
+        empty.textContent = "Selecione o tipo do inimigo ou um escudo elemental acima para ver o que levar.";
         list.append(empty);
         return;
       }
@@ -6246,6 +6518,15 @@ Obs: pronto para boss"></textarea>
       `;
       section.querySelector(".category-count").textContent = `${results.length} sugestoes`;
       const grid = section.querySelector(".counter-grid");
+      const collapsed = attachSectionCollapseControl(section, {
+        scope: "counters",
+        label: "Melhores opcoes para levar",
+        content: grid
+      });
+      if (collapsed) {
+        list.append(section);
+        return;
+      }
       if (appUtils.appendProgressiveItems) {
         appUtils.appendProgressiveItems({
           container: grid,
@@ -6501,7 +6782,8 @@ Obs: pronto para boss"></textarea>
           theme: activeTheme,
           density: isCompactMode ? "compact" : "normal",
           logSidebarCollapsed: isLogSidebarCollapsed,
-          logMonitorMinimized: isLogMonitorMinimized
+          logMonitorMinimized: isLogMonitorMinimized,
+          collapsedSections: [...collapsedSections]
         }
       };
       return backup;
@@ -6564,6 +6846,10 @@ Obs: pronto para boss"></textarea>
 
       if (backup.preferences?.theme) activeTheme = backup.preferences.theme === "dark" ? "dark" : "light";
       if (backup.preferences?.density) isCompactMode = backup.preferences.density === "compact";
+      if (Array.isArray(backup.preferences?.collapsedSections)) {
+        collapsedSections = new Set(backup.preferences.collapsedSections.filter(item => typeof item === "string" && item.trim()));
+        saveCollapsedSections();
+      }
       localStorage.setItem(THEME_KEY, activeTheme);
       localStorage.setItem(DENSITY_KEY, isCompactMode ? "compact" : "normal");
       saveBreedingParents();
@@ -6977,6 +7263,15 @@ Obs: pronto para boss"></textarea>
         section.querySelector("h2").textContent = group.name;
         section.querySelector(".category-count").textContent = `${entries.length} Pokémon`;
         const grid = section.querySelector(".grid");
+        const collapsed = attachSectionCollapseControl(section, {
+          scope: `checklist:${activeNavigation.type}:${activeNavigation.label}`,
+          label: group.name,
+          content: grid
+        });
+        if (collapsed) {
+          list.append(section);
+          return;
+        }
         if (appUtils.appendProgressiveItems) {
           appUtils.appendProgressiveItems({
             container: grid,
