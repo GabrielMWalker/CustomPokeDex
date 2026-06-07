@@ -653,6 +653,15 @@ fn parse_capture_event(text: &str) -> Option<ParsedEvent> {
     });
   }
 
+  if let Some(name) = parse_portuguese_pc_capture(text) {
+    return Some(ParsedEvent {
+      pokemon: name,
+      event_type: "local-capture-sent-to-pc".to_string(),
+      confidence: "alta".to_string(),
+      player_name: None,
+    });
+  }
+
   if let Some(name) = capture_between(text, "You captured ", "!") {
     let name = clean_capture_name(&name)?;
     return Some(ParsedEvent {
@@ -707,6 +716,47 @@ fn parse_english_pc_capture(text: &str) -> Option<String> {
     .trim_start_matches(|character: char| character.is_whitespace() || matches!(character, '.' | '!' | ':' | '-'));
   let after_lower = after_start.to_lowercase();
   let end_marker = " was sent to your pc";
+  let end_index = after_lower.find(end_marker)?;
+  clean_capture_name(&after_start[..end_index])
+}
+
+fn parse_portuguese_pc_capture(text: &str) -> Option<String> {
+  let lower = text.to_lowercase();
+  let start_markers = [
+    "você já tem 6 pokémons",
+    "você já tem 6 pokemons",
+    "voce ja tem 6 pokemons",
+    "vocÃª jÃ¡ tem 6 pokemons",
+    "voc� j� tem 6 pokemons",
+  ];
+  let start_marker = start_markers
+    .iter()
+    .find(|marker| lower.contains(**marker))?;
+  let start_index = lower.find(start_marker)? + start_marker.len();
+  let mut after_start = text
+    .get(start_index..)?
+    .trim_start_matches(|character: char| character.is_whitespace() || matches!(character, '.' | '!' | ':' | '-'));
+  let after_start_lower = after_start.to_lowercase();
+  for prefix in ["no seu time", "em seu time", "na sua equipe"] {
+    if after_start_lower.trim_start().starts_with(prefix) {
+      let trimmed = after_start.trim_start();
+      let separator_index = trimmed.find(|character| matches!(character, '.' | '!' | ':' | '-'))?;
+      after_start = trimmed
+        .get(separator_index + 1..)?
+        .trim_start_matches(|character: char| character.is_whitespace() || matches!(character, '.' | '!' | ':' | '-'));
+      break;
+    }
+  }
+  let after_lower = after_start.to_lowercase();
+  let end_markers = [
+    " foi mandado(a) para o pc",
+    " foi mandado para o pc",
+    " foi enviada para o pc",
+    " foi enviado para o pc",
+  ];
+  let end_marker = end_markers
+    .iter()
+    .find(|marker| after_lower.contains(**marker))?;
   let end_index = after_lower.find(end_marker)?;
   clean_capture_name(&after_start[..end_index])
 }
@@ -1000,6 +1050,16 @@ mod tests {
 
     assert_eq!(event.pokemon, "Charmander");
     assert_eq!(event.event_type, "local-capture-sent-to-pc");
+  }
+
+  #[test]
+  fn parses_portuguese_party_full_capture_with_formatting_codes() {
+    let event = parse_capture_event("Você já tem 6 Pokemons no seu time. &rQuagsire&r foi mandado(a) para o PC!&r").unwrap();
+
+    assert_eq!(event.pokemon, "Quagsire");
+    assert_eq!(event.event_type, "local-capture-sent-to-pc");
+    assert_eq!(event.confidence, "alta");
+    assert!(event.player_name.is_none());
   }
 
   #[test]
