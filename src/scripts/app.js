@@ -18,7 +18,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     const COLLAPSED_SECTIONS_KEY = "pokemon-checklist-collapsed-sections-v1";
     const APP_META = window.POKELIST_APP_META || {
       name: "Pixelmon - Pokelist",
-      version: "1.0.5",
+      version: "1.0.6",
       releaseUrl: "",
       updaterUrl: ""
     };
