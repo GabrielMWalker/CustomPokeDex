@@ -1,7 +1,7 @@
 (function () {
   const APP_META = {
     name: "Pixelmon - Pokelist",
-    version: "1.0.3",
+    version: "1.0.5",
     releaseUrl: "https://github.com/GabrielMWalker/CustomPokeDex/releases",
     updaterUrl: "https://github.com/GabrielMWalker/CustomPokeDex/releases/latest/download/latest.json"
   };

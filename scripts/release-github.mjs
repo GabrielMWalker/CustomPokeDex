@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
+import { formatReleaseNotes } from "./release-notes.mjs";
 
 const root = process.cwd();
 const args = process.argv.slice(2);
@@ -35,6 +36,7 @@ const version = String(tauriConfig.version || "").trim();
 const packageVersion = String(packageJson.version || "").trim();
 const requestedVersion = versionArg ? versionArg.replace(/^v/i, "") : version;
 const tagName = `v${version}`;
+const releaseNotes = formatReleaseNotes({ version, tagName, cwd: root });
 
 if (!version) {
   throw new Error("Versao nao encontrada em src-tauri/tauri.conf.json.");
@@ -85,11 +87,12 @@ if (!skipChecks) {
   run(process.execPath, ["--check", path.join("src", "scripts", "app-utils.js")], { stdio: "inherit" });
   run(process.execPath, ["--check", path.join("scripts", "generate-latest-json.mjs")], { stdio: "inherit" });
   run(process.execPath, ["--check", path.join("scripts", "release-github.mjs")], { stdio: "inherit" });
+  run(process.execPath, ["--check", path.join("scripts", "release-notes.mjs")], { stdio: "inherit" });
   run("cargo", ["check"], { cwd: path.join(root, "src-tauri"), stdio: "inherit" });
 }
 
 run("git", ["push", "origin", currentBranch], { stdio: "inherit" });
-run("git", ["tag", "-a", tagName, "-m", `Release ${tagName}`], { stdio: "inherit" });
+run("git", ["tag", "-a", tagName, "-m", `Pixelmon - Pokelist ${tagName}`, "-m", releaseNotes], { stdio: "inherit" });
 run("git", ["push", "origin", tagName], { stdio: "inherit" });
 
 console.log(dryRun

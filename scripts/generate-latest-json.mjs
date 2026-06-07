@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { execSync } from "node:child_process";
+import { formatReleaseNotes } from "./release-notes.mjs";
 
 const repoOwner = "GabrielMWalker";
 const repoName = "CustomPokeDex";
@@ -31,7 +32,7 @@ execSync(
 
 const latest = {
   version,
-  notes: `Pixelmon - Pokelist ${version}`,
+  notes: formatReleaseNotes({ version, tagName: `v${version}`, cwd: root }).trim(),
   pub_date: new Date().toISOString(),
   platforms: {
     "windows-x86_64": {

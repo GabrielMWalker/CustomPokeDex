@@ -18,7 +18,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     const COLLAPSED_SECTIONS_KEY = "pokemon-checklist-collapsed-sections-v1";
     const APP_META = window.POKELIST_APP_META || {
       name: "Pixelmon - Pokelist",
-      version: "1.0.3",
+      version: "1.0.5",
       releaseUrl: "",
       updaterUrl: ""
     };
@@ -1276,7 +1276,6 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     const captureTab = document.querySelector("#flow-capture");
     const capturedTab = document.querySelector("#flow-telemetry");
     const breedingTab = document.querySelector("#flow-breeding");
-    const fragmentsTab = document.querySelector("#flow-fragments");
     const teamsTab = document.querySelector("#flow-teams");
     const buildsTab = document.querySelector("#flow-builds");
     const settingsTab = document.querySelector("#flow-settings");
@@ -1285,7 +1284,6 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     const captureFlowCount = document.querySelector("#flow-capture-count");
     const telemetryFlowCount = document.querySelector("#flow-telemetry-count");
     const breedingFlowCount = document.querySelector("#flow-breeding-count");
-    const fragmentsFlowCount = document.querySelector("#flow-fragments-count");
     const teamsFlowCount = document.querySelector("#flow-teams-count");
     const buildsFlowCount = document.querySelector("#flow-builds-count");
     const settingsFlowCount = document.querySelector("#flow-settings-count");
@@ -3077,7 +3075,8 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       const modeTabs = wrapper.querySelector(".breeding-mode-tabs");
       [
         { value: "compatibility", label: "Compatibilidade" },
-        { value: "calculator", label: "Calculadora" }
+        { value: "calculator", label: "Calculadora" },
+        { value: "fragments", label: "Fragmentos" }
       ].forEach(mode => {
         modeTabs.append(createFilterChip({
           label: mode.label,
@@ -3089,6 +3088,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
         }));
       });
       input.hidden = breedingMode !== "compatibility";
+      wrapper.querySelector(".breeding-panel").hidden = breedingMode === "fragments";
       input.value = breedingSearch;
       input.addEventListener("input", event => {
         breedingSearch = event.target.value;
@@ -3736,6 +3736,10 @@ IVs: HP 31 / Atk 31 / Def 19 / SpA 31 / SpD 31 / Spe 31"></textarea>
       activeTitle.textContent = "Breeding";
       visibleCount.textContent = "";
       renderBreedingTools(list, groups);
+      if (breedingMode === "fragments") {
+        renderFragmentsFlow(list, { embedded: true });
+        return;
+      }
       if (breedingMode === "calculator") {
         renderBreedingCalculator(list);
         return;
@@ -4031,8 +4035,8 @@ IVs: HP 31 / Atk 31 / Def 19 / SpA 31 / SpD 31 / Spe 31"></textarea>
       list.append(grid);
     }
 
-    function renderFragmentsFlow(list) {
-      activeTitle.textContent = "Fragmentos";
+    function renderFragmentsFlow(list, options = {}) {
+      activeTitle.textContent = options.embedded ? "Breeding: Fragmentos" : "Fragmentos";
       renderFragmentTools(list);
       if (!fragmentTypeFilter) {
         visibleCount.textContent = `${typeFilters.length} tipos`;
@@ -5565,7 +5569,7 @@ Obs: pronto para boss"></textarea>
       if (types.has("water") || types.has("bug")) add("Net Ball", 90);
       if (waterBiome) add("Dive Ball", types.has("water") ? 84 : 76);
       if (night || caveLike || types.has("dark") || types.has("ghost")) add("Dusk Ball", 88);
-      if (owned) add("Repeat Ball", 92);
+      add("Repeat Ball", owned ? 92 : 64);
       if (isSpecial) add("Master Ball", 100);
       add(recommendation.primary, recommendation.priority === "Alta" ? 86 : 78);
       add(recommendation.backup, recommendation.priority === "Alta" ? 78 : 70);
@@ -5640,6 +5644,34 @@ Obs: pronto para boss"></textarea>
         );
     }
 
+    function findCaptureSearchEntry(value = captureSearch) {
+      const raw = String(value || "").trim();
+      if (!raw) return null;
+      const byName = catalogByKey.get(canonicalKey(raw));
+      if (byName) return byName;
+      const byId = /^\d+$/.test(raw) ? catalogById.get(Number(raw)) : null;
+      if (byId) return byId;
+      const normalizedSearch = normalize(raw);
+      return allEntries.find(entry => normalize(entry.name) === normalizedSearch) || null;
+    }
+
+    function getPreferredCapturePeriod(entry) {
+      const firstPeriod = getEntryBiomes(entry)
+        .flatMap(item => String(item.period || "").split(","))
+        .map(period => period.trim())
+        .find(Boolean);
+      return firstPeriod || "";
+    }
+
+    function applyCapturePokemonFilter(entry) {
+      if (!entry) return false;
+      captureSearch = entry.name;
+      selectedCaptureBiome = [...getEntryBiomeGroups(entry)][0] || "";
+      selectedCapturePeriod = getPreferredCapturePeriod(entry);
+      captureStatusFilter = "all";
+      return true;
+    }
+
     function renderCaptureTools(list) {
       const biomeOptions = getCaptureBiomeOptions();
       const periodOptions = getCapturePeriodOptions();
@@ -5669,7 +5701,7 @@ Obs: pronto para boss"></textarea>
             </label>
             <label>
               <span>Busca</span>
-              <input id="capture-search" type="search" list="pokemon-search-options" placeholder="Nome, bola ou detalhe...">
+              <input id="capture-search" type="search" list="pokemon-search-options" placeholder="Nome, número, bola ou detalhe...">
             </label>
           </div>
           <div class="capture-status-filters" aria-label="Status de captura"></div>
@@ -5700,6 +5732,16 @@ Obs: pronto para boss"></textarea>
       search.value = captureSearch;
       search.addEventListener("input", event => {
         captureSearch = event.target.value;
+        applyCapturePokemonFilter(findCaptureSearchEntry(captureSearch));
+        focusCaptureSearchAfterRender = true;
+        render();
+      });
+      search.addEventListener("keydown", event => {
+        if (event.key !== "Enter") return;
+        const exact = findCaptureSearchEntry(captureSearch);
+        if (!exact) return;
+        event.preventDefault();
+        applyCapturePokemonFilter(exact);
         focusCaptureSearchAfterRender = true;
         render();
       });
@@ -6546,7 +6588,6 @@ Obs: pronto para boss"></textarea>
       const captureActive = activeView === "capture";
       const telemetryActive = activeView === "captured";
       const breedingActive = activeView === "breeding";
-      const fragmentsActive = activeView === "fragments";
       const teamsActive = activeView === "teams";
       const buildsActive = activeView === "builds";
       const settingsActive = activeView === "settings";
@@ -6554,7 +6595,6 @@ Obs: pronto para boss"></textarea>
       captureTab.classList.toggle("active", captureActive);
       capturedTab.classList.toggle("active", telemetryActive);
       breedingTab.classList.toggle("active", breedingActive);
-      fragmentsTab.classList.toggle("active", fragmentsActive);
       teamsTab.classList.toggle("active", teamsActive);
       buildsTab.classList.toggle("active", buildsActive);
       settingsTab.classList.toggle("active", settingsActive);
@@ -6562,11 +6602,10 @@ Obs: pronto para boss"></textarea>
       captureTab.setAttribute("aria-pressed", captureActive ? "true" : "false");
       capturedTab.setAttribute("aria-pressed", telemetryActive ? "true" : "false");
       breedingTab.setAttribute("aria-pressed", breedingActive ? "true" : "false");
-      fragmentsTab.setAttribute("aria-pressed", fragmentsActive ? "true" : "false");
       teamsTab.setAttribute("aria-pressed", teamsActive ? "true" : "false");
       buildsTab.setAttribute("aria-pressed", buildsActive ? "true" : "false");
       settingsTab.setAttribute("aria-pressed", settingsActive ? "true" : "false");
-      document.body.classList.toggle("flow-without-kpis", captureActive || breedingActive || fragmentsActive || teamsActive || buildsActive || settingsActive);
+      document.body.classList.toggle("flow-without-kpis", captureActive || breedingActive || teamsActive || buildsActive || settingsActive);
       checklistNavSections.hidden = !checklistActive;
       toolbar.hidden = !checklistActive;
       const owned = allEntries.filter(isOwned).length;
@@ -6577,7 +6616,6 @@ Obs: pronto para boss"></textarea>
       captureFlowCount.textContent = captureMissing;
       telemetryFlowCount.textContent = `${percent}%`;
       breedingFlowCount.textContent = breedable;
-      fragmentsFlowCount.textContent = typeFilters.length;
       teamsFlowCount.textContent = teamBuiltPokemon.length;
       buildsFlowCount.textContent = typeFilters.length;
       settingsFlowCount.textContent = isTauriApp() ? "Desk" : "Web";
@@ -7178,6 +7216,10 @@ Obs: pronto para boss"></textarea>
     function render() {
       const activeInputSnapshot = getActiveInputSnapshot();
       const scrollSnapshot = getRenderScrollSnapshot();
+      if (activeView === "fragments") {
+        activeView = "breeding";
+        breedingMode = "fragments";
+      }
       const shouldRestoreScroll = activeView === lastRenderedView;
       const finishRender = () => {
         updateStats();
@@ -7210,12 +7252,6 @@ Obs: pronto para boss"></textarea>
 
       if (activeView === "breeding") {
         renderBreedingFlow(list);
-        finishRender();
-        return;
-      }
-
-      if (activeView === "fragments") {
-        renderFragmentsFlow(list);
         finishRender();
         return;
       }
@@ -7346,10 +7382,6 @@ Obs: pronto para boss"></textarea>
     });
     breedingTab.addEventListener("click", () => {
       activeView = "breeding";
-      render();
-    });
-    fragmentsTab.addEventListener("click", () => {
-      activeView = "fragments";
       render();
     });
     teamsTab.addEventListener("click", () => {

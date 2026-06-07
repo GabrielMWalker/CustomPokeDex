@@ -12,6 +12,8 @@ use std::{
 use tauri::{AppHandle, Manager, State};
 use tauri_plugin_updater::UpdaterExt;
 
+const INITIAL_LOG_HISTORY_BYTES: u64 = 512 * 1024;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct Database {
@@ -210,11 +212,15 @@ fn get_log_capture(state: State<'_, AppState>) -> Result<LogCaptureResponse, Str
 fn set_log_capture_enabled(enabled: bool, state: State<'_, AppState>) -> Result<LogCaptureResponse, String> {
   let log_directory = {
     let mut log = state.log.lock().map_err(|_| "Monitor indisponível".to_string())?;
+    let was_enabled = log.enabled;
     if enabled && log.log_directory.trim().is_empty() {
       if let Some(default_path) = existing_default_log_directory() {
         log.log_directory = default_path;
         reset_log_reader(&mut log);
       }
+    }
+    if enabled && !was_enabled {
+      reset_log_reader(&mut log);
     }
     log.enabled = enabled;
     log.last_error.clear();
@@ -439,6 +445,10 @@ fn reset_log_reader(log: &mut LogCaptureState) {
   log.path_reset_count += 1;
 }
 
+fn initial_log_history_offset(size: u64) -> u64 {
+  size.saturating_sub(INITIAL_LOG_HISTORY_BYTES)
+}
+
 fn scan_logs(log: &mut LogCaptureState, captured_keys: &HashSet<String>) {
   log.poll_count += 1;
   log.last_scan_at = now_string();
@@ -465,8 +475,10 @@ fn scan_logs(log: &mut LogCaptureState, captured_keys: &HashSet<String>) {
   };
 
   let active_path = active_file.to_string_lossy().to_string();
+  let mut trim_partial_start = false;
   if log.file_path != active_path {
     let is_first_active_file = log.file_path.is_empty();
+    trim_partial_start = is_first_active_file;
     log.file_path = active_path;
     log.buffer.clear();
     log.path_reset_count += 1;
@@ -474,11 +486,14 @@ fn scan_logs(log: &mut LogCaptureState, captured_keys: &HashSet<String>) {
     if is_first_active_file {
       match fs::metadata(&active_file) {
         Ok(metadata) => {
-          log.offset = metadata.len();
-          log.current_size = log.offset;
+          log.offset = initial_log_history_offset(metadata.len());
+          log.current_size = metadata.len();
           log.last_delta = 0;
-          log.last_no_read_reason = "Monitor iniciou no fim do arquivo atual".to_string();
-          return;
+          log.last_no_read_reason = if log.offset == 0 {
+            "Monitor lendo o arquivo atual desde o inicio".to_string()
+          } else {
+            "Monitor lendo historico recente do arquivo atual".to_string()
+          };
         }
         Err(error) => {
           log.last_error = error.to_string();
@@ -490,7 +505,7 @@ fn scan_logs(log: &mut LogCaptureState, captured_keys: &HashSet<String>) {
     log.offset = 0;
   }
 
-  match read_new_text(&active_file, log.offset) {
+  match read_new_text(&active_file, log.offset, trim_partial_start) {
     Ok((text, size)) => {
       log.last_error.clear();
       log.current_size = size;
@@ -525,7 +540,7 @@ fn newest_log_file(directory: &Path) -> Option<PathBuf> {
     .max_by_key(|path| fs::metadata(path).and_then(|metadata| metadata.modified()).ok())
 }
 
-fn read_new_text(path: &Path, offset: u64) -> Result<(String, u64), String> {
+fn read_new_text(path: &Path, offset: u64, trim_partial_start: bool) -> Result<(String, u64), String> {
   let metadata = fs::metadata(path).map_err(|error| error.to_string())?;
   let size = metadata.len();
   let start = if offset > size { 0 } else { offset };
@@ -535,7 +550,14 @@ fn read_new_text(path: &Path, offset: u64) -> Result<(String, u64), String> {
 
   let mut bytes = Vec::new();
   file.read_to_end(&mut bytes).map_err(|error| error.to_string())?;
-  Ok((String::from_utf8_lossy(&bytes).to_string(), size))
+  let mut text = String::from_utf8_lossy(&bytes).to_string();
+  if trim_partial_start && start > 0 {
+    text = text
+      .find('\n')
+      .map(|index| text[index + 1..].to_string())
+      .unwrap_or_default();
+  }
+  Ok((text, size))
 }
 
 fn process_log_text(log: &mut LogCaptureState, path: &Path, text: &str, captured_keys: &HashSet<String>) {
@@ -1068,6 +1090,38 @@ mod tests {
 
     assert_eq!(event.pokemon, "Squirtle");
     assert_eq!(event.event_type, "local-capture");
+  }
+
+  #[test]
+  fn initial_scan_reads_recent_existing_log_lines() {
+    let dir = env::temp_dir().join(format!(
+      "pixelmon-log-scan-{}",
+      SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos()
+    ));
+    fs::create_dir_all(&dir).unwrap();
+    let log_path = dir.join("latest.log");
+    fs::write(&log_path, "[12:00:00] [Client thread/INFO]: [CHAT] You captured &bSquirtle&r!\n").unwrap();
+
+    let mut log = LogCaptureState {
+      enabled: true,
+      log_directory: dir.to_string_lossy().to_string(),
+      ..Default::default()
+    };
+
+    scan_logs(&mut log, &HashSet::new());
+
+    fs::remove_file(log_path).unwrap();
+    fs::remove_dir(dir).unwrap();
+
+    assert_eq!(log.candidates.len(), 1);
+    assert_eq!(log.candidates[0].pokemon, "Squirtle");
+    assert_eq!(log.offset, log.current_size);
+  }
+
+  #[test]
+  fn initial_log_history_offset_keeps_small_files_from_start() {
+    assert_eq!(initial_log_history_offset(32), 0);
+    assert_eq!(initial_log_history_offset(INITIAL_LOG_HISTORY_BYTES + 10), 10);
   }
 }
 
