@@ -112,6 +112,46 @@
       font-size: 12px;
       box-shadow: none;
     }
+    .export-button.is-success,
+    .muted-button.is-success {
+      color: #0f5a3b;
+      background: #dcf7ea;
+      border-color: #8fd8b3;
+    }
+    .download-toast {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      z-index: 70;
+      width: min(360px, calc(100vw - 32px));
+      display: grid;
+      gap: 3px;
+      padding: 12px 14px;
+      color: var(--ink);
+      background: var(--surface);
+      border: 1px solid #8fd8b3;
+      border-radius: 8px;
+      box-shadow: 0 14px 32px rgba(22, 62, 75, .18);
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(10px);
+      transition: opacity .18s ease, transform .18s ease;
+    }
+    .download-toast.is-visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .download-toast strong {
+      color: #0f5a3b;
+      font-size: 13px;
+      font-weight: 900;
+    }
+    .download-toast span {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 760;
+      line-height: 1.35;
+    }
     input, button {
       min-height: 43px;
       border: 1px solid var(--line);

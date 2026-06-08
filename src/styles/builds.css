@@ -593,7 +593,15 @@
 
 .build-card-actions {
   display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
   justify-content: flex-end;
+}
+
+.smogon-build-button {
+  color: #163f2f;
+  background: #dcf7ea;
+  border-color: #8fd8b3;
 }
 
 .build-summary {
@@ -637,6 +645,12 @@
   color: #6d3f13;
   background: #fff0df;
   border-color: #efc79f;
+}
+
+.build-summary-header .build-source-badge.is-smogon-source {
+  color: #163f2f;
+  background: #dcf7ea;
+  border-color: #8fd8b3;
 }
 
 .ev-spread {

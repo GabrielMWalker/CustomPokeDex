@@ -352,6 +352,12 @@
   border-color: #9fd4c3;
 }
 
+.breeding-parent-ivs span.is-hidden-ability {
+  color: #4b2d78;
+  background: #efe6ff;
+  border-color: #cdb7f3;
+}
+
 .breeding-parent-actions {
   grid-area: actions;
   justify-content: flex-end;
@@ -527,7 +533,7 @@
 
 .breeding-result-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: 8px;
 }
 
@@ -557,6 +563,53 @@
 .breeding-item-recommendations {
   display: grid;
   gap: 10px;
+}
+
+.breeding-profit-panel {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  background: color-mix(in srgb, var(--green) 7%, var(--surface-soft));
+  border: 1px solid color-mix(in srgb, var(--green) 28%, var(--line));
+  border-radius: 8px;
+}
+
+.breeding-profit-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.breeding-profit-header h3 {
+  margin: 0;
+  font-size: 16px;
+  letter-spacing: 0;
+}
+
+.breeding-profit-header strong {
+  color: #0f5a3b;
+  font-size: 24px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.breeding-profit-controls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.breeding-profit-controls label {
+  display: grid;
+  gap: 5px;
+}
+
+.breeding-profit-controls span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 850;
+  text-transform: uppercase;
 }
 
 .breeding-recommendation-title {
@@ -788,7 +841,8 @@
   .breeding-summary,
   .breeding-calculator,
   .breeding-form-grid,
-  .breeding-result-grid {
+  .breeding-result-grid,
+  .breeding-profit-controls {
     grid-template-columns: 1fr;
   }
 

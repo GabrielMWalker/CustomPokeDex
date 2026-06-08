@@ -6,6 +6,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     const EVOLUTION_DATA = window.POKEMON_EVOLUTION_DATA || { pokemon: [], chains: [] };
     const BREEDING_DATA = window.POKEMON_BREEDING_DATA || [];
     const ABILITIES_DATA = window.POKEMON_ABILITIES_DATA || [];
+    const ITEM_SOURCES = window.POKEMON_ITEM_SOURCES || [];
     const BIOME_DATA_LOADED = Array.isArray(window.POKEMON_CAPTURE_BIOMES);
     const STORAGE_KEY = "pokemon-checklist-captured-v2";
     const LEGACY_STORAGE_KEY = "pokemon-checklist-status-v1";
@@ -18,7 +19,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     const COLLAPSED_SECTIONS_KEY = "pokemon-checklist-collapsed-sections-v1";
     const APP_META = window.POKELIST_APP_META || {
       name: "Pixelmon - Pokelist",
-      version: "1.0.6",
+      version: "1.0.7",
       releaseUrl: "",
       updaterUrl: ""
     };
@@ -45,10 +46,15 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     let selectedBreedingParentBId = "";
     let breedingCalculatorGoal = "improve";
     let breedingRequireNature = false;
+    let breedingRequireHiddenAbility = false;
     let breedingTargetStats = new Set(["hp"]);
+    let breedingProfitDays = 7;
+    let breedingProfitEggsPerDay = 1;
     let fragmentTypeFilter = "";
     let fragmentSearch = "";
     let fragmentOwnedOnly = true;
+    let itemSearch = "";
+    let itemLookupMode = "sources";
     let teamsSearch = "";
     let teamBuiltPokemon = [];
     let savedTeams = [];
@@ -72,6 +78,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     let focusBreedingParentSearchAfterRender = false;
     let focusBreedingSavedSearchAfterRender = false;
     let focusFragmentSearchAfterRender = false;
+    let focusItemSearchAfterRender = false;
     let focusTeamsSearchAfterRender = false;
     let focusBuildSearchAfterRender = false;
     let focusCounterSearchAfterRender = false;
@@ -148,6 +155,13 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     const imageSlug = name => normalize(name)
       .replace(/\u2640/g, "-f")
       .replace(/\u2642/g, "-m")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "");
+
+    const smogonSlug = name => normalize(name)
+      .replace(/\u2640/g, "-f")
+      .replace(/\u2642/g, "-m")
+      .replace(/['’]/g, "")
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-|-$/g, "");
 
@@ -317,6 +331,13 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       perfect: "Breeding perfeito",
       keep: "Manter qualidade"
     };
+    const breedingValueRules = {
+      basePokemon: 3700,
+      levelValue: 15,
+      eggLevel: 1,
+      perfectIv: 9200,
+      hiddenAbility: 28000
+    };
     const buildRoleFilters = [
       { value: "", label: "Todos" },
       { value: "physical-sweeper", label: "Físico veloz" },
@@ -474,12 +495,53 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
         note: "Template inicial para Pokémon sem papel claro nos dados locais."
       }
     };
+    const smogonSvSource = {
+      source: "Smogon SV",
+      sourceSite: "Smogon",
+      sourceFormat: "SV",
+      sourceTag: "Smogon SV"
+    };
+    const smogonProfileOverrides = new Map(Object.entries({
+      [canonicalKey("Charizard")]: [
+        { label: "Mega X", detail: "National Dex", format: "SV", url: "https://www.smogon.com/dex/sv/pokemon/charizard/national-dex/?forme=Mega-X" },
+        { label: "Mega Y", detail: "National Dex", format: "SV", url: "https://www.smogon.com/dex/sv/pokemon/charizard/national-dex/?forme=Mega-Y" },
+        { label: "G-Max", detail: "Gigantamax", format: "SS", url: "https://www.smogon.com/dex/ss/pokemon/charizard-gmax/" }
+      ],
+      [canonicalKey("Venusaur")]: [
+        { label: "Mega", detail: "National Dex", format: "SV", url: "https://www.smogon.com/dex/sv/pokemon/venusaur-mega/national-dex/" },
+        { label: "G-Max", detail: "Gigantamax", format: "SS", url: "https://www.smogon.com/dex/ss/pokemon/venusaur-gmax/" }
+      ],
+      [canonicalKey("Blastoise")]: [
+        { label: "Mega", detail: "National Dex", format: "SV", url: "https://www.smogon.com/dex/sv/pokemon/blastoise-mega/national-dex/" },
+        { label: "G-Max", detail: "Gigantamax", format: "SS", url: "https://www.smogon.com/dex/ss/pokemon/blastoise-gmax/" }
+      ],
+      [canonicalKey("Pikachu")]: [
+        { label: "G-Max", detail: "Gigantamax", format: "SS", url: "https://www.smogon.com/dex/ss/pokemon/pikachu-gmax/" }
+      ],
+      [canonicalKey("Meowth")]: [
+        { label: "G-Max", detail: "Gigantamax", format: "SS", url: "https://www.smogon.com/dex/ss/pokemon/meowth-gmax/" }
+      ],
+      [canonicalKey("Machamp")]: [
+        { label: "G-Max", detail: "Gigantamax", format: "SS", url: "https://www.smogon.com/dex/ss/pokemon/machamp-gmax/" }
+      ],
+      [canonicalKey("Gengar")]: [
+        { label: "Mega", detail: "National Dex", format: "SV", url: "https://www.smogon.com/dex/sv/pokemon/gengar-mega/national-dex/" },
+        { label: "G-Max", detail: "Gigantamax", format: "SS", url: "https://www.smogon.com/dex/ss/pokemon/gengar-gmax/" }
+      ],
+      [canonicalKey("Snorlax")]: [
+        { label: "G-Max", detail: "Gigantamax", format: "SS", url: "https://www.smogon.com/dex/ss/pokemon/snorlax-gmax/" }
+      ],
+      [canonicalKey("Melmetal")]: [
+        { label: "G-Max", detail: "Gigantamax", format: "SS", url: "https://www.smogon.com/dex/ss/pokemon/melmetal-gmax/" }
+      ]
+    }));
     const buildOverrides = new Map(Object.entries({
       [canonicalKey("Charizard")]: [
         {
           name: "Belly Drum",
           roleKey: "physical-sweeper",
-          source: "Meta Smogon",
+          ...smogonSvSource,
+          sourceUrl: "https://www.smogon.com/dex/sv/pokemon/charizard/",
           evs: [["Attack", 252], ["Speed", 252], ["HP", 4]],
           nature: "Jolly",
           item: "Sitrus Berry",
@@ -492,7 +554,8 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
         {
           name: "Chlorophyll Sun",
           roleKey: "special-sweeper",
-          source: "Meta Smogon",
+          ...smogonSvSource,
+          sourceUrl: "https://www.smogon.com/dex/sv/pokemon/venusaur/ou/",
           evs: [["Special Attack", 252], ["Speed", 252], ["Special Defense", 4]],
           nature: "Modest",
           item: "Life Orb",
@@ -505,7 +568,8 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
         {
           name: "Dragon Dance",
           roleKey: "physical-sweeper",
-          source: "Meta Smogon",
+          ...smogonSvSource,
+          sourceUrl: "https://www.smogon.com/dex/sv/pokemon/dragonite/",
           evs: [["Attack", 252], ["Speed", 252], ["Defense", 4]],
           nature: "Adamant ou Jolly",
           item: "Heavy-Duty Boots",
@@ -516,7 +580,8 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
         {
           name: "Choice Band",
           roleKey: "physical-sweeper",
-          source: "Meta Smogon",
+          ...smogonSvSource,
+          sourceUrl: "https://www.smogon.com/dex/sv/pokemon/dragonite/",
           evs: [["Attack", 252], ["Speed", 252], ["Defense", 4]],
           nature: "Adamant",
           item: "Choice Band",
@@ -529,10 +594,11 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
         {
           name: "Swords Dance",
           roleKey: "physical-sweeper",
-          source: "Meta Smogon",
+          ...smogonSvSource,
+          sourceUrl: "https://www.smogon.com/dex/sv/pokemon/garchomp/",
           evs: [["Attack", 252], ["Speed", 252], ["Special Defense", 4]],
           nature: "Jolly",
-          item: "Loaded Dice ou Life Orb",
+          item: "Loaded Dice",
           moves: ["Swords Dance", "Scale Shot", "Earthquake", "Fire Fang ou Dragon Tail"],
           attackTypes: ["dragon", "ground", "fire"],
           note: "Setup físico com Scale Shot para aumentar Speed e Earthquake como STAB principal."
@@ -542,10 +608,11 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
         {
           name: "Swords Dance Cleaner",
           roleKey: "physical-sweeper",
-          source: "Meta Smogon",
+          ...smogonSvSource,
+          sourceUrl: "https://www.smogon.com/dex/sv/pokemon/kingambit/",
           evs: [["Attack", 252], ["Speed", 252], ["Defense", 4]],
           nature: "Adamant",
-          item: "Black Glasses, Leftovers ou Lum Berry",
+          item: "Leftovers, Lum Berry, Black Glasses ou Air Balloon",
           moves: ["Swords Dance", "Sucker Punch", "Kowtow Cleave", "Iron Head ou Low Kick"],
           attackTypes: ["dark", "steel", "fighting"],
           note: "Cleaner físico de late game com Supreme Overlord e prioridade em Sucker Punch."
@@ -553,10 +620,11 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
         {
           name: "Bulky Swords Dance",
           roleKey: "physical-tank",
-          source: "Meta Smogon",
+          ...smogonSvSource,
+          sourceUrl: "https://www.smogon.com/dex/sv/pokemon/kingambit/",
           evs: [["HP", 212], ["Attack", 252], ["Speed", 44]],
           nature: "Adamant",
-          item: "Leftovers ou Black Glasses",
+          item: "Leftovers, Lum Berry, Black Glasses ou Air Balloon",
           moves: ["Swords Dance", "Sucker Punch", "Kowtow Cleave", "Iron Head"],
           attackTypes: ["dark", "steel"],
           note: "Versão mais bulky para aproveitar switches e pressionar sem depender tanto de Speed."
@@ -564,13 +632,14 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       ],
       [canonicalKey("Dragapult")]: [
         {
-          name: "Hex Status",
+          name: "Boots Pivot",
           roleKey: "support",
-          source: "Meta Smogon",
+          ...smogonSvSource,
+          sourceUrl: "https://www.smogon.com/dex/sv/pokemon/dragapult/",
           evs: [["Speed", 252], ["Special Attack", 252], ["Attack", 4]],
-          nature: "Timid ou Hasty",
+          nature: "Naive ou Timid",
           item: "Heavy-Duty Boots",
-          moves: ["Hex", "Will-O-Wisp ou Thunder Wave", "Dragon Darts", "U-turn"],
+          moves: ["Dragon Darts ou Draco Meteor", "Hex", "Will-O-Wisp ou Thunder Wave", "U-turn"],
           attackTypes: ["ghost", "dragon", "bug"],
           note: "Suporte ofensivo veloz: espalha status para fortalecer Hex e manter momentum."
         }
@@ -634,6 +703,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     const typesByKey = new Map(TYPE_DATA.map(entry => [canonicalKey(entry.name), entry]));
     const evolutionMembersByKey = new Map((EVOLUTION_DATA.pokemon || []).map(entry => [canonicalKey(entry.name), entry]));
     const evolutionChainsById = new Map((EVOLUTION_DATA.chains || []).map(chain => [chain.id, chain]));
+    const catalogNameById = new Map(CATALOG.map(entry => [entry.id, entry.name]));
     const breedingByKey = new Map(BREEDING_DATA.map(entry => [canonicalKey(entry.name), entry]));
     const abilitiesByKey = new Map(ABILITIES_DATA.map(entry => [canonicalKey(entry.name), entry]));
     const allEntries = CATALOG.map(pokemon => {
@@ -645,11 +715,16 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       const evolution = evolutionMembersByKey.get(nameKey);
       const breeding = breedingByKey.get(nameKey);
       const abilities = abilitiesByKey.get(nameKey);
-      const detail = manual?.detail || captureBiome?.detail || method?.detail || "";
+      const evolutionMethod = getIncomingEvolutionMethod(pokemon);
+      let detail = manual?.detail || method?.detail || evolutionMethod?.detail || captureBiome?.detail || "";
       const rawCategory = manual?.sourceCategory || method?.category || (captureBiome ? encounterCategory : "");
       let sourceCategory = rawCategory
         ? classifyPokemonCategory(pokemon.name, rawCategory, detail)
         : unclassifiedCategory;
+      if (sourceCategory === encounterCategory && evolutionMethod) {
+        sourceCategory = evolutionMethod.category;
+        detail = evolutionMethod.detail || detail;
+      }
       if (sourceCategory === encounterCategory && !hasRealEncounterInfo(detail)) {
         sourceCategory = detail ? serverCategory : unclassifiedCategory;
       }
@@ -674,25 +749,91 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       };
     });
 
+    function findIncomingEvolutionNode(node, pokemon, parent = null) {
+      if (!node || !pokemon) return null;
+      if (node.id === pokemon.id || canonicalKey(node.name) === canonicalKey(pokemon.name)) {
+        return parent && node.requirement
+          ? {
+              fromName: catalogNameById.get(parent.id) || parent.name,
+              requirement: String(node.requirement || "").trim()
+            }
+          : null;
+      }
+      for (const child of node.children || []) {
+        const found = findIncomingEvolutionNode(child, pokemon, node);
+        if (found) return found;
+      }
+      return null;
+    }
+
+    function formatEvolutionRequirementDetail(fromName, requirement) {
+      const cleanRequirement = String(requirement || "").trim();
+      if (!fromName || !cleanRequirement) return "";
+      const levelMatch = cleanRequirement.match(/^(?:lvl|level)\s*(\d+)/i);
+      if (levelMatch) return `${fromName} lvl ${levelMatch[1]}`;
+      if (/^level up$/i.test(cleanRequirement)) return `Evoluir ${fromName} subindo de nivel.`;
+      return `Evoluir ${fromName} com ${cleanRequirement}.`;
+    }
+
+    function getEvolutionRequirementCategory(requirement) {
+      const text = normalize(requirement || "");
+      if (/^(lvl|level)\s*\d+/.test(text)) return missingRequirementCategory;
+      if (text.includes("trade") || text.includes("troca")) return tradeCategory;
+      if (
+        text.includes("stone")
+        || text.includes("armor")
+        || text.includes("apple")
+        || text.includes("pot")
+        || text.includes("teacup")
+        || text.includes("sweet")
+        || text.includes("sachet")
+        || text.includes("whipped")
+        || text.includes("protector")
+        || text.includes("scale")
+        || text.includes("disc")
+        || text.includes("alloy")
+        || text.includes("coins")
+      ) {
+        return itemCategory;
+      }
+      return evolutionCategory;
+    }
+
+    function getIncomingEvolutionMethod(pokemon) {
+      const evolutionMember = evolutionMembersByKey.get(canonicalKey(pokemon?.name || ""));
+      if (!evolutionMember?.chainId) return null;
+      const chain = evolutionChainsById.get(evolutionMember.chainId)?.root;
+      const incoming = findIncomingEvolutionNode(chain, pokemon);
+      if (!incoming?.requirement) return null;
+      return {
+        category: getEvolutionRequirementCategory(incoming.requirement),
+        detail: formatEvolutionRequirementDetail(incoming.fromName, incoming.requirement),
+        requiredPokemon: incoming.fromName
+      };
+    }
+
     function parseRequiredPokemon(detail) {
       return detail.match(/^(.+?)\s+lvl\s+\d+/i)?.[1]?.trim()
         || detail.match(/^Evoluir\s+(.+?)\s+(?:até|at\u00c3\u00a9|durante|a partir)/i)?.[1]?.trim()
+        || detail.match(/^Evoluir\s+(.+?)\s+(?:subindo|com)\b/i)?.[1]?.trim()
         || "";
     }
 
     function classifyCategory(category, detail = "") {
       const categoryText = normalize(category || "");
       const detailText = normalize(detail);
+      const hasEncounterDetail = detailText.includes("biomas:") || detailText.includes("encontrar e capturar em");
       if (categoryText.includes("lendario") || categoryText.includes("mitico") || categoryText.includes("ultra beast")) return specialCategory;
       if (categoryText.includes("fossil") || detailText.includes("fossil") || detailText.includes("reviver")) return fossilCategory;
       if (categoryText === normalize(tradeCategory) || detailText.includes("por troca") || detailText.startsWith("trocar ") || detailText.includes(" traded")) return tradeCategory;
+      if (categoryText.includes("encontrar") || hasEncounterDetail) return encounterCategory;
       if (categoryText.includes("pedra") || detailText.includes(" stone") || detailText.includes(" armor") || detailText.includes(" apple") || detailText.includes("exposed to")) return itemCategory;
       if (levelRequirementCategories.has(category) || categoryText === "evoluir por nivel" || /^evoluir .+ nivel \d+/i.test(detailText)) {
         return missingRequirementCategory;
       }
       if (categoryText.includes("evolucao especial") || categoryText.includes("requisito especial") || detailText.startsWith("subir o nivel")) return evolutionCategory;
       if (categoryText.includes("disponibilidade depende") || categoryText.includes("consultar wiki")) return serverCategory;
-      if (categoryText.includes("encontrar") || detailText.includes("bioma")) return encounterCategory;
+      if (detailText.includes("bioma")) return encounterCategory;
       return category || encounterCategory;
     }
 
@@ -711,6 +852,38 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       return text.includes("biomas:") || text.includes("encontrar e capturar em");
     }
 
+    function parseBiomeSegmentList(value = "", defaultPeriod = "Any") {
+      return String(value || "")
+        .split(";")
+        .map(item => item.trim().replace(/\.$/, ""))
+        .filter(Boolean)
+        .map(item => {
+          const match = item.match(/^(.+)\s+\(([^()]*)\)$/);
+          return {
+            biome: (match ? match[1] : item).trim(),
+            period: (match ? match[2] : defaultPeriod).trim() || "Any"
+          };
+        })
+        .filter(item => item.biome);
+    }
+
+    function parseEntryBiomesFromDetail(detail = "") {
+      const text = String(detail || "").trim();
+      if (!hasRealEncounterInfo(text)) return [];
+
+      const biomesMatch = text.match(/Biomas:\s*(.+)$/i);
+      if (biomesMatch) {
+        return parseBiomeSegmentList(biomesMatch[1]);
+      }
+
+      const encounterMatch = text.match(/Encontrar e capturar em\s+(.+?)(?:;\s*per[íi]odo:\s*([^.;]+))?[.;]?$/i);
+      if (!encounterMatch) return [];
+
+      const biomeText = encounterMatch[1].trim();
+      if (!biomeText || /configura[cç][aã]o do servidor/i.test(text)) return [];
+      return parseBiomeSegmentList(biomeText, encounterMatch[2]?.trim() || "Any");
+    }
+
     function isFindingInformation(category) {
       return category === encounterCategory || category === specialCategory || category === serverCategory;
     }
@@ -722,13 +895,21 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
 
     const catalogByKey = new Map(allEntries.map(entry => [canonicalKey(entry.name), entry]));
     const catalogById = new Map(allEntries.map(entry => [entry.id, entry]));
+    const parsedDetailBiomesByKey = new Map();
 
     function getCaptureBiomeData(entry) {
       return captureBiomesByKey.get(canonicalKey(entry.name)) || null;
     }
 
     function getEntryBiomes(entry) {
-      return getCaptureBiomeData(entry)?.biomes || [];
+      const captureBiome = getCaptureBiomeData(entry);
+      if (captureBiome?.biomes?.length) return captureBiome.biomes;
+
+      const key = canonicalKey(entry?.name || "");
+      if (!parsedDetailBiomesByKey.has(key)) {
+        parsedDetailBiomesByKey.set(key, parseEntryBiomesFromDetail(captureBiome?.detail || entry?.detail || ""));
+      }
+      return parsedDetailBiomesByKey.get(key) || [];
     }
 
     function getCaptureBiomeGroupName(biome = "") {
@@ -738,7 +919,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       if (value === "any") return "Any";
       if (value.startsWith("ultra ")) return "Ultra Space";
       if (value.includes("end")) return "End";
-      if (value.includes("hellish") || value.includes("nether") || value.includes("crimson") || value.includes("warped") || value.includes("basalt") || value.includes("soul sand")) return "Hellish";
+      if (value === "hell" || value.includes("hellish") || value.includes("nether") || value.includes("crimson") || value.includes("warped") || value.includes("basalt") || value.includes("soul sand")) return "Hellish";
       if (value.includes("beach") || value.includes("shore")) return "Beaches";
       if (value.includes("ocean") || value.includes("deep sea") || value.includes("dead sea")) return "Oceanic";
       if (value.includes("river")) return "Rivers";
@@ -751,6 +932,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       if (value.includes("birch") || value.includes("aspen")) return "Birches";
       if (value.includes("roofed") || value.includes("dark forest")) return "Roofed";
       if (value.includes("taiga")) return "Taigas";
+      if (value.includes("mountainous forest")) return "Mountainous Forests";
       if (value.includes("jungle") || value.includes("bamboo") || value.includes("guiana shield")) return "Jungles";
       if (value.includes("mushroom")) return "Mushroom";
       if (value.includes("evil") || value.includes("burnt") || value.includes("pumpkin") || value.includes("wailing") || value.includes("wither")) return "Evil";
@@ -759,6 +941,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       if (value.includes("mesa") || value.includes("badland") || value.includes("red rock") || value.includes("bryce")) return "Mesas";
       if (value.includes("savanna")) return "Savannas";
       if (value.includes("arid") || value.includes("desert") || value.includes("dune") || value.includes("quartz")) return "Arid";
+      if (value.includes("forest hills")) return "Forests";
       if (value.includes("mountain") || value.includes("hill") || value.includes("peak") || value.includes("cliff") || value.includes("crag") || value.includes("slope") || value.includes("highland") || value.includes("crystalline chasm")) return "Mountainous";
       if (value.includes("forest") || value.includes("woods") || value.includes("grove") || value.includes("orchard")) return "Forests";
       if (value.includes("plains") || value.includes("grassland") || value.includes("prairie") || value.includes("field") || value.includes("clearing")) return "Plains";
@@ -769,6 +952,14 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       const groups = new Set();
       getEntryBiomes(entry).forEach(item => groups.add(getCaptureBiomeGroupName(item.biome)));
       return groups;
+    }
+
+    function getEntryBiomeSummary(entry, limit = 3) {
+      const names = [...getEntryBiomeGroups(entry)].filter(Boolean);
+      if (!names.length) return "Sem bioma cadastrado";
+      const visible = names.slice(0, limit);
+      const remaining = names.length - visible.length;
+      return `${visible.join(", ")}${remaining > 0 ? `, +${remaining}` : ""}`;
     }
 
     function getCaptureBiomeOptions() {
@@ -995,6 +1186,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
         gender,
         ivs,
         natureOk: Boolean(record.natureOk),
+        hasHiddenAbility: Boolean(record.hasHiddenAbility),
         item
       };
     }
@@ -1016,7 +1208,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     function getBreedingParentLabel(parent) {
       if (!parent) return "Selecione";
       const prefix = parent.nickname ? `${parent.nickname} - ` : "";
-      return `${prefix}${parent.name} F${countPerfectIvs(parent)}`;
+      return `${prefix}${parent.name} F${countPerfectIvs(parent)}${parent.hasHiddenAbility ? " HA" : ""} - ${getBreedingGenderLabel(parent.gender)}`;
     }
 
     const teamStatNames = {
@@ -1276,6 +1468,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     const captureTab = document.querySelector("#flow-capture");
     const capturedTab = document.querySelector("#flow-telemetry");
     const breedingTab = document.querySelector("#flow-breeding");
+    const itemsTab = document.querySelector("#flow-items");
     const teamsTab = document.querySelector("#flow-teams");
     const buildsTab = document.querySelector("#flow-builds");
     const settingsTab = document.querySelector("#flow-settings");
@@ -1284,6 +1477,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     const captureFlowCount = document.querySelector("#flow-capture-count");
     const telemetryFlowCount = document.querySelector("#flow-telemetry-count");
     const breedingFlowCount = document.querySelector("#flow-breeding-count");
+    const itemsFlowCount = document.querySelector("#flow-items-count");
     const teamsFlowCount = document.querySelector("#flow-teams-count");
     const buildsFlowCount = document.querySelector("#flow-builds-count");
     const settingsFlowCount = document.querySelector("#flow-settings-count");
@@ -1592,7 +1786,9 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       const dexNumber = String(entry.id).padStart(4, "0");
       const abilities = (entry.abilities || []).map(item => item.name).join(" ");
       const hiddenAbilities = (entry.hiddenAbilities || []).join(" ");
-      return normalize(`${entry.id} ${dexNumber} #${dexNumber} ${entry.name} ${entry.detail} ${entry.materials.join(" ")} ${abilities} ${hiddenAbilities}`);
+      const biomeText = getEntryBiomes(entry).map(item => `${item.biome} ${item.period}`).join(" ");
+      const biomeGroups = [...getEntryBiomeGroups(entry)].join(" ");
+      return normalize(`${entry.id} ${dexNumber} #${dexNumber} ${entry.name} ${entry.detail} ${entry.materials.join(" ")} ${abilities} ${hiddenAbilities} ${biomeText} ${biomeGroups}`);
     }
 
     function matchesTextSearch(entry, search) {
@@ -1670,6 +1866,88 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       window.open(url, "_blank", "noopener");
     }
 
+    function createSmogonProfileUrl(entry) {
+      const slug = smogonSlug(entry?.name || "");
+      return slug ? `https://www.smogon.com/dex/sv/pokemon/${slug}/` : "";
+    }
+
+    function collectEvolutionEntries(node, entries = []) {
+      if (!node) return entries;
+      const entry = catalogById.get(node.id) || catalogByKey.get(canonicalKey(node.name));
+      if (entry) entries.push(entry);
+      node.children.forEach(child => collectEvolutionEntries(child, entries));
+      return entries;
+    }
+
+    function getSmogonProfileLinks(entry) {
+      if (!entry) return [];
+      const chain = getEvolutionChain(entry);
+      const lineEntries = chain ? collectEvolutionEntries(chain) : [entry];
+      const currentKey = canonicalKey(entry.name);
+      const links = [];
+      const seen = new Set();
+      const addLink = link => {
+        if (!link?.url || seen.has(link.url)) return;
+        seen.add(link.url);
+        links.push(link);
+      };
+
+      lineEntries.forEach(lineEntry => {
+        addLink({
+          label: lineEntry.name,
+          detail: canonicalKey(lineEntry.name) === currentKey ? "Perfil atual" : "Linha evolutiva",
+          format: "SV",
+          url: createSmogonProfileUrl(lineEntry)
+        });
+      });
+
+      lineEntries.forEach(lineEntry => {
+        (smogonProfileOverrides.get(canonicalKey(lineEntry.name)) || []).forEach(profile => addLink(profile));
+      });
+
+      return links;
+    }
+
+    function createSmogonProfileButton(profile) {
+      const button = document.createElement("button");
+      button.className = "smogon-profile-button";
+      button.type = "button";
+      button.innerHTML = `
+        <span class="smogon-profile-format"></span>
+        <span class="smogon-profile-text">
+          <strong></strong>
+          <small></small>
+        </span>
+      `;
+      button.querySelector(".smogon-profile-format").textContent = profile.format || "SV";
+      button.querySelector("strong").textContent = profile.label || "Smogon";
+      button.querySelector("small").textContent = profile.detail || "Perfil Smogon";
+      button.addEventListener("click", () => {
+        openExternalUrl(profile.url).catch(() => {});
+      });
+      return button;
+    }
+
+    function createSmogonProfileGrid(entry) {
+      const grid = document.createElement("div");
+      grid.className = "smogon-profile-grid";
+      getSmogonProfileLinks(entry).forEach(profile => grid.append(createSmogonProfileButton(profile)));
+      return grid;
+    }
+
+    function createSmogonBuildButton(build) {
+      if (!build?.sourceUrl) return null;
+      const button = document.createElement("button");
+      button.className = "muted-button smogon-build-button";
+      button.type = "button";
+      button.textContent = "Smogon";
+      button.addEventListener("click", event => {
+        event.preventDefault();
+        openExternalUrl(build.sourceUrl).catch(() => {});
+      });
+      return button;
+    }
+
     function inferBuildRole(entry) {
       const types = new Set(entry.types || []);
       const fastTypes = new Set(["electric", "flying", "fire", "dragon", "ghost", "dark", "psychic"]);
@@ -1713,6 +1991,15 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
         ...template,
         ...overrides
       };
+    }
+
+    function getBuildSourceLabel(build = {}) {
+      return build.sourceTag || build.source || "Sugerida";
+    }
+
+    function isSmogonSvBuild(build = {}) {
+      return normalize(build.sourceSite || build.source || build.sourceTag) === "smogon"
+        && normalize(build.sourceFormat || "").includes("sv");
     }
 
     function getTypeEffectiveness(attackType, targetTypes = []) {
@@ -1824,7 +2111,9 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
         </dl>
       `;
       wrap.querySelector(".build-summary-header strong").textContent = `${build.name} - ${build.role}`;
-      wrap.querySelector(".build-source-badge").textContent = build.source;
+      const sourceBadge = wrap.querySelector(".build-source-badge");
+      sourceBadge.textContent = getBuildSourceLabel(build);
+      sourceBadge.classList.toggle("is-smogon-source", isSmogonSvBuild(build));
       wrap.querySelector(".build-damage-badge").textContent = buildDamageLabels[build.damageType] || "Dano flex";
       wrap.querySelector(".build-ev-slot").append(createEvSpread(build));
       const details = wrap.querySelectorAll(".build-detail-list dd");
@@ -2241,6 +2530,11 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
         modalBuilds.append(note, links);
       }
       primaryColumn.append(createModalSection("Builds / EVs", modalBuilds));
+
+      const smogonProfiles = getSmogonProfileLinks(entry);
+      if (smogonProfiles.length) {
+        sideColumn.append(createModalSection("Smogon", createSmogonProfileGrid(entry)));
+      }
 
       const evolutionChain = getEvolutionChain(entry);
       if (evolutionChain && countEvolutionNodes(evolutionChain) > 1) {
@@ -2867,17 +3161,40 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       return 1 / 25;
     }
 
-    function evaluateBreedingOutcome({ parentA, parentB, goal, targetStats, requireNature }) {
+    function getBreedingHiddenAbilityChance(parentA, parentB, requireHiddenAbility = false) {
+      const entryA = catalogByKey.get(canonicalKey(parentA?.name || ""));
+      const entryB = catalogByKey.get(canonicalKey(parentB?.name || ""));
+      if (!parentA || !parentB || !entryA || !entryB) return requireHiddenAbility ? 0 : 1;
+      let speciesParent = null;
+
+      if (isDitto(entryA) && !isDitto(entryB)) {
+        speciesParent = parentB;
+      } else if (isDitto(entryB) && !isDitto(entryA)) {
+        speciesParent = parentA;
+      } else if (parentA.gender === "female") {
+        speciesParent = parentA;
+      } else if (parentB.gender === "female") {
+        speciesParent = parentB;
+      }
+
+      const hiddenAbilityChance = speciesParent?.hasHiddenAbility ? 0.6 : 0;
+      return requireHiddenAbility ? hiddenAbilityChance : 1;
+    }
+
+    function evaluateBreedingOutcome({ parentA, parentB, goal, targetStats, requireNature, requireHiddenAbility = false }) {
       if (!parentA || !parentB) return null;
       const inheritedCount = parentA.item === "destiny-knot" || parentB.item === "destiny-knot" ? 5 : 3;
       const bestParentPerfects = Math.max(countPerfectIvs(parentA), countPerfectIvs(parentB));
-      if (!canBreedingParentsBreed(parentA, parentB)) {
+      const compatibilityIssue = getBreedingCompatibilityIssue(parentA, parentB);
+      if (compatibilityIssue) {
         return {
           successChance: 0,
           averagePerfects: 0,
           inheritedCount,
           bestParentPerfects,
           natureChance: 0,
+          hiddenAbilityChance: 0,
+          compatibilityIssue,
           compatible: false,
           targetStats: [...(targetStats?.length ? targetStats : ["hp"])]
         };
@@ -2942,13 +3259,16 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       });
 
       const natureChance = getNatureProbability(parentA, parentB, requireNature);
+      const hiddenAbilityChance = getBreedingHiddenAbilityChance(parentA, parentB, requireHiddenAbility);
       successChance *= natureChance;
+      successChance *= hiddenAbilityChance;
       return {
         successChance,
         averagePerfects,
         inheritedCount,
         bestParentPerfects,
         natureChance,
+        hiddenAbilityChance,
         compatible: true,
         targetStats: [...target]
       };
@@ -2999,17 +3319,39 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       return Boolean(entry && getEggGroups(entry).includes(group));
     }
 
-    function canBreedingParentsBreed(parentA, parentB) {
+    function getBreedingCompatibilityIssue(parentA, parentB) {
+      if (!parentA || !parentB) return "";
+      if (parentA.id && parentB.id && parentA.id === parentB.id) {
+        return "Selecione dois pais salvos diferentes para simular o cruzamento.";
+      }
       const entryA = catalogByKey.get(canonicalKey(parentA?.name || ""));
       const entryB = catalogByKey.get(canonicalKey(parentB?.name || ""));
-      if (!entryA || !entryB) return true;
-      if (isUndiscovered(entryA) || isUndiscovered(entryB)) return false;
-      if (isDitto(entryA) && isDitto(entryB)) return false;
-      if (isDitto(entryA) || isDitto(entryB)) return true;
+      if (!entryA || !entryB) return "";
+      if (isUndiscovered(entryA) || isUndiscovered(entryB)) {
+        return "Um dos pais esta no grupo Undiscovered e nao pode cruzar.";
+      }
+      if (isDitto(entryA) && isDitto(entryB)) {
+        return "Ditto nao cruza com Ditto.";
+      }
+      if (isDitto(entryA) || isDitto(entryB)) return "";
       const sharedGroup = getEggGroups(entryB).some(group => getEggGroups(entryA).includes(group));
-      if (!sharedGroup) return false;
-      return (parentA.gender === "male" && parentB.gender === "female")
+      if (!sharedGroup) {
+        return "Esses pais nao compartilham egg group.";
+      }
+      const validPair = (parentA.gender === "male" && parentB.gender === "female")
         || (parentA.gender === "female" && parentB.gender === "male");
+      if (validPair) return "";
+      if (parentA.gender === "genderless" || parentB.gender === "genderless") {
+        return "Pokemon sem genero so cruza com Ditto.";
+      }
+      if (parentA.gender === parentB.gender && (parentA.gender === "male" || parentA.gender === "female")) {
+        return `Os dois pais estao como ${getBreedingGenderLabel(parentA.gender)}. Para cruzar ${parentA.name} com ${parentB.name}, um precisa estar como Macho e o outro como Femea, ou use Ditto.`;
+      }
+      return "Defina os generos dos pais como Macho/Femea ou use Ditto.";
+    }
+
+    function canBreedingParentsBreed(parentA, parentB) {
+      return !getBreedingCompatibilityIssue(parentA, parentB);
     }
 
     function getFilteredBreedingParents() {
@@ -3021,6 +3363,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
           parent.nickname,
           getBreedingGenderLabel(parent.gender),
           breedingHeldItemByValue.get(parent.item)?.label || "",
+          parent.hasHiddenAbility ? "HA Hidden Ability" : "",
           entry ? getEggGroups(entry).map(formatEggGroup).join(" ") : "",
           `F${countPerfectIvs(parent)}`
         ].join(" ");
@@ -3266,6 +3609,12 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
           badge.textContent = `${stat.label} ${normalizeIvValue(parent.ivs[stat.key])}`;
           ivLine.append(badge);
         });
+        if (parent.hasHiddenAbility) {
+          const badge = document.createElement("span");
+          badge.className = "is-hidden-ability";
+          badge.textContent = "HA";
+          ivLine.append(badge);
+        }
         const actions = card.querySelector(".breeding-parent-actions");
         [
           { label: "A", parentKey: "a", title: "Usar como Pai A", active: selectedBreedingParentAId === parent.id },
@@ -3365,6 +3714,10 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
               <input id="breeding-parent-nature" type="checkbox">
               <span>Natureza desejada</span>
             </label>
+            <label class="breeding-check-row">
+              <input id="breeding-parent-ha" type="checkbox">
+              <span>Possui HA</span>
+            </label>
             <div class="breeding-import-actions">
               <button class="modal-capture-button" type="submit">Salvar pai</button>
               <button class="muted-button" id="breeding-toggle-import" type="button">Importar texto</button>
@@ -3375,6 +3728,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
 Genero: Macho
 Item: Destiny Knot
 Natureza desejada: Sim
+HA: Sim
 IVs: HP 31 / Atk 31 / Def 19 / SpA 31 / SpD 31 / Spe 31"></textarea>
               <div class="breeding-import-actions">
                 <button class="modal-capture-button" id="breeding-confirm-import" type="button">Importar pai</button>
@@ -3426,8 +3780,13 @@ IVs: HP 31 / Atk 31 / Def 19 / SpA 31 / SpD 31 / Spe 31"></textarea>
             <input id="breeding-require-nature" type="checkbox">
             <span>Exigir natureza correta</span>
           </label>
+          <label class="breeding-check-row">
+            <input id="breeding-require-ha" type="checkbox">
+            <span>Exigir HA</span>
+          </label>
           <div class="breeding-result-panel"></div>
           <div class="breeding-item-recommendations"></div>
+          <div class="breeding-profit-panel"></div>
         </article>
       `;
 
@@ -3485,6 +3844,7 @@ IVs: HP 31 / Atk 31 / Def 19 / SpA 31 / SpD 31 / Spe 31"></textarea>
           gender: section.querySelector("#breeding-parent-gender").value,
           item: itemSelect.value,
           natureOk: section.querySelector("#breeding-parent-nature").checked,
+          hasHiddenAbility: section.querySelector("#breeding-parent-ha").checked,
           ivs
         });
         if (!parent) return;
@@ -3551,12 +3911,19 @@ IVs: HP 31 / Atk 31 / Def 19 / SpA 31 / SpD 31 / Spe 31"></textarea>
         breedingRequireNature = event.target.checked;
         render();
       });
+      const requireHiddenAbility = section.querySelector("#breeding-require-ha");
+      requireHiddenAbility.checked = breedingRequireHiddenAbility;
+      requireHiddenAbility.addEventListener("change", event => {
+        breedingRequireHiddenAbility = event.target.checked;
+        render();
+      });
 
       renderBreedingSavedSearch(section);
       section.querySelector(".category-count").textContent = `${filteredParents.length}/${breedingSavedParents.length}`;
       renderBreedingSavedParents(section.querySelector(".breeding-saved-list"), filteredParents);
       renderBreedingResult(section.querySelector(".breeding-result-panel"));
       renderBreedingItemRecommendations(section.querySelector(".breeding-item-recommendations"));
+      renderBreedingProfitPanel(section.querySelector(".breeding-profit-panel"));
       list.append(section);
       visibleCount.textContent = `${breedingSavedParents.length} salvos`;
     }
@@ -3573,7 +3940,8 @@ IVs: HP 31 / Atk 31 / Def 19 / SpA 31 / SpD 31 / Spe 31"></textarea>
         parentB,
         goal: breedingCalculatorGoal,
         targetStats: [...breedingTargetStats],
-        requireNature: breedingRequireNature
+        requireNature: breedingRequireNature,
+        requireHiddenAbility: breedingRequireHiddenAbility
       });
       if (!result) return;
       if (result.compatible === false) {
@@ -3582,8 +3950,9 @@ IVs: HP 31 / Atk 31 / Def 19 / SpA 31 / SpD 31 / Spe 31"></textarea>
             <strong>0%</strong>
             <span>Incompativel</span>
           </div>
-          <p class="breeding-note">Esses pais salvos nao cruzam com o genero/egg group atual. Use Ditto ou escolha macho/femea com egg group compartilhado.</p>
+          <p class="breeding-note"></p>
         `;
+        container.querySelector(".breeding-note").textContent = result.compatibilityIssue || "Esses pais salvos nao cruzam com o genero/egg group atual. Use Ditto ou escolha macho/femea com egg group compartilhado.";
         return;
       }
       const targetLabel = result.targetStats
@@ -3599,6 +3968,7 @@ IVs: HP 31 / Atk 31 / Def 19 / SpA 31 / SpD 31 / Spe 31"></textarea>
           <div><span>IVs herdados</span><strong></strong></div>
           <div><span>Média F</span><strong></strong></div>
           <div><span>Natureza</span><strong></strong></div>
+          <div><span>HA</span><strong></strong></div>
         </div>
         <p class="breeding-note"></p>
       `;
@@ -3609,13 +3979,119 @@ IVs: HP 31 / Atk 31 / Def 19 / SpA 31 / SpD 31 / Spe 31"></textarea>
       resultCells[1].textContent = `${result.inheritedCount} de 6`;
       resultCells[2].textContent = `F${result.averagePerfects.toFixed(2)}`;
       resultCells[3].textContent = breedingRequireNature ? formatChance(result.natureChance) : "Ignorada";
+      resultCells[4].textContent = breedingRequireHiddenAbility ? formatChance(result.hiddenAbilityChance) : formatChance(getBreedingHiddenAbilityChance(parentA, parentB, true));
       const details = {
         improve: `Sucesso = filhote com mais IVs 31 que o melhor pai atual (F${result.bestParentPerfects}).`,
         keep: `Sucesso = filhote com pelo menos F${result.bestParentPerfects}.`,
         specific: `Sucesso = filhote com ${targetLabel} em 31.`,
         perfect: "Sucesso = filhote F6."
       };
-      container.querySelector(".breeding-note").textContent = `${details[breedingCalculatorGoal]} Regras baseadas na wiki do Pixelmon; datapacks/servidores podem alterar detalhes.`;
+      const haDetail = breedingRequireHiddenAbility ? " HA tambem entra no sucesso." : " HA aparece como chance informativa.";
+      container.querySelector(".breeding-note").textContent = `${details[breedingCalculatorGoal]}${haDetail} Regras baseadas na wiki do Pixelmon; datapacks/servidores podem alterar detalhes.`;
+    }
+
+    function formatMoney(value) {
+      const amount = Math.max(0, Math.round(Number(value) || 0));
+      return amount.toLocaleString("pt-BR");
+    }
+
+    function getBreedingEggBaseValue() {
+      return breedingValueRules.basePokemon + breedingValueRules.levelValue * breedingValueRules.eggLevel;
+    }
+
+    function getBreedingAverageValue(result, parentA, parentB) {
+      const hiddenAbilityChance = getBreedingHiddenAbilityChance(parentA, parentB, true);
+      const baseValue = getBreedingEggBaseValue();
+      const ivValue = result.averagePerfects * breedingValueRules.perfectIv;
+      const hiddenAbilityValue = hiddenAbilityChance * breedingValueRules.hiddenAbility;
+      return {
+        baseValue,
+        ivValue,
+        hiddenAbilityChance,
+        hiddenAbilityValue,
+        averageValue: baseValue + ivValue + hiddenAbilityValue
+      };
+    }
+
+    function renderBreedingProfitPanel(container) {
+      const parentA = getBreedingSavedParent(selectedBreedingParentAId);
+      const parentB = getBreedingSavedParent(selectedBreedingParentBId);
+      if (!parentA || !parentB) {
+        container.hidden = true;
+        container.innerHTML = "";
+        return;
+      }
+      const result = evaluateBreedingOutcome({
+        parentA,
+        parentB,
+        goal: breedingCalculatorGoal,
+        targetStats: [...breedingTargetStats],
+        requireNature: breedingRequireNature,
+        requireHiddenAbility: breedingRequireHiddenAbility
+      });
+      if (!result || result.compatible === false) {
+        container.hidden = true;
+        container.innerHTML = "";
+        return;
+      }
+      container.hidden = false;
+      const value = getBreedingAverageValue(result, parentA, parentB);
+      const days = Math.max(1, Number.parseInt(breedingProfitDays, 10) || 1);
+      const eggsPerDay = Math.max(0, Number.parseFloat(String(breedingProfitEggsPerDay).replace(",", ".")) || 0);
+
+      container.innerHTML = `
+        <div class="breeding-profit-header">
+          <div>
+            <p class="eyebrow">Valor</p>
+            <h3>Lucro médio do casal</h3>
+          </div>
+          <strong></strong>
+        </div>
+        <div class="breeding-profit-controls">
+          <label>
+            <span>Dias</span>
+            <input id="breeding-profit-days" type="number" min="1" step="1">
+          </label>
+          <label>
+            <span>Ovos/dia</span>
+            <input id="breeding-profit-eggs" type="number" min="0" step="0.1">
+          </label>
+        </div>
+        <div class="breeding-result-grid breeding-profit-grid">
+          <div><span>Base lvl 1</span><strong></strong></div>
+          <div><span>Média F</span><strong></strong></div>
+          <div><span>HA média</span><strong></strong></div>
+          <div><span>Ovos simulados</span><strong></strong></div>
+        </div>
+        <p class="breeding-note"></p>
+      `;
+      const daysInput = container.querySelector("#breeding-profit-days");
+      const eggsInput = container.querySelector("#breeding-profit-eggs");
+      daysInput.value = days;
+      eggsInput.value = eggsPerDay;
+
+      const cells = container.querySelectorAll(".breeding-profit-grid strong");
+      cells[0].textContent = formatMoney(value.baseValue);
+      cells[1].textContent = `${formatMoney(value.ivValue)} (F${result.averagePerfects.toFixed(2)})`;
+      cells[2].textContent = `${formatMoney(value.hiddenAbilityValue)} (${formatChance(value.hiddenAbilityChance)})`;
+      container.querySelector(".breeding-note").textContent = `Valor médio por ovo: ${formatMoney(value.averageValue)}. Fórmula: ${formatMoney(value.baseValue)} base + ${formatMoney(breedingValueRules.perfectIv)} por F1 médio + ${formatMoney(breedingValueRules.hiddenAbility)} * chance de HA.`;
+
+      const updateProjection = () => {
+        const currentDays = Math.max(1, Number.parseInt(daysInput.value, 10) || 1);
+        const currentEggsPerDay = Math.max(0, Number.parseFloat(String(eggsInput.value).replace(",", ".")) || 0);
+        const totalEggs = currentDays * currentEggsPerDay;
+        container.querySelector(".breeding-profit-header strong").textContent = formatMoney(value.averageValue * totalEggs);
+        cells[3].textContent = totalEggs.toLocaleString("pt-BR", { maximumFractionDigits: 1 });
+      };
+      daysInput.addEventListener("input", event => {
+        breedingProfitDays = Math.max(1, Number.parseInt(event.target.value, 10) || 1);
+        updateProjection();
+      });
+      eggsInput.addEventListener("input", event => {
+        breedingProfitEggsPerDay = Math.max(0, Number.parseFloat(String(event.target.value).replace(",", ".")) || 0);
+        updateProjection();
+      });
+      updateProjection();
     }
 
     function renderBreedingItemRecommendations(container) {
@@ -3725,6 +4201,398 @@ IVs: HP 31 / Atk 31 / Def 19 / SpA 31 / SpD 31 / Spe 31"></textarea>
         grid.append(card);
       });
       list.append(grid);
+    }
+
+    function getKnownItemNames() {
+      const names = new Map();
+      const addName = nameValue => {
+        const name = String(nameValue || "").trim();
+        if (!name) return;
+        const key = canonicalKey(name);
+        const current = names.get(key) || { name, count: 0 };
+        current.count += 1;
+        names.set(key, current);
+      };
+      allEntries.forEach(entry => {
+        (entry.materials || []).forEach(addName);
+      });
+      ITEM_SOURCES.forEach(source => addName(source.item));
+      return [...names.values()].sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, "pt-BR"));
+    }
+
+    function getItemSourceTypeLabel(type) {
+      const labels = {
+        "pokemon-drop": "Drop de Pokémon",
+        mining: "Mineração",
+        forage: "Craft",
+        fishing: "Pesca",
+        raid: "Raid",
+        crafting: "Craft (forge)",
+        chest: "Bau/loot",
+        held: "Held item",
+        headbutt: "Headbutt"
+      };
+      return labels[type] || "Fonte";
+    }
+
+    function getItemSourceActionLabel(type) {
+      const labels = {
+        "pokemon-drop": "Matando",
+        mining: "Minerando",
+        forage: "Craft",
+        fishing: "Pescando",
+        raid: "Raid",
+        crafting: "Craft (forge)",
+        chest: "Abrindo bau",
+        held: "Capturando",
+        headbutt: "Headbutt"
+      };
+      return labels[type] || "Obtendo";
+    }
+
+    function getItemEntryBiomeText(entry, limit = 4) {
+      if (!entry) return "";
+      const uniqueBiomes = [];
+      const seen = new Set();
+      getEntryBiomes(entry).forEach(item => {
+        const biome = String(item.biome || "").trim();
+        if (!biome || seen.has(`${biome}|${item.period || ""}`)) return;
+        seen.add(`${biome}|${item.period || ""}`);
+        uniqueBiomes.push(item.period && item.period !== "Any" ? `${biome} (${item.period})` : biome);
+      });
+      if (!uniqueBiomes.length) return "";
+      const visible = uniqueBiomes.slice(0, limit);
+      const extra = uniqueBiomes.length - visible.length;
+      return `${visible.join("; ")}${extra > 0 ? `; +${extra}` : ""}`;
+    }
+
+    function createItemSourceToolImage(sourceType) {
+      const icons = {
+        mining: { alt: "Minerando", src: "./styles/pickaxe.png" },
+        fishing: { alt: "Pesca", src: "./styles/rod.webp" },
+        crafting: { alt: "Craft", src: "./styles/craft.png" },
+        forage: { alt: "Craft", src: "./styles/craft.png" },
+        chest: { alt: "Chest loot", src: "./styles/chest.png" },
+        held: { alt: "Held item", src: "./styles/chest.png" },
+        headbutt: { alt: "Headbutt", src: "./styles/chest.png" }
+      };
+      const icon = icons[sourceType];
+      if (!icon) return null;
+      const image = document.createElement("img");
+      image.className = `item-source-tool-image item-source-tool-${sourceType}`;
+      image.alt = icon.alt;
+      image.src = icon.src;
+      return image;
+    }
+
+    function getItemSourceNote(result) {
+      const { entry, source } = result;
+      if (source?.sourceType === "mining") {
+        if (source.note) return source.note;
+        return source.biome ? `Minerar em biomas ${source.biome}.` : "Fonte de mineracao cadastrada.";
+      }
+      if (source?.sourceType === "pokemon-drop") {
+        const biomeText = getItemEntryBiomeText(entry);
+        return biomeText
+          ? `Biomas onde aparece: ${biomeText}.`
+          : "Bioma de spawn nao cadastrado para esse Pokemon.";
+      }
+      if (source?.note) return source.note;
+      return entry?.detail || "Sem detalhe de obtencao cadastrado.";
+    }
+
+    function getItemUtilitySummary(itemNames) {
+      const names = (itemNames || []).filter(Boolean);
+      if (!names.length) return "Usa o item pesquisado.";
+      return `Usa ${names.join(", ")}.`;
+    }
+
+    function itemSourceMatchesSearch(source, normalizedSearch) {
+      const text = [
+        source.item,
+        source.source,
+        source.sourceType,
+        source.chance,
+        source.quantity,
+        source.biome,
+        ...(source.aliases || [])
+      ].join(" ");
+      return normalize(text).includes(normalizedSearch);
+    }
+
+    function getItemLookupResults(search = itemSearch) {
+      const normalizedSearch = normalize(search.trim());
+      if (!normalizedSearch) return [];
+
+      const methodResults = allEntries
+        .map(entry => {
+          const materialMatches = (entry.materials || []).filter(material => normalize(material).includes(normalizedSearch));
+          const detailMatches = normalize(entry.detail).includes(normalizedSearch);
+          if (!materialMatches.length && !detailMatches) return null;
+          const exactMaterialMatch = materialMatches.some(material => normalize(material) === normalizedSearch);
+          return {
+            kind: "method",
+            entry,
+            itemNames: materialMatches.length ? materialMatches : [search.trim()],
+            detailMatches,
+            exactMaterialMatch,
+            score: (exactMaterialMatch ? 100 : 0)
+              + (materialMatches.length ? 60 : 0)
+              + (getCurrentCategory(entry) === itemCategory || getCurrentCategory(entry) === fossilCategory ? 20 : 0)
+              + (isOwned(entry) ? 0 : 8)
+              - entry.id / 10000
+          };
+        })
+        .filter(Boolean);
+
+      const sourceResults = ITEM_SOURCES
+        .map((source, index) => {
+          const entry = catalogByKey.get(canonicalKey(source.source || ""));
+          if (!itemSourceMatchesSearch(source, normalizedSearch)) return null;
+          const exactItemMatch = normalize(source.item) === normalizedSearch;
+          return {
+            kind: "source",
+            entry,
+            source,
+            itemNames: [source.item],
+            exactMaterialMatch: exactItemMatch,
+            score: (exactItemMatch ? 140 : 0)
+              + (normalize(source.item).includes(normalizedSearch) ? 80 : 0)
+              + (source.sourceType === "pokemon-drop" ? 25 : 15)
+              + (entry && !isOwned(entry) ? 8 : 0)
+              - index / 10000
+          };
+        })
+        .filter(Boolean);
+
+      return [...sourceResults, ...methodResults]
+        .sort((a, b) => b.score - a.score || (a.entry?.id || 99999) - (b.entry?.id || 99999));
+    }
+
+    function createItemLookupCard(result) {
+      const { entry, source, itemNames } = result;
+      const sourceLabel = source?.sourceType === "forage" ? "Craft" : (source?.source || entry?.name || "Fonte cadastrada");
+      const typeLabel = source ? getItemSourceTypeLabel(source.sourceType) : getCurrentCategory(entry);
+      const actionLabel = source ? getItemSourceActionLabel(source.sourceType) : "Utilidade";
+      const card = document.createElement("article");
+      card.className = `fragment-pair-card item-source-card${source?.sourceType === "mining" ? " is-mining" : ""}${source?.sourceType === "pokemon-drop" ? " is-pokemon-drop" : ""}${result.kind === "method" ? " is-utility" : ""}`;
+      if (entry) {
+        card.tabIndex = 0;
+        card.setAttribute("role", "button");
+        card.setAttribute("aria-label", `Abrir detalhes de ${entry.name}`);
+      }
+      card.innerHTML = `
+        <div class="item-source-main">
+          <span class="item-source-image"></span>
+          <div>
+            <p class="modal-kicker"></p>
+            <h3></h3>
+          </div>
+        </div>
+        <div class="fragment-generated-types item-source-items"></div>
+        <div class="fragment-pair-tags"></div>
+        <p class="fragment-note"></p>
+        <div class="fragment-pair-meta">
+          <strong></strong>
+          <span></span>
+        </div>
+      `;
+      if (entry && (!source || source.sourceType === "pokemon-drop")) {
+        card.querySelector(".item-source-image").replaceWith(createPokemonImage(entry, ""));
+        card.querySelector(".modal-kicker").textContent = actionLabel;
+      } else {
+        const sourceIcon = createItemSourceToolImage(source?.sourceType);
+        if (sourceIcon) {
+          card.querySelector(".item-source-image").replaceWith(sourceIcon);
+        } else {
+          const placeholder = document.createElement("span");
+          placeholder.className = "item-source-placeholder";
+          placeholder.textContent = "IT";
+          card.querySelector(".item-source-image").replaceWith(placeholder);
+        }
+        card.querySelector(".modal-kicker").textContent = actionLabel;
+      }
+      card.querySelector("h3").textContent = sourceLabel;
+
+      const itemWrap = card.querySelector(".item-source-items");
+      itemWrap.append(document.createElement("span"));
+      itemWrap.querySelector("span").textContent = "Item";
+      itemNames.forEach(item => itemWrap.append(createTextBadge(item)));
+
+      const tags = card.querySelector(".fragment-pair-tags");
+      tags.append(createTextBadge(actionLabel));
+      if (!source && typeLabel) tags.append(createTextBadge(typeLabel));
+      if (source?.chance) tags.append(createTextBadge(`Chance ${source.chance}`));
+      if (source?.quantity) tags.append(createTextBadge(`Qtd ${source.quantity}`));
+      if (source?.biome) tags.append(createTextBadge(`Bioma ${source.biome}`));
+
+      card.querySelector(".fragment-note").textContent = getItemSourceNote(result);
+      card.querySelector(".fragment-pair-meta strong").textContent = source
+        ? `${source.item} via ${typeLabel.toLowerCase()}.`
+        : getItemUtilitySummary(itemNames);
+      card.querySelector(".fragment-pair-meta span").textContent = entry
+        ? "Clique para abrir detalhes"
+        : (source?.wiki ? "Fonte externa cadastrada" : "Fonte cadastrada");
+
+      if (entry) {
+        card.addEventListener("click", () => openPokemonModal(entry));
+        card.addEventListener("keydown", event => {
+          if (event.key !== "Enter" && event.key !== " ") return;
+          event.preventDefault();
+          openPokemonModal(entry);
+        });
+      }
+      return card;
+    }
+
+    function renderItemLookupTools(list) {
+      const knownItems = getKnownItemNames();
+      const wrapper = document.createElement("section");
+      wrapper.className = "fragment-tools item-lookup-tools";
+      wrapper.innerHTML = `
+        <div class="fragment-panel">
+          <div class="fragment-panel-header">
+            <div>
+              <p class="eyebrow">Itens</p>
+              <h2 class="filter-title">Pesquisar item</h2>
+            </div>
+            <button class="link-button" id="clear-item-search" type="button">Voltar</button>
+          </div>
+          <input class="search-field" id="item-search" type="search" list="item-search-options" placeholder="Buscar item, fóssil, pedra...">
+          <datalist id="item-search-options"></datalist>
+        </div>
+      `;
+      const input = wrapper.querySelector("#item-search");
+      const options = wrapper.querySelector("#item-search-options");
+      knownItems.forEach(item => {
+        const option = document.createElement("option");
+        option.value = item.name;
+        options.append(option);
+      });
+      input.value = itemSearch;
+      input.addEventListener("input", event => {
+        itemSearch = event.target.value;
+        itemLookupMode = "sources";
+        focusItemSearchAfterRender = true;
+        render();
+      });
+      wrapper.querySelector("#clear-item-search").addEventListener("click", () => {
+        itemSearch = "";
+        itemLookupMode = "sources";
+        focusItemSearchAfterRender = true;
+        render();
+      });
+      list.append(wrapper);
+      if (focusItemSearchAfterRender) {
+        focusItemSearchAfterRender = false;
+        focusInputEnd(input);
+      }
+    }
+
+    function renderItemOverview(list) {
+      const grid = document.createElement("section");
+      grid.className = "fragment-type-grid item-overview-grid";
+      getKnownItemNames().slice(0, 24).forEach(item => {
+        const button = document.createElement("button");
+        button.className = "fragment-type-card item-type-card";
+        button.type = "button";
+        button.innerHTML = "<strong></strong><span></span><span></span>";
+        button.querySelector("strong").textContent = item.name;
+        button.children[1].textContent = `${item.count} registro${item.count === 1 ? "" : "s"} cadastrado${item.count === 1 ? "" : "s"}`;
+        button.children[2].textContent = "Clique para pesquisar";
+        button.addEventListener("click", () => {
+          itemSearch = item.name;
+          itemLookupMode = "sources";
+          focusItemSearchAfterRender = true;
+          render();
+        });
+        grid.append(button);
+      });
+      list.append(grid);
+    }
+
+    function renderItemLookupFlow(list) {
+      activeTitle.textContent = "Itens";
+      renderItemLookupTools(list);
+      const results = getItemLookupResults();
+      const sourceResults = results.filter(result => result.kind === "source");
+      const utilityResults = results.filter(result => result.kind === "method");
+      const modeTabs = [
+        { value: "sources", label: "Obtenção", count: sourceResults.length },
+        { value: "utility", label: "Utilidade", count: utilityResults.length }
+      ];
+      if (!modeTabs.some(mode => mode.value === itemLookupMode)) itemLookupMode = "sources";
+      const activeResults = itemLookupMode === "utility" ? utilityResults : sourceResults;
+      if (!itemSearch.trim()) {
+        visibleCount.textContent = `${getKnownItemNames().length} itens`;
+        const empty = document.createElement("div");
+        empty.className = "empty";
+        empty.textContent = "Digite um item para ver fontes de drop, mineração e métodos cadastrados.";
+        list.append(empty);
+        renderItemOverview(list);
+        return;
+      }
+
+      visibleCount.textContent = `${activeResults.length} ${itemLookupMode === "utility" ? "utilidade" : "fonte"}${activeResults.length === 1 ? "" : "s"}`;
+      const section = document.createElement("section");
+      section.className = "fragment-results item-results";
+      section.innerHTML = `
+        <div class="category-heading">
+          <h2></h2>
+          <span class="category-count"></span>
+        </div>
+        <p class="fragment-note"></p>
+        <div class="fragment-result-filters item-mode-tabs" aria-label="Modo de item"></div>
+        <div class="item-source-grid"></div>
+      `;
+      section.querySelector("h2").textContent = `Item: ${itemSearch.trim()}`;
+      section.querySelector(".category-count").textContent = `${sourceResults.length} obtenção${sourceResults.length === 1 ? "" : "ões"} · ${utilityResults.length} utilidade${utilityResults.length === 1 ? "" : "s"}`;
+      section.querySelector(".fragment-note").textContent = itemLookupMode === "utility"
+        ? "Utilidade mostra Pokémon ou métodos que usam esse item, como evoluções e requisitos cadastrados."
+        : "Obtenção mostra apenas como conseguir o item, como drop de Pokémon, mineração, pesca, raid ou craft.";
+      const grid = section.querySelector(".item-source-grid");
+      const note = section.querySelector(".fragment-note");
+      const tabs = section.querySelector(".item-mode-tabs");
+      modeTabs.forEach(mode => {
+        tabs.append(createFilterChip({
+          label: mode.label,
+          count: mode.count,
+          active: itemLookupMode === mode.value,
+          onClick: () => {
+            itemLookupMode = mode.value;
+            render();
+          }
+        }));
+      });
+      const collapsed = attachSectionCollapseControl(section, {
+        scope: "items",
+        label: `Item: ${itemSearch.trim()}`,
+        content: [note, tabs, grid]
+      });
+      if (collapsed) {
+        list.append(section);
+        return;
+      }
+
+      if (!activeResults.length) {
+        const empty = document.createElement("div");
+        empty.className = "empty";
+        empty.textContent = itemLookupMode === "utility"
+          ? "Nenhuma utilidade cadastrada para esse item na base atual."
+          : "Nenhuma fonte de obtenção cadastrada para esse item na base atual.";
+        section.append(empty);
+      } else if (appUtils.appendProgressiveItems) {
+        appUtils.appendProgressiveItems({
+          container: grid,
+          items: activeResults,
+          renderItem: createItemLookupCard,
+          batchSize: 60,
+          buttonLabel: "Mostrar mais itens"
+        });
+      } else {
+        activeResults.slice(0, 80).forEach(result => grid.append(createItemLookupCard(result)));
+      }
+      list.append(section);
     }
 
     function renderBreedingFlow(list) {
@@ -4354,6 +5222,7 @@ IVs: HP 31 / Atk 31 / Def 19 / SpA 31 / SpD 31 / Spe 31"></textarea>
         `Genero: ${getBreedingGenderLabel(parent.gender)}`,
         `Item: ${breedingHeldItemByValue.get(parent.item)?.label || "Sem item"}`,
         `Natureza desejada: ${parent.natureOk ? "Sim" : "Nao"}`,
+        `HA: ${parent.hasHiddenAbility ? "Sim" : "Nao"}`,
         `IVs: ${breedingIvStats.map(stat => `${stat.label} ${parent.ivs?.[stat.key] ?? 0}`).join(" / ")}`
       ].join("\n");
     }
@@ -4376,6 +5245,7 @@ IVs: HP 31 / Atk 31 / Def 19 / SpA 31 / SpD 31 / Spe 31"></textarea>
         gender,
         item,
         natureOk: normalize(fields.get("naturezadesejada") || "").startsWith("sim"),
+        hasHiddenAbility: normalize(fields.get("ha") || fields.get("hiddenability") || "").startsWith("sim"),
         ivs: parseStatSpreadText(fields.get("ivs") || "", 31)
       });
       if (!parent) return { error: "Nao foi possivel montar o pai importado." };
@@ -4387,7 +5257,7 @@ IVs: HP 31 / Atk 31 / Def 19 / SpA 31 / SpD 31 / Spe 31"></textarea>
         `Pokemon: ${entry.name}`,
         `Tipos: ${entry.types.map(formatPokemonType).join(" / ") || "Nao informado"}`,
         `Build: ${build.name}${build.role ? ` - ${build.role}` : ""}`,
-        `Fonte: ${build.source || "Sugerida"}`,
+        `Fonte: ${getBuildSourceLabel(build)}`,
         `Dano: ${buildDamageLabels[build.damageType] || "Flex"}`,
         `Nature: ${build.nature || "Nao informado"}`,
         `Item: ${build.item || "Nao informado"}`,
@@ -5139,10 +6009,13 @@ Obs: pronto para boss"></textarea>
         <div class="build-card-actions"></div>
       `;
       card.querySelector(".build-card-image").replaceWith(createPokemonImage(entry, ""));
-      card.querySelector(".modal-kicker").textContent = `#${String(entry.id).padStart(4, "0")} - ${build.source} - ${buildDamageLabels[build.damageType] || "Dano flex"}`;
+      card.querySelector(".modal-kicker").textContent = `#${String(entry.id).padStart(4, "0")} - ${getBuildSourceLabel(build)} - ${buildDamageLabels[build.damageType] || "Dano flex"}`;
       card.querySelector("h3").textContent = `${entry.name} - ${build.name}`;
       entry.types.forEach(type => card.querySelector(".breeding-meta").append(createTypeBadge(type)));
       card.querySelector(".build-card-body").append(createBuildSummary(entry, { compact: true, build }));
+
+      const smogonButton = createSmogonBuildButton(build);
+      if (smogonButton) card.querySelector(".build-card-actions").append(smogonButton);
 
       const copyButton = document.createElement("button");
       copyButton.className = "muted-button";
@@ -5243,7 +6116,7 @@ Obs: pronto para boss"></textarea>
         matchup.strongAttackTypes.forEach(type => card.querySelector(".raid-card-types").append(createTypeBadge(type)));
         const tags = card.querySelector(".raid-tags");
         tags.append(createTextBadge(matchup.defensiveLabel));
-        tags.append(createTextBadge(build.source));
+        tags.append(createTextBadge(getBuildSourceLabel(build)));
         card.querySelector(".raid-note").textContent = `Use cobertura ${matchup.strongAttackTypes.map(formatPokemonType).join(" / ")}. Defesa vs ${formatPokemonType(raidShieldType)}: ${matchup.defensiveLabel}.`;
         card.addEventListener("click", () => openPokemonModal(entry));
         grid.append(card);
@@ -5622,16 +6495,29 @@ Obs: pronto para boss"></textarea>
       const recommendation = getPokeballRecommendation(entry);
       const biomeText = getEntryBiomes(entry).map(item => `${item.biome} ${item.period}`).join(" ");
       const biomeGroups = [...getEntryBiomeGroups(entry)].join(" ");
-      return normalize(`${entry.id} ${entry.name} ${entry.detail} ${biomeText} ${biomeGroups} ${recommendation.primary} ${recommendation.backup}`).includes(search);
+      return normalize(`${entry.id} ${String(entry.id).padStart(4, "0")} ${entry.name} ${entry.detail} ${biomeText} ${biomeGroups} ${recommendation.primary} ${recommendation.backup}`).includes(search);
+    }
+
+    function matchesCapturePokemonIdentity(entry, search) {
+      if (!search) return false;
+      const rawSearch = String(search).trim();
+      const byId = /^\d+$/.test(rawSearch) && Number(rawSearch) === entry.id;
+      return byId || normalize(entry.name).includes(search);
     }
 
     function getCaptureFilteredEntries() {
       const normalizedSearch = normalize(captureSearch.trim());
+      const hasPokemonIdentitySearch = Boolean(normalizedSearch)
+        && allEntries.some(entry => getEntryBiomes(entry).length && matchesCapturePokemonIdentity(entry, normalizedSearch));
       return allEntries
         .filter(entry => getEntryBiomes(entry).length)
-        .filter(entry => entryHasBiome(entry, selectedCaptureBiome))
-        .filter(entry => entryHasCapturePeriod(entry, selectedCapturePeriod))
         .filter(entry => {
+          if (hasPokemonIdentitySearch && matchesCapturePokemonIdentity(entry, normalizedSearch)) return true;
+          return entryHasBiome(entry, selectedCaptureBiome)
+            && entryHasCapturePeriod(entry, selectedCapturePeriod);
+        })
+        .filter(entry => {
+          if (hasPokemonIdentitySearch && matchesCapturePokemonIdentity(entry, normalizedSearch)) return true;
           if (captureStatusFilter === "missing") return !isOwned(entry);
           if (captureStatusFilter === "captured") return isOwned(entry);
           return true;
@@ -6588,6 +7474,7 @@ Obs: pronto para boss"></textarea>
       const captureActive = activeView === "capture";
       const telemetryActive = activeView === "captured";
       const breedingActive = activeView === "breeding";
+      const itemsActive = activeView === "items";
       const teamsActive = activeView === "teams";
       const buildsActive = activeView === "builds";
       const settingsActive = activeView === "settings";
@@ -6595,6 +7482,7 @@ Obs: pronto para boss"></textarea>
       captureTab.classList.toggle("active", captureActive);
       capturedTab.classList.toggle("active", telemetryActive);
       breedingTab.classList.toggle("active", breedingActive);
+      itemsTab.classList.toggle("active", itemsActive);
       teamsTab.classList.toggle("active", teamsActive);
       buildsTab.classList.toggle("active", buildsActive);
       settingsTab.classList.toggle("active", settingsActive);
@@ -6602,10 +7490,11 @@ Obs: pronto para boss"></textarea>
       captureTab.setAttribute("aria-pressed", captureActive ? "true" : "false");
       capturedTab.setAttribute("aria-pressed", telemetryActive ? "true" : "false");
       breedingTab.setAttribute("aria-pressed", breedingActive ? "true" : "false");
+      itemsTab.setAttribute("aria-pressed", itemsActive ? "true" : "false");
       teamsTab.setAttribute("aria-pressed", teamsActive ? "true" : "false");
       buildsTab.setAttribute("aria-pressed", buildsActive ? "true" : "false");
       settingsTab.setAttribute("aria-pressed", settingsActive ? "true" : "false");
-      document.body.classList.toggle("flow-without-kpis", captureActive || breedingActive || teamsActive || buildsActive || settingsActive);
+      document.body.classList.toggle("flow-without-kpis", captureActive || breedingActive || itemsActive || teamsActive || buildsActive || settingsActive);
       checklistNavSections.hidden = !checklistActive;
       toolbar.hidden = !checklistActive;
       const owned = allEntries.filter(isOwned).length;
@@ -6616,6 +7505,7 @@ Obs: pronto para boss"></textarea>
       captureFlowCount.textContent = captureMissing;
       telemetryFlowCount.textContent = `${percent}%`;
       breedingFlowCount.textContent = breedable;
+      itemsFlowCount.textContent = getKnownItemNames().length;
       teamsFlowCount.textContent = teamBuiltPokemon.length;
       buildsFlowCount.textContent = typeFilters.length;
       settingsFlowCount.textContent = isTauriApp() ? "Desk" : "Web";
@@ -6719,6 +7609,45 @@ Obs: pronto para boss"></textarea>
       list.append(section);
     }
 
+    function renderRecentCaptureList(list, rows) {
+      if (!rows.length) return;
+      const section = document.createElement("section");
+      section.className = "capture-recent-card";
+      section.innerHTML = `
+        <div class="capture-recent-header">
+          <div>
+            <p class="eyebrow">Histórico</p>
+            <h2>Últimas capturas</h2>
+          </div>
+          <span class="category-count"></span>
+        </div>
+        <div class="capture-recent-list"></div>
+      `;
+      const recentRows = rows.slice(0, 12);
+      section.querySelector(".category-count").textContent = `${recentRows.length} recente${recentRows.length === 1 ? "" : "s"}`;
+      const recentList = section.querySelector(".capture-recent-list");
+      recentRows.forEach(({ entry, record }) => {
+        const button = document.createElement("button");
+        button.className = "capture-recent-item";
+        button.type = "button";
+        button.innerHTML = `
+          <span class="capture-recent-image"></span>
+          <span class="capture-recent-main">
+            <strong></strong>
+            <span></span>
+          </span>
+          <span class="capture-recent-date"></span>
+        `;
+        button.querySelector(".capture-recent-image").replaceWith(createPokemonImage(entry, ""));
+        button.querySelector("strong").textContent = `#${String(entry.id).padStart(4, "0")} ${entry.name}`;
+        button.querySelector(".capture-recent-main span").textContent = getMethodFilterLabel(entry);
+        button.querySelector(".capture-recent-date").textContent = formatCapturedDateTime(record.capturedAt);
+        button.addEventListener("click", () => openPokemonModal(entry));
+        recentList.append(button);
+      });
+      list.append(section);
+    }
+
     function renderCapturedTelemetry(list) {
       const rows = getCapturedTelemetryRows();
       const tableSearch = normalize(telemetrySearch.trim());
@@ -6728,6 +7657,7 @@ Obs: pronto para boss"></textarea>
         ? `${tableRows.length} de ${rows.length} Pok\u00e9mon`
         : `${rows.length} Pok\u00e9mon`;
       renderCaptureCharts(list, rows);
+      renderRecentCaptureList(list, rows);
 
       const searchWrap = document.createElement("div");
       searchWrap.className = "telemetry-search";
@@ -6757,7 +7687,7 @@ Obs: pronto para boss"></textarea>
       if (!tableRows.length) {
         const empty = document.createElement("div");
         empty.className = "empty";
-        empty.textContent = "Nenhum Pokémon capturado encontrado com essa busca.";
+        empty.textContent = "Nenhum Pokémon capturado encontrado com essa busca. Essa aba mostra apenas Pokémon já marcados como capturados.";
         list.append(empty);
         return;
       }
@@ -6771,6 +7701,7 @@ Obs: pronto para boss"></textarea>
               <th>Número</th>
               <th>Pokémon</th>
               <th>Método</th>
+              <th>Biomas</th>
               <th>Data de captura</th>
             </tr>
           </thead>
@@ -6784,11 +7715,13 @@ Obs: pronto para boss"></textarea>
           <td class="telemetry-number"></td>
           <td class="telemetry-name"></td>
           <td></td>
+          <td></td>
           <td class="telemetry-date"></td>
         `;
         row.querySelector(".telemetry-number").textContent = `#${String(entry.id).padStart(4, "0")}`;
         row.querySelector(".telemetry-name").textContent = entry.name;
         row.children[2].textContent = getMethodFilterLabel(entry);
+        row.children[3].textContent = getEntryBiomeSummary(entry);
         row.querySelector(".telemetry-date").textContent = formatCapturedDateTime(record.capturedAt);
         body.append(row);
       });
@@ -6802,6 +7735,40 @@ Obs: pronto para boss"></textarea>
       link.download = filename;
       link.click();
       URL.revokeObjectURL(link.href);
+    }
+
+    function showDownloadToast(filename, detail = "") {
+      let toast = document.querySelector(".download-toast");
+      if (!toast) {
+        toast = document.createElement("div");
+        toast.className = "download-toast";
+        toast.setAttribute("role", "status");
+        toast.setAttribute("aria-live", "polite");
+        toast.innerHTML = `
+          <strong></strong>
+          <span></span>
+        `;
+        document.body.append(toast);
+      }
+      window.clearTimeout(showDownloadToast.timer);
+      toast.querySelector("strong").textContent = "Arquivo enviado para Downloads";
+      toast.querySelector("span").textContent = detail ? `${filename} - ${detail}` : filename;
+      toast.classList.add("is-visible");
+      showDownloadToast.timer = window.setTimeout(() => {
+        toast.classList.remove("is-visible");
+      }, 4600);
+    }
+
+    function showDownloadButtonFeedback(button, label = "Arquivo enviado") {
+      if (!button) return;
+      const previousLabel = button.textContent;
+      button.textContent = label;
+      button.classList.add("is-success");
+      window.clearTimeout(button.downloadFeedbackTimer);
+      button.downloadFeedbackTimer = window.setTimeout(() => {
+        button.textContent = previousLabel;
+        button.classList.remove("is-success");
+      }, 2600);
     }
 
     function createFullBackupPayload() {
@@ -7220,6 +8187,9 @@ Obs: pronto para boss"></textarea>
         activeView = "breeding";
         breedingMode = "fragments";
       }
+      if (breedingMode === "items") {
+        breedingMode = "compatibility";
+      }
       const shouldRestoreScroll = activeView === lastRenderedView;
       const finishRender = () => {
         updateStats();
@@ -7252,6 +8222,12 @@ Obs: pronto para boss"></textarea>
 
       if (activeView === "breeding") {
         renderBreedingFlow(list);
+        finishRender();
+        return;
+      }
+
+      if (activeView === "items") {
+        renderItemLookupFlow(list);
         finishRender();
         return;
       }
@@ -7335,7 +8311,7 @@ Obs: pronto para boss"></textarea>
       finishRender();
     }
 
-    function exportMissingPokemon() {
+    function exportMissingPokemon(event) {
       const missingGroups = getDisplayGroups()
         .filter(group => group.name !== "Já capturados")
         .map(group => ({
@@ -7360,12 +8336,10 @@ Obs: pronto para boss"></textarea>
         lines.push("");
       });
 
-      const blob = new Blob([lines.join("\n")], { type: "text/plain;charset=utf-8" });
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      link.download = "pokemon-faltantes.txt";
-      link.click();
-      URL.revokeObjectURL(link.href);
+      const filename = "pokemon-faltantes.txt";
+      downloadTextFile(filename, lines.join("\n"));
+      showDownloadButtonFeedback(event?.currentTarget);
+      showDownloadToast(filename, `${total} Pokémon faltante${total === 1 ? "" : "s"} exportado${total === 1 ? "" : "s"}.`);
     }
 
     checklistTab.addEventListener("click", () => {
@@ -7382,6 +8356,10 @@ Obs: pronto para boss"></textarea>
     });
     breedingTab.addEventListener("click", () => {
       activeView = "breeding";
+      render();
+    });
+    itemsTab.addEventListener("click", () => {
+      activeView = "items";
       render();
     });
     teamsTab.addEventListener("click", () => {

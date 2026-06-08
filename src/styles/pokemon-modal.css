@@ -207,6 +207,69 @@
   gap: 7px;
 }
 
+.smogon-profile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 7px;
+}
+
+.smogon-profile-button {
+  min-width: 0;
+  min-height: 54px;
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  padding: 7px 9px;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid #bfe1cf;
+  border-radius: 8px;
+  text-align: left;
+}
+
+.smogon-profile-button:hover {
+  border-color: #78c69d;
+  transform: none;
+}
+
+.smogon-profile-format {
+  width: 38px;
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #163f2f;
+  background: #dcf7ea;
+  border: 1px solid #8fd8b3;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.smogon-profile-text {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.smogon-profile-text strong,
+.smogon-profile-text small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.smogon-profile-text strong {
+  font-size: 12px;
+}
+
+.smogon-profile-text small {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+}
+
 .modal-evolution-tree {
   overflow-x: auto;
   padding-bottom: 2px;
