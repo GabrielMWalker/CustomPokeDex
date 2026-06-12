@@ -201,6 +201,47 @@
   font-weight: 800;
 }
 
+.modal-collection-controls {
+  display: grid;
+  gap: 9px;
+}
+
+.modal-track-row,
+.modal-track-select {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.modal-track-row input {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+}
+
+.modal-track-select {
+  justify-content: space-between;
+}
+
+.modal-track-select select {
+  min-height: 32px;
+  min-width: 132px;
+  padding: 0 10px;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-weight: 800;
+}
+
+.modal-collection-controls .modal-section-note {
+  margin: 0;
+}
+
 .modal-partners {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

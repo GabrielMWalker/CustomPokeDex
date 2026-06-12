@@ -148,6 +148,11 @@
   border-radius: 8px;
 }
 
+.counter-shield-summary {
+  background: color-mix(in srgb, var(--yellow) 13%, var(--surface));
+  border-color: color-mix(in srgb, var(--yellow) 46%, var(--line));
+}
+
 .counter-team-list {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
@@ -198,6 +203,14 @@
 
 .counter-team-option b {
   color: var(--green);
+}
+
+.counter-shield-option {
+  border-color: color-mix(in srgb, var(--yellow) 52%, var(--line));
+}
+
+.counter-shield-option b {
+  color: #93620f;
 }
 
 .counter-summary h2 {

@@ -4,6 +4,34 @@
   margin-bottom: 18px;
 }
 
+.team-flow-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 14px;
+}
+
+.team-flow-tab {
+  min-height: 38px;
+  padding: 0 14px;
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.team-flow-tab:hover,
+.team-flow-tab.active {
+  color: var(--ink);
+  border-color: color-mix(in srgb, var(--accent) 48%, var(--line));
+}
+
+.team-flow-tab.active {
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+}
+
 .teams-panel,
 .team-builder-form {
   min-width: 0;
@@ -179,6 +207,59 @@
 .team-group-section {
   display: grid;
   gap: 10px;
+}
+
+.team-element-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 8px;
+}
+
+.team-element-summary {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  text-align: left;
+}
+
+.team-element-summary:hover {
+  border-color: color-mix(in srgb, var(--accent) 42%, var(--line));
+  transform: none;
+}
+
+.team-element-summary:disabled {
+  cursor: default;
+  opacity: .58;
+}
+
+.team-element-summary:disabled:hover {
+  border-color: var(--line);
+}
+
+.team-element-summary strong {
+  display: flex;
+}
+
+.team-element-summary span {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.team-element-summary small,
+.team-element-note {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 760;
+  line-height: 1.4;
+}
+
+.team-element-section .team-group-heading h3 {
+  display: flex;
 }
 
 .team-group-heading {

@@ -38,6 +38,8 @@ struct StoredConfig {
   log_directory: String,
   #[serde(default)]
   log_capture_enabled: bool,
+  #[serde(default)]
+  player_name: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -69,16 +71,32 @@ struct LogCandidate {
   source: String,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct LogRewardEvent {
+  id: u64,
+  #[serde(rename = "type")]
+  event_type: String,
+  title: String,
+  detail: String,
+  log_time: String,
+  detected_at: String,
+  source: String,
+  text: String,
+}
+
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct LogCaptureResponse {
   enabled: bool,
+  player_name: String,
   configured_log_path: String,
   default_log_path: String,
   needs_log_path_config: bool,
   active_file: String,
   active_path: String,
   candidates: Vec<LogCandidate>,
+  reward_events: Vec<LogRewardEvent>,
   last_chat: Option<LogChat>,
   last_signal: Option<LogSignal>,
   last_capture: Option<LogCandidate>,
@@ -105,8 +123,10 @@ struct LogCaptureState {
   offset: u64,
   buffer: String,
   candidates: Vec<LogCandidate>,
+  reward_events: Vec<LogRewardEvent>,
   seen: HashSet<String>,
   local_players: HashSet<String>,
+  player_name: String,
   last_chat: Option<LogChat>,
   last_signal: Option<LogSignal>,
   last_capture: Option<LogCandidate>,
@@ -210,7 +230,7 @@ fn get_log_capture(state: State<'_, AppState>) -> Result<LogCaptureResponse, Str
 
 #[tauri::command]
 fn set_log_capture_enabled(enabled: bool, state: State<'_, AppState>) -> Result<LogCaptureResponse, String> {
-  let log_directory = {
+  let (log_directory, player_name) = {
     let mut log = state.log.lock().map_err(|_| "Monitor indisponível".to_string())?;
     let was_enabled = log.enabled;
     if enabled && log.log_directory.trim().is_empty() {
@@ -224,11 +244,12 @@ fn set_log_capture_enabled(enabled: bool, state: State<'_, AppState>) -> Result<
     }
     log.enabled = enabled;
     log.last_error.clear();
-    log.log_directory.clone()
+    (log.log_directory.clone(), log.player_name.clone())
   };
   write_json_atomic(&state.config_path, &StoredConfig {
     log_directory,
     log_capture_enabled: enabled,
+    player_name,
   })?;
   refresh_log_capture(&state)
 }
@@ -237,16 +258,37 @@ fn set_log_capture_enabled(enabled: bool, state: State<'_, AppState>) -> Result<
 fn set_log_capture_config(log_path: String, state: State<'_, AppState>) -> Result<LogCaptureResponse, String> {
   let expanded = expand_windows_env_vars(log_path.trim());
 
-  let log_capture_enabled = {
+  let (log_capture_enabled, player_name) = {
     let mut log = state.log.lock().map_err(|_| "Monitor indisponível".to_string())?;
     log.log_directory = expanded.clone();
     reset_log_reader(&mut log);
-    log.enabled
+    (log.enabled, log.player_name.clone())
   };
 
   write_json_atomic(&state.config_path, &StoredConfig {
     log_directory: expanded,
     log_capture_enabled,
+    player_name,
+  })?;
+
+  refresh_log_capture(&state)
+}
+
+#[tauri::command]
+fn set_log_player_name(player_name: String, state: State<'_, AppState>) -> Result<LogCaptureResponse, String> {
+  let (log_directory, log_capture_enabled, clean_name) = {
+    let mut log = state.log.lock().map_err(|_| "Monitor indisponÃ­vel".to_string())?;
+    log.player_name = clean_player_name(&player_name).unwrap_or_default();
+    log.reward_events.clear();
+    log.seen.retain(|key| !key.starts_with("reward|"));
+    reset_log_reader(&mut log);
+    (log.log_directory.clone(), log.enabled, log.player_name.clone())
+  };
+
+  write_json_atomic(&state.config_path, &StoredConfig {
+    log_directory,
+    log_capture_enabled,
+    player_name: clean_name,
   })?;
 
   refresh_log_capture(&state)
@@ -289,6 +331,7 @@ pub fn run() {
         config.log_directory
       };
       log.enabled = config.log_capture_enabled;
+      log.player_name = config.player_name;
       log.next_id = 1;
 
       app.manage(AppState {
@@ -308,6 +351,7 @@ pub fn run() {
       get_log_capture,
       set_log_capture_enabled,
       set_log_capture_config,
+      set_log_player_name,
       ack_log_capture,
       clear_log_capture
     ])
@@ -600,6 +644,29 @@ fn process_log_text(log: &mut LogCaptureState, path: &Path, text: &str, captured
       });
     }
 
+    if let Some(reward) = parse_reward_event(&chat_text, &log.player_name) {
+      let seen_key = format!("reward|{}|{}|{}", time, pokemon_key(&reward.title), file_name);
+      if !log.seen.contains(&seen_key) {
+        log.seen.insert(seen_key);
+        log.events_read += 1;
+        log.reward_events.push(LogRewardEvent {
+          id: log.next_id,
+          event_type: reward.event_type,
+          title: reward.title,
+          detail: reward.detail,
+          log_time: time.clone(),
+          detected_at: now_string(),
+          source: file_name.clone(),
+          text: chat_text.clone(),
+        });
+        log.next_id += 1;
+        if log.reward_events.len() > 80 {
+          let overflow = log.reward_events.len() - 80;
+          log.reward_events.drain(0..overflow);
+        }
+      }
+    }
+
     let Some(event) = parse_capture_event(&chat_text) else {
       continue;
     };
@@ -650,12 +717,107 @@ struct ParsedEvent {
   player_name: Option<String>,
 }
 
+struct ParsedRewardEvent {
+  event_type: String,
+  title: String,
+  detail: String,
+}
+
 fn parse_chat_line(line: &str) -> Option<(String, String)> {
   let marker = "[CHAT] ";
   let marker_index = line.find(marker)?;
   let time = line.get(1..9).unwrap_or("").to_string();
   let text = clean_minecraft_text(&line[marker_index + marker.len()..]);
   Some((time, text))
+}
+
+fn parse_reward_event(text: &str, player_name: &str) -> Option<ParsedRewardEvent> {
+  let player_name = player_name.trim();
+  if player_name.is_empty() {
+    return None;
+  }
+
+  let clean_text = clean_minecraft_text(text);
+  let lower = clean_text.to_lowercase();
+  let text_key = pokemon_key(&clean_text);
+  let player_key = pokemon_key(player_name);
+  if player_key.is_empty() || !text_key.contains(&player_key) {
+    return None;
+  }
+
+  if lower.contains("captur") || lower.contains("captured") || lower.contains("sent to your pc") {
+    return None;
+  }
+
+  let reward_key = pokemon_key(&clean_text);
+  let has_gain_signal = [
+    "ganhou",
+    "recebeu",
+    "received",
+    "won",
+    "reward",
+    "recompensa",
+    "premio",
+    "claim",
+    "obtained",
+    "obteve",
+    "gacha",
+    "caixa",
+    "crate",
+    "money",
+    "coins",
+    "cash",
+    "dinheiro",
+    "saldo",
+  ]
+  .iter()
+  .any(|marker| lower.contains(marker) || reward_key.contains(marker));
+  if !has_gain_signal {
+    return None;
+  }
+
+  let event_type = if ["gacha", "pokegacha", "caixa", "crate"].iter().any(|marker| lower.contains(marker) || reward_key.contains(marker)) {
+    "gacha"
+  } else if ["money", "coins", "cash", "dinheiro", "saldo", "pokedollar"].iter().any(|marker| lower.contains(marker) || reward_key.contains(marker)) || clean_text.contains('$') {
+    "money"
+  } else if ["reward", "recompensa", "premio"].iter().any(|marker| lower.contains(marker) || reward_key.contains(marker)) {
+    "reward"
+  } else {
+    "item"
+  };
+
+  let title = summarize_reward_title(&clean_text, player_name);
+  Some(ParsedRewardEvent {
+    event_type: event_type.to_string(),
+    detail: clean_text,
+    title,
+  })
+}
+
+fn summarize_reward_title(text: &str, player_name: &str) -> String {
+  let mut summary = text.replace(player_name, "");
+  for marker in [
+    "ganhou",
+    "recebeu",
+    "received",
+    "won",
+    "reward",
+    "recompensa",
+    "claim",
+    "obtained",
+    "obteve",
+  ] {
+    if let Some(index) = summary.to_lowercase().find(marker) {
+      summary = summary[index + marker.len()..].to_string();
+      break;
+    }
+  }
+  let summary = summary
+    .trim_matches(|character: char| character.is_whitespace() || matches!(character, ':' | '-' | '!' | '.' | '[' | ']'))
+    .trim();
+  let fallback = text.trim();
+  let value = if summary.is_empty() { fallback } else { summary };
+  value.chars().take(96).collect()
 }
 
 fn parse_capture_event(text: &str) -> Option<ParsedEvent> {
@@ -999,6 +1161,7 @@ fn log_response(log: &LogCaptureState) -> LogCaptureResponse {
   let default_path = default_log_directory();
   LogCaptureResponse {
     enabled: log.enabled,
+    player_name: log.player_name.clone(),
     configured_log_path: log.log_directory.clone(),
     default_log_path: default_path.clone(),
     needs_log_path_config: log.log_directory.trim().is_empty(),
@@ -1009,6 +1172,7 @@ fn log_response(log: &LogCaptureState) -> LogCaptureResponse {
       .to_string(),
     active_path: log.file_path.clone(),
     candidates: log.candidates.clone(),
+    reward_events: log.reward_events.clone(),
     last_chat: log.last_chat.clone(),
     last_signal: log.last_signal.clone(),
     last_capture: log.last_capture.clone(),
@@ -1122,6 +1286,19 @@ mod tests {
   fn initial_log_history_offset_keeps_small_files_from_start() {
     assert_eq!(initial_log_history_offset(32), 0);
     assert_eq!(initial_log_history_offset(INITIAL_LOG_HISTORY_BYTES + 10), 10);
+  }
+
+  #[test]
+  fn parses_reward_event_for_configured_player() {
+    let event = parse_reward_event("[Gacha] SuperFast recebeu 3 Rare Candy da caixa diaria.", "SuperFast").unwrap();
+
+    assert_eq!(event.event_type, "gacha");
+    assert!(event.title.contains("3 Rare Candy"));
+  }
+
+  #[test]
+  fn ignores_reward_event_from_other_player() {
+    assert!(parse_reward_event("[Gacha] OutroPlayer recebeu 3 Rare Candy.", "SuperFast").is_none());
   }
 }
 

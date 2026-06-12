@@ -10,6 +10,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     const BIOME_DATA_LOADED = Array.isArray(window.POKEMON_CAPTURE_BIOMES);
     const STORAGE_KEY = "pokemon-checklist-captured-v2";
     const LEGACY_STORAGE_KEY = "pokemon-checklist-status-v1";
+    const COLLECTION_TRACKING_STORAGE_KEY = "pokemon-collection-tracking-v1";
     const BREEDING_PARENT_STORAGE_KEY = "pokemon-breeding-parents-v1";
     const TEAMS_STORAGE_KEY = "pokemon-teams-v1";
     const THEME_KEY = "pokemon-checklist-theme";
@@ -17,9 +18,10 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     const LOG_SIDEBAR_COLLAPSED_KEY = "pokemon-checklist-log-sidebar-collapsed";
     const LOG_MONITOR_MINIMIZED_KEY = "pokemon-checklist-log-monitor-minimized";
     const COLLAPSED_SECTIONS_KEY = "pokemon-checklist-collapsed-sections-v1";
+    const PLAYER_NAME_STORAGE_KEY = "pokemon-checklist-player-name-v1";
     const APP_META = window.POKELIST_APP_META || {
       name: "Pixelmon - Pokelist",
-      version: "1.0.7",
+      version: "1.0.8",
       releaseUrl: "",
       updaterUrl: ""
     };
@@ -28,6 +30,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     const isTauriApp = () => Boolean(getTauriInvoke());
     const invokeTauri = (command, args = {}) => getTauriInvoke()(command, args);
     const capturedState = new Map();
+    const collectionTrackingState = new Map();
     const filterState = { status: "", methods: new Set(), types: new Set(), sort: "number" };
     let activeView = "checklist";
     let captureSearch = "";
@@ -50,16 +53,23 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     let breedingTargetStats = new Set(["hp"]);
     let breedingProfitDays = 7;
     let breedingProfitEggsPerDay = 1;
-    let fragmentTypeFilter = "";
+    let fragmentTypeFilters = new Set();
     let fragmentSearch = "";
     let fragmentOwnedOnly = true;
+    let fragmentIncludeCombinations = false;
     let itemSearch = "";
     let itemLookupMode = "sources";
     let teamsSearch = "";
     let teamBuiltPokemon = [];
     let savedTeams = [];
     let activeTeamEditId = "";
+    let activeTeamTab = "register";
+    let isTeamBuilderFormExpanded = false;
     let buildSearch = "";
+    let collectionSearch = "";
+    let collectionMode = "ha";
+    let collectionHaFilter = "owned";
+    let collectionShinyFilter = "missing";
     let buildRoleFilter = "";
     let buildDamageFilter = "";
     let raidShieldType = "";
@@ -81,8 +91,8 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     let focusItemSearchAfterRender = false;
     let focusTeamsSearchAfterRender = false;
     let focusBuildSearchAfterRender = false;
+    let focusCollectionSearchAfterRender = false;
     let focusCounterSearchAfterRender = false;
-    let focusCounterBossSearchAfterRender = false;
     let updateCheckInProgress = false;
     let updateInstallInProgress = false;
     let appUpdateStatus = "";
@@ -101,6 +111,22 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       { type: "generation", label: "Gera\u00e7\u00e3o 8", start: 810, end: 905 },
       { type: "generation", label: "Gera\u00e7\u00e3o 9", start: 906, end: 1025 }
     ];
+    const haCollectionCategories = [
+      { value: "default", label: "Default" },
+      { value: "perfect", label: "Perfeito" },
+      { value: "f6", label: "F6" }
+    ];
+    const haCollectionFilters = [
+      { value: "missing", label: "Faltando" },
+      ...haCollectionCategories,
+      { value: "owned", label: "Tenho HA" },
+      { value: "all", label: "Todos" }
+    ];
+    const shinyCollectionFilters = [
+      { value: "missing", label: "Faltando" },
+      { value: "owned", label: "Tenho Shiny" },
+      { value: "all", label: "Todos" }
+    ];
     let activeNavigation = defaultNavigation;
     let useFileDatabase = false;
     const logCaptureState = {
@@ -114,6 +140,8 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       lastChat: null,
       lastSignal: null,
       lastCapture: null,
+      rewardEvents: [],
+      playerName: "",
       lastIgnored: null,
       lastScanAt: "",
       lastFrontendPollAt: "",
@@ -133,6 +161,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     };
     let activeTheme = localStorage.getItem(THEME_KEY) === "dark" ? "dark" : "light";
     let isCompactMode = localStorage.getItem(DENSITY_KEY) === "compact";
+    let configuredPlayerName = localStorage.getItem(PLAYER_NAME_STORAGE_KEY) || "";
     let isLogSidebarCollapsed = localStorage.getItem(LOG_SIDEBAR_COLLAPSED_KEY) === "true";
     let isLogMonitorMinimized = localStorage.getItem(LOG_MONITOR_MINIMIZED_KEY) === "true";
     let collapsedSections = new Set();
@@ -769,8 +798,11 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     function formatEvolutionRequirementDetail(fromName, requirement) {
       const cleanRequirement = String(requirement || "").trim();
       if (!fromName || !cleanRequirement) return "";
-      const levelMatch = cleanRequirement.match(/^(?:lvl|level)\s*(\d+)/i);
-      if (levelMatch) return `${fromName} lvl ${levelMatch[1]}`;
+      const levelMatch = cleanRequirement.match(/^(?:lvl|level)\s*(\d+)(.*)$/i);
+      if (levelMatch) {
+        const extraRequirement = levelMatch[2]?.trim();
+        return `${fromName} lvl ${levelMatch[1]}${extraRequirement ? ` ${extraRequirement}` : ""}`;
+      }
       if (/^level up$/i.test(cleanRequirement)) return `Evoluir ${fromName} subindo de nivel.`;
       return `Evoluir ${fromName} com ${cleanRequirement}.`;
     }
@@ -792,6 +824,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
         || text.includes("scale")
         || text.includes("disc")
         || text.includes("alloy")
+        || text.includes("block")
         || text.includes("coins")
       ) {
         return itemCategory;
@@ -1081,6 +1114,28 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       });
     }
 
+    function mergeCapturedFromRecords(records) {
+      let added = 0;
+      normalizeCapturedRecords(records).forEach(record => {
+        const key = canonicalKey(record.name);
+        const current = capturedState.get(key);
+        if (!current) {
+          capturedState.set(key, record);
+          added += 1;
+          return;
+        }
+        const currentTime = Date.parse(current.capturedAt || "");
+        const incomingTime = Date.parse(record.capturedAt || "");
+        if ((!current.capturedAt && record.capturedAt) || (currentTime && incomingTime && incomingTime < currentTime)) {
+          capturedState.set(key, {
+            ...current,
+            capturedAt: record.capturedAt
+          });
+        }
+      });
+      return added;
+    }
+
     function getCapturedRecords() {
       return allEntries
         .filter(entry => capturedState.has(canonicalKey(entry.name)))
@@ -1102,6 +1157,248 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
         name: entry.name,
         capturedAt
       });
+    }
+
+    function normalizeHaCollectionCategory(value) {
+      return haCollectionCategories.some(category => category.value === value) ? value : "default";
+    }
+
+    function normalizeCollectionRecord(record = {}) {
+      const entry = catalogByKey.get(canonicalKey(record.name || ""));
+      if (!entry) return null;
+      const hasHiddenAbility = Boolean(record.hasHiddenAbility);
+      return {
+        name: entry.name,
+        hasHiddenAbility,
+        hiddenAbilityCategory: hasHiddenAbility ? normalizeHaCollectionCategory(record.hiddenAbilityCategory) : "",
+        shiny: Boolean(record.shiny),
+        updatedAt: record.updatedAt ? String(record.updatedAt) : ""
+      };
+    }
+
+    function getCollectionRecord(entry) {
+      return collectionTrackingState.get(canonicalKey(entry.name)) || {
+        name: entry.name,
+        hasHiddenAbility: false,
+        hiddenAbilityCategory: "",
+        shiny: false,
+        updatedAt: ""
+      };
+    }
+
+    function getCollectionRecords() {
+      return allEntries
+        .map(entry => normalizeCollectionRecord(getCollectionRecord(entry)))
+        .filter(record => record && (record.hasHiddenAbility || record.shiny));
+    }
+
+    function mergeCollectionRecord(record) {
+      if (!record) return;
+      if (record.hasHiddenAbility) {
+        const entry = catalogByKey.get(canonicalKey(record.name));
+        const rootEntry = getHaTrackingEntry(entry || record);
+        const current = collectionTrackingState.get(canonicalKey(rootEntry.name)) || { name: rootEntry.name };
+        collectionTrackingState.set(canonicalKey(rootEntry.name), {
+          ...current,
+          name: rootEntry.name,
+          hasHiddenAbility: true,
+          hiddenAbilityCategory: normalizeHaCollectionCategory(record.hiddenAbilityCategory),
+          shiny: Boolean(current.shiny),
+          updatedAt: record.updatedAt || current.updatedAt || ""
+        });
+      }
+      if (record.shiny) {
+        const entry = catalogByKey.get(canonicalKey(record.name));
+        const rootEntry = getShinyTrackingEntry(entry || record);
+        const current = collectionTrackingState.get(canonicalKey(rootEntry.name)) || { name: rootEntry.name };
+        collectionTrackingState.set(canonicalKey(rootEntry.name), {
+          ...current,
+          name: rootEntry.name,
+          hasHiddenAbility: Boolean(current.hasHiddenAbility),
+          hiddenAbilityCategory: current.hasHiddenAbility ? normalizeHaCollectionCategory(current.hiddenAbilityCategory) : "",
+          shiny: true,
+          updatedAt: record.updatedAt || current.updatedAt || ""
+        });
+      }
+    }
+
+    function mergeCollectionRecordFromBackup(record) {
+      const normalizedRecord = normalizeCollectionRecord(record);
+      if (!normalizedRecord) return false;
+      const entry = catalogByKey.get(canonicalKey(normalizedRecord.name));
+      const haEntry = getHaTrackingEntry(entry);
+      const shinyEntry = getShinyTrackingEntry(entry);
+      const key = canonicalKey(haEntry.name || shinyEntry.name);
+      const current = getCollectionRecord(haEntry);
+      const currentTime = Date.parse(current.updatedAt || "");
+      const incomingTime = Date.parse(normalizedRecord.updatedAt || "");
+      const incomingIsNewer = incomingTime && (!currentTime || incomingTime >= currentTime);
+      const previousText = JSON.stringify({
+        hasHiddenAbility: Boolean(current.hasHiddenAbility),
+        hiddenAbilityCategory: current.hasHiddenAbility ? normalizeHaCollectionCategory(current.hiddenAbilityCategory) : "",
+        shiny: Boolean(current.shiny)
+      });
+      const next = {
+        ...current,
+        name: haEntry.name,
+        hasHiddenAbility: Boolean(current.hasHiddenAbility || normalizedRecord.hasHiddenAbility),
+        hiddenAbilityCategory: current.hasHiddenAbility && (!normalizedRecord.hasHiddenAbility || !incomingIsNewer)
+          ? normalizeHaCollectionCategory(current.hiddenAbilityCategory)
+          : normalizedRecord.hasHiddenAbility
+            ? normalizeHaCollectionCategory(normalizedRecord.hiddenAbilityCategory)
+            : "",
+        shiny: Boolean(current.shiny || normalizedRecord.shiny),
+        updatedAt: incomingIsNewer ? normalizedRecord.updatedAt : current.updatedAt || normalizedRecord.updatedAt || ""
+      };
+      if (!next.hasHiddenAbility) next.hiddenAbilityCategory = "";
+      if (!next.hasHiddenAbility && !next.shiny) {
+        collectionTrackingState.delete(key);
+        return false;
+      }
+      collectionTrackingState.set(key, next);
+      const nextText = JSON.stringify({
+        hasHiddenAbility: Boolean(next.hasHiddenAbility),
+        hiddenAbilityCategory: next.hasHiddenAbility ? normalizeHaCollectionCategory(next.hiddenAbilityCategory) : "",
+        shiny: Boolean(next.shiny)
+      });
+      return previousText !== nextText;
+    }
+
+    function mergeCollectionFromRecords(records) {
+      return (Array.isArray(records) ? records : []).reduce((total, record) => (
+        total + (mergeCollectionRecordFromBackup(record) ? 1 : 0)
+      ), 0);
+    }
+
+    function setCollectionFromRecords(records) {
+      collectionTrackingState.clear();
+      (Array.isArray(records) ? records : [])
+        .map(normalizeCollectionRecord)
+        .filter(Boolean)
+        .forEach(mergeCollectionRecord);
+    }
+
+    function saveCollectionTracking() {
+      localStorage.setItem(COLLECTION_TRACKING_STORAGE_KEY, JSON.stringify(getCollectionRecords()));
+    }
+
+    function loadCollectionTracking() {
+      setCollectionFromRecords(readJsonStorage(COLLECTION_TRACKING_STORAGE_KEY, []));
+    }
+
+    function updateCollectionTracking(entry, changes) {
+      const key = canonicalKey(entry.name);
+      const hasHiddenAbilityChange = Object.prototype.hasOwnProperty.call(changes, "hasHiddenAbility")
+        || Object.prototype.hasOwnProperty.call(changes, "hiddenAbilityCategory");
+      const hasShinyChange = Object.prototype.hasOwnProperty.call(changes, "shiny");
+      const entryChanges = { ...changes };
+      if (hasHiddenAbilityChange) {
+        const haEntry = getHaTrackingEntry(entry);
+        const haCurrent = getCollectionRecord(haEntry);
+        const hasHiddenAbility = Object.prototype.hasOwnProperty.call(changes, "hasHiddenAbility")
+          ? Boolean(changes.hasHiddenAbility)
+          : true;
+        const haNext = normalizeCollectionRecord({
+          ...haCurrent,
+          name: haEntry.name,
+          hasHiddenAbility,
+          hiddenAbilityCategory: hasHiddenAbility ? normalizeHaCollectionCategory(changes.hiddenAbilityCategory || haCurrent.hiddenAbilityCategory) : "",
+          updatedAt: new Date().toISOString()
+        });
+        const haKey = canonicalKey(haEntry.name);
+        if (!haNext || (!haNext.hasHiddenAbility && !haNext.shiny)) {
+          collectionTrackingState.delete(haKey);
+        } else {
+          collectionTrackingState.set(haKey, haNext);
+        }
+        delete entryChanges.hasHiddenAbility;
+        delete entryChanges.hiddenAbilityCategory;
+      }
+      if (hasShinyChange) {
+        const shinyEntry = getShinyTrackingEntry(entry);
+        const shinyCurrent = getCollectionRecord(shinyEntry);
+        const shinyNext = normalizeCollectionRecord({
+          ...shinyCurrent,
+          name: shinyEntry.name,
+          shiny: Boolean(changes.shiny),
+          updatedAt: new Date().toISOString()
+        });
+        const shinyKey = canonicalKey(shinyEntry.name);
+        if (!shinyNext || (!shinyNext.hasHiddenAbility && !shinyNext.shiny)) {
+          collectionTrackingState.delete(shinyKey);
+        } else {
+          collectionTrackingState.set(shinyKey, shinyNext);
+        }
+        delete entryChanges.shiny;
+      }
+
+      if (!Object.keys(entryChanges).length) {
+        saveCollectionTracking();
+        return;
+      }
+
+      const current = getCollectionRecord(entry);
+      const next = normalizeCollectionRecord({
+        ...current,
+        ...entryChanges,
+        name: entry.name,
+        updatedAt: new Date().toISOString()
+      });
+      if (!next || (!next.hasHiddenAbility && !next.shiny)) {
+        collectionTrackingState.delete(key);
+      } else {
+        collectionTrackingState.set(key, next);
+      }
+      saveCollectionTracking();
+    }
+
+    function hasTrackedHiddenAbility(entry) {
+      return Boolean(getCollectionRecord(getHaTrackingEntry(entry)).hasHiddenAbility);
+    }
+
+    function hasTrackedShiny(entry) {
+      return Boolean(getCollectionRecord(getShinyTrackingEntry(entry)).shiny);
+    }
+
+    function getCollectionGenerationLabel(entry) {
+      const generation = generationRanges.find(item => entry.id >= item.start && entry.id <= item.end);
+      return generation ? generation.label.replace("Geração ", "Gen ") : "Gen ?";
+    }
+
+    function getHaCollectionCategoryLabel(value) {
+      return haCollectionCategories.find(category => category.value === value)?.label || "Default";
+    }
+
+    function getHaCollectionCopySuffix(record) {
+      const category = normalizeHaCollectionCategory(record.hiddenAbilityCategory);
+      if (category === "perfect") return " PFT";
+      if (category === "f6") return " F6";
+      return "";
+    }
+
+    function formatHaCollectionForCopy() {
+      return getHaCollectionTargets()
+        .filter(entry => getCollectionRecord(getHaTrackingEntry(entry)).hasHiddenAbility)
+        .map(entry => {
+          const record = getCollectionRecord(getHaTrackingEntry(entry));
+          return `[${entry.name}]${getHaCollectionCopySuffix(record)}`;
+        })
+        .join(", ");
+    }
+
+    function formatShinyCollectionForCopy() {
+      return getShinyCollectionTargets()
+        .filter(entry => getCollectionRecord(getShinyTrackingEntry(entry)).shiny)
+        .map(entry => `[${entry.name}] Shiny`)
+        .join(", ");
+    }
+
+    function formatCollectionTabForCopy() {
+      return collectionMode === "ha" ? formatHaCollectionForCopy() : formatShinyCollectionForCopy();
+    }
+
+    function entryHasHiddenAbilityData(entry) {
+      return Boolean(entry?.hiddenAbilities?.length);
     }
 
     function migrateLegacyStatus(status = {}) {
@@ -1369,6 +1666,42 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       return info?.known ? info : null;
     }
 
+    function getTeamRecordCounterMoves(record, entry, targetTypes = [], requiredAttackType = "") {
+      if (!record || !entry) return [];
+      const build = getTeamPokemonBuild(record);
+      return (record.moves || [])
+        .map(move => {
+          const info = getKnownMoveInfo(move, build);
+          if (!info?.type) return null;
+          return createCounterAttackOption(entry, targetTypes, info.type, info.label, info.power, "team-move", { requiredAttackType });
+        })
+        .filter(Boolean)
+        .filter(option => requiredAttackType ? option.type === requiredAttackType : option.multiplier > 1)
+        .sort((a, b) =>
+          b.estimatedPower - a.estimatedPower
+          || b.multiplier - a.multiplier
+          || formatPokemonType(a.type).localeCompare(formatPokemonType(b.type), "pt-BR")
+        );
+    }
+
+    function getReadyTeamCounterMatches(entry, targetTypes = [], requiredAttackType = "") {
+      return getReadyTeamPokemon(entry)
+        .map(record => {
+          const build = getTeamPokemonBuild(record);
+          const counterMoves = getTeamRecordCounterMoves(record, entry, targetTypes, requiredAttackType);
+          return { record, build, counterMoves };
+        })
+        .filter(item => item.build && item.counterMoves.length);
+    }
+
+    function getTeamMembershipLabelsForRecords(records = []) {
+      const ids = new Set(records.map(record => record?.id).filter(Boolean));
+      if (!ids.size) return [];
+      return savedTeams
+        .filter(team => team.memberIds.some(id => ids.has(id)))
+        .map(team => team.name);
+    }
+
     function getTeamBuildWarnings(record, entry, build) {
       const warnings = [];
       if (!entry || !record) return warnings;
@@ -1457,6 +1790,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     }
 
     initializeLocalCapturedState();
+    loadCollectionTracking();
     loadBreedingParents();
     loadTeamsData();
 
@@ -1471,6 +1805,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     const itemsTab = document.querySelector("#flow-items");
     const teamsTab = document.querySelector("#flow-teams");
     const buildsTab = document.querySelector("#flow-builds");
+    const collectionTab = document.querySelector("#flow-collection");
     const settingsTab = document.querySelector("#flow-settings");
     const checklistNavSections = document.querySelector("#checklist-nav-sections");
     const checklistFlowCount = document.querySelector("#flow-checklist-count");
@@ -1480,6 +1815,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     const itemsFlowCount = document.querySelector("#flow-items-count");
     const teamsFlowCount = document.querySelector("#flow-teams-count");
     const buildsFlowCount = document.querySelector("#flow-builds-count");
+    const collectionFlowCount = document.querySelector("#flow-collection-count");
     const settingsFlowCount = document.querySelector("#flow-settings-count");
     const themeToggleButton = document.querySelector("#theme-toggle");
     const densityToggleButton = document.querySelector("#density-toggle");
@@ -2143,6 +2479,26 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       return evolutionChainsById.get(entry.evolution.chainId)?.root || null;
     }
 
+    function getEvolutionRootEntry(entry) {
+      if (!entry) return entry;
+      const chain = getEvolutionChain(entry);
+      if (!chain) return entry;
+      return catalogById.get(chain.id) || catalogByKey.get(canonicalKey(chain.name)) || entry;
+    }
+
+    function getShinyTrackingEntry(entry) {
+      return getEvolutionRootEntry(entry);
+    }
+
+    function getHaTrackingEntry(entry) {
+      return getEvolutionRootEntry(entry);
+    }
+
+    function getEvolutionLineEntries(entry) {
+      const chain = getEvolutionChain(entry);
+      return chain ? collectEvolutionEntries(chain) : [entry];
+    }
+
     function countEvolutionNodes(node) {
       if (!node) return 0;
       return 1 + node.children.reduce((total, child) => total + countEvolutionNodes(child), 0);
@@ -2394,6 +2750,66 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       return row;
     }
 
+    function createPokemonCollectionControls(entry) {
+      const haEntry = getHaTrackingEntry(entry);
+      const record = getCollectionRecord(haEntry);
+      const hasHiddenAbilityData = entryHasHiddenAbilityData(haEntry);
+      const wrap = document.createElement("div");
+      wrap.className = "modal-collection-controls";
+      wrap.innerHTML = `
+        <label class="modal-track-row">
+          <input class="modal-track-ha" type="checkbox">
+          <span>Possui HA</span>
+        </label>
+        <label class="modal-track-select">
+          <span>Categoria</span>
+          <select class="modal-track-ha-category"></select>
+        </label>
+        <label class="modal-track-row">
+          <input class="modal-track-shiny" type="checkbox">
+          <span>Shiny</span>
+        </label>
+        <p class="modal-section-note"></p>
+      `;
+
+      const haCheckbox = wrap.querySelector(".modal-track-ha");
+      const haCategory = wrap.querySelector(".modal-track-ha-category");
+      const shinyCheckbox = wrap.querySelector(".modal-track-shiny");
+      haCollectionCategories.forEach(category => haCategory.append(new Option(category.label, category.value)));
+      haCheckbox.checked = Boolean(record.hasHiddenAbility);
+      haCheckbox.disabled = !hasHiddenAbilityData;
+      haCategory.value = normalizeHaCollectionCategory(record.hiddenAbilityCategory);
+      haCategory.disabled = !hasHiddenAbilityData || !haCheckbox.checked;
+      shinyCheckbox.checked = hasTrackedShiny(entry);
+      wrap.querySelector(".modal-section-note").textContent = hasHiddenAbilityData
+        ? `HA cadastrada na linha: ${haEntry.name} - ${getHiddenAbilityLabel(haEntry)}.`
+        : "Sem Hidden Ability cadastrada para esta linha evolutiva.";
+
+      haCheckbox.addEventListener("change", () => {
+        updateCollectionTracking(entry, {
+          hasHiddenAbility: haCheckbox.checked,
+          hiddenAbilityCategory: haCheckbox.checked ? haCategory.value : ""
+        });
+        render();
+        renderPokemonModal();
+      });
+      haCategory.addEventListener("change", () => {
+        updateCollectionTracking(entry, {
+          hasHiddenAbility: true,
+          hiddenAbilityCategory: haCategory.value
+        });
+        render();
+        renderPokemonModal();
+      });
+      shinyCheckbox.addEventListener("change", () => {
+        updateCollectionTracking(entry, { shiny: shinyCheckbox.checked });
+        render();
+        renderPokemonModal();
+      });
+
+      return wrap;
+    }
+
     function renderPokemonModal() {
       const entry = activeModalEntry;
       if (!entry) return;
@@ -2411,7 +2827,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
         <h2 class="modal-title" id="pokemon-modal-title"></h2>
         <div class="modal-actions"></div>
       `;
-      heroText.querySelector(".modal-kicker").textContent = `#${String(entry.id).padStart(4, "0")} - ${getMethodFilterLabel(entry)}`;
+      heroText.querySelector(".modal-kicker").textContent = `#${String(entry.id).padStart(4, "0")} - ${getCollectionGenerationLabel(entry)} - ${getMethodFilterLabel(entry)}`;
       heroText.querySelector(".modal-title").textContent = entry.name;
       const captureButton = document.createElement("button");
       captureButton.className = `modal-capture-button${done ? " is-owned" : ""}`;
@@ -2456,12 +2872,14 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       summaryList.className = "modal-definition-list";
       [
         ["Status", done ? `Capturado (${formatCapturedDateTime(record?.capturedAt)})` : "Faltando"],
+        ["Geração", getCollectionGenerationLabel(entry)],
         ["Metodo", getMethodFilterLabel(entry)],
         ["Categoria", getCurrentCategory(entry)],
         ["Gender", getGenderLabel(entry)],
         ["Hatch cycles", entry.breeding?.hatchCycles ?? "Nao informado"],
         ["Breeding", isUndiscovered(entry) ? "Nao breeda" : `${partners.length} compativeis`]
       ].forEach(([term, value]) => summaryList.append(createModalInfoRow(term, value)));
+      primaryColumn.append(createModalSection("Colecao", createPokemonCollectionControls(entry)));
       primaryColumn.append(createModalSection("Resumo", summaryList));
 
       const profileList = document.createElement("dl");
@@ -2846,6 +3264,12 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       logCaptureState.activeFile = data.activeFile || "";
       logCaptureState.activePath = data.activePath || "";
       logCaptureState.candidates = Array.isArray(data.candidates) ? data.candidates : [];
+      logCaptureState.rewardEvents = Array.isArray(data.rewardEvents) ? data.rewardEvents : [];
+      logCaptureState.playerName = data.playerName || "";
+      if (logCaptureState.playerName && logCaptureState.playerName !== configuredPlayerName) {
+        configuredPlayerName = logCaptureState.playerName;
+        localStorage.setItem(PLAYER_NAME_STORAGE_KEY, configuredPlayerName);
+      }
       logCaptureState.lastChat = data.lastChat || null;
       logCaptureState.lastSignal = data.lastSignal || null;
       logCaptureState.lastCapture = data.lastCapture || null;
@@ -2874,6 +3298,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       const commandMap = {
         "/api/log-capture": ["set_log_capture_enabled", { enabled: Boolean(body.enabled) }],
         "/api/log-capture/config": ["set_log_capture_config", { logPath: body.logPath || "" }],
+        "/api/log-capture/player": ["set_log_player_name", { playerName: body.playerName || "" }],
         "/api/log-capture/ack": ["ack_log_capture", { ids: body.ids || [] }],
         "/api/log-capture/clear": ["clear_log_capture", {}]
       };
@@ -2928,6 +3353,34 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       }
     }
 
+    async function savePlayerName(playerNameValue, button = null) {
+      const cleanName = String(playerNameValue || "").trim();
+      configuredPlayerName = cleanName;
+      logCaptureState.playerName = cleanName;
+      localStorage.setItem(PLAYER_NAME_STORAGE_KEY, cleanName);
+      if (!useFileDatabase) {
+        render();
+        return;
+      }
+
+      const originalLabel = button?.textContent || "Salvar";
+      try {
+        if (button) {
+          button.disabled = true;
+          button.textContent = "Salvando...";
+        }
+        applyLogCaptureState(await postLogCapture("/api/log-capture/player", { playerName: cleanName }));
+      } catch {
+        logCaptureState.lastError = "Nao foi possivel salvar o nome de usuario.";
+      } finally {
+        if (button) {
+          button.disabled = false;
+          button.textContent = originalLabel;
+        }
+        render();
+      }
+    }
+
     async function confirmLogCapture(candidate, entry) {
       if (!entry || isOwned(entry)) {
         await acknowledgeLogCapture([candidate.id]);
@@ -2960,6 +3413,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
         details.push(`Servidor varreu: ${logCaptureState.pollCount}x, ${formatDateTimeLabel(logCaptureState.lastScanAt)}`);
         details.push(`Arquivo: ${formatBytesLabel(logCaptureState.currentSize)} | offset: ${formatBytesLabel(logCaptureState.offset)} | delta: ${formatBytesLabel(logCaptureState.lastDelta)} | resets: ${logCaptureState.pathResetCount}`);
         details.push(`Linhas lidas: ${logCaptureState.linesRead} | chat: ${logCaptureState.chatLinesRead} | eventos: ${logCaptureState.eventsRead} | fila: ${logCaptureState.candidateCount}`);
+        details.push(`Nick: ${configuredPlayerName || logCaptureState.playerName || "nao configurado"} | ganhos: ${(logCaptureState.rewardEvents || []).length}`);
         if (logCaptureState.lastNoReadReason) {
           details.push(`Leitura: ${logCaptureState.lastNoReadReason}`);
         }
@@ -4701,22 +5155,101 @@ IVs: HP 31 / Atk 31 / Def 19 / SpA 31 / SpD 31 / Spe 31"></textarea>
         || (entryCanBreedAs(entryB, "male") && entryCanBreedAs(entryA, "female"));
     }
 
-    function getFragmentPairSourceLabel(pair) {
-      const sources = [pair.a, pair.b]
-        .filter(entry => entryGeneratesFragmentType(entry, pair.type))
-        .map(entry => entry.name);
-      if (sources.length === 2) return `Ambos geram ${formatPokemonType(pair.type)}`;
-      return `${sources[0]} gera ${formatPokemonType(pair.type)}`;
+    function getSelectedFragmentTypes() {
+      return Array.from(fragmentTypeFilters);
     }
 
-    function getFragmentPairScore(entryA, entryB, type, readyInfo) {
-      const bothType = Number(entryGeneratesFragmentType(entryA, type) && entryGeneratesFragmentType(entryB, type));
+    function formatFragmentTypeSelection(types = getSelectedFragmentTypes()) {
+      return types.map(formatPokemonType).join(" + ");
+    }
+
+    function getFragmentResultTitle(types = getSelectedFragmentTypes()) {
+      const label = formatFragmentTypeSelection(types);
+      return types.length > 1 ? `Combinação ${label}` : `Fragmento ${label}`;
+    }
+
+    function fragmentPairMatchesTypeFilter(generatedTypes, selectedTypes = getSelectedFragmentTypes()) {
+      if (!selectedTypes.length) return false;
+      const hasSelectedTypes = selectedTypes.every(type => generatedTypes.includes(type));
+      if (!hasSelectedTypes) return false;
+      return fragmentIncludeCombinations || generatedTypes.length === selectedTypes.length;
+    }
+
+    function toggleFragmentType(type) {
+      const nextFilters = new Set(fragmentTypeFilters);
+      if (nextFilters.has(type)) {
+        nextFilters.delete(type);
+      } else {
+        nextFilters.add(type);
+      }
+      fragmentTypeFilters = nextFilters;
+      if (fragmentTypeFilters.size > 1) fragmentIncludeCombinations = true;
+    }
+
+    function findFragmentSearchPokemon(rawSearch) {
+      const value = String(rawSearch || "").trim();
+      if (!value) return null;
+
+      const numericSearch = value.replace(/^#\s*/, "").replace(/^0+/, "");
+      if (/^\d+$/.test(numericSearch)) {
+        return allEntries.find(entry => String(entry.id) === numericSearch) || null;
+      }
+
+      const numberedSearch = value.match(/^#?\s*0*(\d+)\s+(.+)$/);
+      if (numberedSearch) {
+        const byNumber = allEntries.find(entry => String(entry.id) === numberedSearch[1]);
+        if (byNumber) return byNumber;
+      }
+
+      const key = canonicalKey(value);
+      if (!key) return null;
+
+      const exactMatch = allEntries.find(entry => canonicalKey(entry.name) === key);
+      if (exactMatch) return exactMatch;
+
+      if (key.length < 3) return null;
+
+      const prefixMatches = allEntries.filter(entry => canonicalKey(entry.name).startsWith(key));
+      return prefixMatches.length === 1 ? prefixMatches[0] : null;
+    }
+
+    function syncFragmentTypesFromSearch(rawSearch) {
+      const entry = findFragmentSearchPokemon(rawSearch);
+      const types = getFragmentTypes(entry);
+      if (!types.length) return;
+
+      const nextFilters = new Set(types);
+      const nextIncludeCombinations = types.length > 1;
+      const sameSelection = nextFilters.size === fragmentTypeFilters.size
+        && types.every(type => fragmentTypeFilters.has(type));
+      if (sameSelection && fragmentIncludeCombinations === nextIncludeCombinations) return;
+
+      fragmentTypeFilters = nextFilters;
+      fragmentIncludeCombinations = nextIncludeCombinations;
+    }
+
+    function getFragmentPairSourceLabel(pair) {
+      const label = formatFragmentTypeSelection(pair.selectedTypes);
+      if (pair.selectedTypes.length > 1) return `Geram ${label}`;
+      const sources = [pair.a, pair.b]
+        .filter(entry => pair.selectedTypes.some(type => entryGeneratesFragmentType(entry, type)))
+        .map(entry => entry.name);
+      if (sources.length === 2) return `Ambos geram ${label}`;
+      return `${sources[0]} gera ${label}`;
+    }
+
+    function getFragmentPairScore(entryA, entryB, selectedTypes, generatedTypes, readyInfo) {
+      const sourceCoverage = selectedTypes.reduce((score, type) => {
+        const sourceCount = Number(entryGeneratesFragmentType(entryA, type)) + Number(entryGeneratesFragmentType(entryB, type));
+        return score + sourceCount;
+      }, 0);
+      const exactMatchScore = Number(generatedTypes.length === selectedTypes.length);
       const ownedScore = Number(isOwned(entryA)) + Number(isOwned(entryB));
       const dittoScore = Number(isDitto(entryA) || isDitto(entryB));
-      const generatedTypeScore = getFragmentPairTypes(entryA, entryB).length * 10;
+      const generatedTypeScore = fragmentIncludeCombinations ? generatedTypes.length * 10 : -generatedTypes.length * 10;
       const readyScore = (readyInfo?.readySideCount || 0) * 3000;
       const teamScore = (readyInfo?.teamLabels?.length || 0) * 350;
-      return readyScore + teamScore + bothType * 1000 + ownedScore * 100 + dittoScore * 20 + generatedTypeScore - (entryA.id + entryB.id) / 10000;
+      return readyScore + teamScore + exactMatchScore * 1500 + sourceCoverage * 500 + ownedScore * 100 + dittoScore * 20 + generatedTypeScore - (entryA.id + entryB.id) / 10000;
     }
 
     function fragmentPairMatchesSearch(pair, normalizedSearch) {
@@ -4724,7 +5257,7 @@ IVs: HP 31 / Atk 31 / Def 19 / SpA 31 / SpD 31 / Spe 31"></textarea>
       const text = [
         pair.a.name,
         pair.b.name,
-        formatPokemonType(pair.type),
+        ...pair.selectedTypes.map(formatPokemonType),
         ...pair.types.map(formatPokemonType),
         ...pair.a.types.map(formatPokemonType),
         ...pair.b.types.map(formatPokemonType),
@@ -4734,8 +5267,8 @@ IVs: HP 31 / Atk 31 / Def 19 / SpA 31 / SpD 31 / Spe 31"></textarea>
       return normalize(text).includes(normalizedSearch);
     }
 
-    function getFragmentPairs(type = fragmentTypeFilter, search = fragmentSearch) {
-      if (!type) return [];
+    function getFragmentPairs(types = getSelectedFragmentTypes(), search = fragmentSearch) {
+      if (!types.length) return [];
       const normalizedSearch = normalize(search.trim());
       const entries = allEntries
         .filter(entry => !isUndiscovered(entry))
@@ -4746,16 +5279,16 @@ IVs: HP 31 / Atk 31 / Def 19 / SpA 31 / SpD 31 / Spe 31"></textarea>
           const entryA = entries[left];
           const entryB = entries[right];
           const generatedTypes = getFragmentPairTypes(entryA, entryB);
-          if (!generatedTypes.includes(type)) continue;
+          if (!fragmentPairMatchesTypeFilter(generatedTypes, types)) continue;
           if (!canBreedAsFragmentPair(entryA, entryB)) continue;
           const readyInfo = getFragmentPairReadyInfo(entryA, entryB);
           const pair = {
             a: entryA,
             b: entryB,
-            type,
+            selectedTypes: types,
             types: generatedTypes,
             ...readyInfo,
-            score: getFragmentPairScore(entryA, entryB, type, readyInfo)
+            score: getFragmentPairScore(entryA, entryB, types, generatedTypes, readyInfo)
           };
           if (!fragmentPairMatchesSearch(pair, normalizedSearch)) continue;
           pairs.push(pair);
@@ -4764,9 +5297,9 @@ IVs: HP 31 / Atk 31 / Def 19 / SpA 31 / SpD 31 / Spe 31"></textarea>
       return pairs.sort((a, b) => b.score - a.score || a.a.id - b.a.id || a.b.id - b.b.id);
     }
 
-    function createFragmentPokemonBlock(entry, type) {
+    function createFragmentPokemonBlock(entry, selectedTypes) {
       const block = document.createElement("div");
-      const isSource = entryGeneratesFragmentType(entry, type);
+      const isSource = selectedTypes.some(type => entryGeneratesFragmentType(entry, type));
       block.className = `fragment-pokemon${isSource ? " is-source" : ""}${isOwned(entry) ? " is-owned" : ""}`;
       block.innerHTML = `
         <span class="fragment-pokemon-image"></span>
@@ -4778,7 +5311,7 @@ IVs: HP 31 / Atk 31 / Def 19 / SpA 31 / SpD 31 / Spe 31"></textarea>
       `;
       block.querySelector(".fragment-pokemon-image").replaceWith(createPokemonImage(entry, ""));
       block.querySelector("strong").textContent = `#${String(entry.id).padStart(4, "0")} ${entry.name}`;
-      block.querySelector("span").textContent = isSource ? "Gera este fragmento" : "Parceiro compatível";
+      block.querySelector("span").textContent = isSource ? "Gera fragmento escolhido" : "Parceiro compatível";
       entry.types.forEach(item => block.querySelector(".fragment-type-row").append(createTypeBadge(item)));
       return block;
     }
@@ -4796,12 +5329,12 @@ IVs: HP 31 / Atk 31 / Def 19 / SpA 31 / SpD 31 / Spe 31"></textarea>
         </div>
       `;
       const main = card.querySelector(".fragment-pair-main");
-      main.append(createFragmentPokemonBlock(pair.a, pair.type));
+      main.append(createFragmentPokemonBlock(pair.a, pair.selectedTypes));
       const connector = document.createElement("span");
       connector.className = "fragment-pair-connector";
       connector.textContent = "+";
       main.append(connector);
-      main.append(createFragmentPokemonBlock(pair.b, pair.type));
+      main.append(createFragmentPokemonBlock(pair.b, pair.selectedTypes));
       const generatedTypes = card.querySelector(".fragment-generated-types");
       generatedTypes.append(document.createElement("span"));
       generatedTypes.querySelector("span").textContent = "Gera";
@@ -4845,6 +5378,7 @@ IVs: HP 31 / Atk 31 / Def 19 / SpA 31 / SpD 31 / Spe 31"></textarea>
       input.value = fragmentSearch;
       input.addEventListener("input", event => {
         fragmentSearch = event.target.value;
+        syncFragmentTypesFromSearch(fragmentSearch);
         focusFragmentSearchAfterRender = true;
         render();
       });
@@ -4852,15 +5386,16 @@ IVs: HP 31 / Atk 31 / Def 19 / SpA 31 / SpD 31 / Spe 31"></textarea>
       typeFilters.forEach(type => {
         chipList.append(createFilterChip({
           label: type.label,
-          active: fragmentTypeFilter === type.value,
+          active: fragmentTypeFilters.has(type.value),
           count: allEntries.filter(entry => entryGeneratesFragmentType(entry, type.value) && (!fragmentOwnedOnly || isOwned(entry))).length,
           onClick: () => {
-            fragmentTypeFilter = fragmentTypeFilter === type.value ? "" : type.value;
+            toggleFragmentType(type.value);
             render();
           }
         }));
       });
-      wrapper.querySelector(".fragment-result-filters").append(createFilterChip({
+      const resultFilters = wrapper.querySelector(".fragment-result-filters");
+      resultFilters.append(createFilterChip({
         label: "Somente capturados",
         active: fragmentOwnedOnly,
         onClick: () => {
@@ -4868,10 +5403,19 @@ IVs: HP 31 / Atk 31 / Def 19 / SpA 31 / SpD 31 / Spe 31"></textarea>
           render();
         }
       }));
+      resultFilters.append(createFilterChip({
+        label: "Incluir combinações",
+        active: fragmentIncludeCombinations,
+        onClick: () => {
+          fragmentIncludeCombinations = !fragmentIncludeCombinations;
+          render();
+        }
+      }));
       wrapper.querySelector("#clear-fragment-filters").addEventListener("click", () => {
-        fragmentTypeFilter = "";
+        fragmentTypeFilters = new Set();
         fragmentSearch = "";
         fragmentOwnedOnly = true;
+        fragmentIncludeCombinations = false;
         render();
       });
       list.append(wrapper);
@@ -4895,7 +5439,8 @@ IVs: HP 31 / Atk 31 / Def 19 / SpA 31 / SpD 31 / Spe 31"></textarea>
         button.children[1].textContent = `${entries.length} fontes`;
         button.children[2].textContent = `${owned} capturadas`;
         button.addEventListener("click", () => {
-          fragmentTypeFilter = type.value;
+          fragmentTypeFilters = new Set([type.value]);
+          fragmentIncludeCombinations = false;
           render();
         });
         grid.append(button);
@@ -4906,7 +5451,8 @@ IVs: HP 31 / Atk 31 / Def 19 / SpA 31 / SpD 31 / Spe 31"></textarea>
     function renderFragmentsFlow(list, options = {}) {
       activeTitle.textContent = options.embedded ? "Breeding: Fragmentos" : "Fragmentos";
       renderFragmentTools(list);
-      if (!fragmentTypeFilter) {
+      const selectedTypes = getSelectedFragmentTypes();
+      if (!selectedTypes.length) {
         visibleCount.textContent = `${typeFilters.length} tipos`;
         const empty = document.createElement("div");
         empty.className = "empty";
@@ -4918,6 +5464,7 @@ IVs: HP 31 / Atk 31 / Def 19 / SpA 31 / SpD 31 / Spe 31"></textarea>
 
       const pairs = getFragmentPairs();
       visibleCount.textContent = `${pairs.length} casais`;
+      const resultTitle = getFragmentResultTitle(selectedTypes);
       const section = document.createElement("section");
       section.className = "fragment-results";
       section.innerHTML = `
@@ -4928,14 +5475,16 @@ IVs: HP 31 / Atk 31 / Def 19 / SpA 31 / SpD 31 / Spe 31"></textarea>
         <p class="fragment-note"></p>
         <div class="fragment-pair-grid"></div>
       `;
-      section.querySelector("h2").textContent = `Fragmento ${formatPokemonType(fragmentTypeFilter)}`;
+      section.querySelector("h2").textContent = resultTitle;
       section.querySelector(".category-count").textContent = `${pairs.length} casais`;
-      section.querySelector(".fragment-note").textContent = "Baseado nos tipos dos dois Pokémon do casal e compatibilidade de breeding. Servidores com datapack podem mudar requisitos.";
+      section.querySelector(".fragment-note").textContent = fragmentIncludeCombinations
+        ? "Inclui casais que geram os fragmentos escolhidos junto com outros tipos. Servidores com datapack podem mudar requisitos."
+        : "Mostra apenas casais cujo resultado fica nos fragmentos escolhidos, sem tipos extras. Servidores com datapack podem mudar requisitos.";
       const grid = section.querySelector(".fragment-pair-grid");
       const note = section.querySelector(".fragment-note");
       const collapsed = attachSectionCollapseControl(section, {
         scope: "fragments",
-        label: `Fragmento ${formatPokemonType(fragmentTypeFilter)}`,
+        label: resultTitle,
         content: [note, grid]
       });
       if (collapsed) {
@@ -5392,6 +5941,7 @@ IVs: HP 31 / Atk 31 / Def 19 / SpA 31 / SpD 31 / Spe 31"></textarea>
       editButton.textContent = "Editar";
       editButton.addEventListener("click", () => {
         activeTeamEditId = record.id;
+        isTeamBuilderFormExpanded = true;
         closePokemonModal();
         activeView = "teams";
         render();
@@ -5468,6 +6018,27 @@ IVs: HP 31 / Atk 31 / Def 19 / SpA 31 / SpD 31 / Spe 31"></textarea>
 
     function renderTeamBuilderForm(container) {
       const editingRecord = teamBuiltPokemon.find(record => record.id === activeTeamEditId) || null;
+      if (editingRecord) isTeamBuilderFormExpanded = true;
+      if (!isTeamBuilderFormExpanded) {
+        const collapsed = document.createElement("section");
+        collapsed.className = "teams-panel team-builder-collapsed";
+        collapsed.innerHTML = `
+          <div class="team-panel-header">
+            <div>
+              <p class="eyebrow">Cadastro</p>
+              <h2 class="filter-title">Pokemon pronto</h2>
+            </div>
+            <button class="modal-capture-button" type="button">Abrir cadastro</button>
+          </div>
+        `;
+        collapsed.querySelector("button").addEventListener("click", () => {
+          isTeamBuilderFormExpanded = true;
+          render();
+        });
+        container.append(collapsed);
+        return;
+      }
+
       const form = document.createElement("form");
       form.className = "team-builder-form";
       form.innerHTML = `
@@ -5547,6 +6118,7 @@ IVs: HP 31 / Atk 31 / Def 19 / SpA 31 / SpD 31 / Spe 31"></textarea>
         <p class="team-form-error" hidden></p>
         <div class="team-form-actions">
           <button class="modal-capture-button" type="submit">${editingRecord ? "Salvar edicao" : "Salvar Pokemon"}</button>
+          <button class="muted-button" id="team-collapse-form" type="button">Minimizar</button>
           <button class="muted-button" id="team-toggle-import" type="button">Importar texto</button>
           <button class="muted-button" id="team-cancel-edit" type="button" ${editingRecord ? "" : "hidden"}>Cancelar</button>
         </div>
@@ -5581,6 +6153,11 @@ Obs: pronto para boss"></textarea>
       form.querySelector("#team-pokemon-ability").addEventListener("input", () => updateTeamAbilityHint(form, findTeamSearchEntry(nameInput.value)));
       const importPanel = form.querySelector(".team-import-panel");
       const importText = form.querySelector("#team-import-text");
+      form.querySelector("#team-collapse-form").addEventListener("click", () => {
+        activeTeamEditId = "";
+        isTeamBuilderFormExpanded = false;
+        render();
+      });
       form.querySelector("#team-toggle-import").addEventListener("click", () => {
         importPanel.hidden = !importPanel.hidden;
         if (!importPanel.hidden) importText.focus({ preventScroll: true });
@@ -5602,10 +6179,12 @@ Obs: pronto para boss"></textarea>
         }
         addImportedTeamRecord(parsed.record, parsed.teams);
         activeTeamEditId = "";
+        isTeamBuilderFormExpanded = false;
         render();
       });
       form.querySelector("#team-cancel-edit").addEventListener("click", () => {
         activeTeamEditId = "";
+        isTeamBuilderFormExpanded = false;
         render();
       });
       form.addEventListener("submit", event => {
@@ -5642,6 +6221,7 @@ Obs: pronto para boss"></textarea>
           teamBuiltPokemon.push(record);
         }
         saveTeamsData();
+        isTeamBuilderFormExpanded = false;
         render();
       });
       container.append(form);
@@ -5880,9 +6460,168 @@ Obs: pronto para boss"></textarea>
       });
     }
 
+    function renderTeamFlowTabs(list) {
+      const tabs = document.createElement("section");
+      tabs.className = "team-flow-tabs";
+      [
+        { value: "register", label: "Cadastrar" },
+        { value: "elements", label: "Por elemento" }
+      ].forEach(tab => {
+        const button = document.createElement("button");
+        const active = activeTeamTab === tab.value;
+        button.className = `team-flow-tab${active ? " active" : ""}`;
+        button.type = "button";
+        button.setAttribute("aria-pressed", active ? "true" : "false");
+        button.textContent = tab.label;
+        button.addEventListener("click", () => {
+          activeTeamTab = tab.value;
+          render();
+        });
+        tabs.append(button);
+      });
+      list.append(tabs);
+    }
+
+    function getTeamElementRows(records = teamBuiltPokemon) {
+      return records
+        .map(record => {
+          const entry = getTeamPokemonEntry(record);
+          const build = getTeamPokemonBuild(record);
+          if (!entry || !build) return null;
+          const moveTypes = (build.moves || [])
+            .map(move => getMovePowerInfo(move, build)?.type)
+            .filter(Boolean);
+          const attackTypes = [...new Set([...moveTypes, ...getBuildAttackTypes(entry, build)])];
+          return { record, entry, build, attackTypes };
+        })
+        .filter(Boolean);
+    }
+
+    function renderTeamElementOverview(container, rows) {
+      const panel = document.createElement("section");
+      panel.className = "teams-panel team-element-overview";
+      panel.innerHTML = `
+        <div class="team-panel-header">
+          <div>
+            <p class="eyebrow">Escudos</p>
+            <h2 class="filter-title">Cobertura por elemento</h2>
+          </div>
+          <span class="category-count"></span>
+        </div>
+        <div class="team-element-grid"></div>
+      `;
+      const counts = new Map();
+      rows.forEach(row => row.attackTypes.forEach(type => counts.set(type, (counts.get(type) || 0) + 1)));
+      panel.querySelector(".category-count").textContent = `${rows.length} pronto${rows.length === 1 ? "" : "s"}`;
+      const grid = panel.querySelector(".team-element-grid");
+      typeFilters.forEach(type => {
+        const card = document.createElement("button");
+        card.className = "team-element-summary";
+        card.type = "button";
+        card.disabled = !counts.get(type.value);
+        card.innerHTML = "<strong></strong><span></span><small></small>";
+        card.querySelector("strong").append(createTypeBadge(type.value));
+        card.querySelector("span").textContent = `${counts.get(type.value) || 0} opcoes`;
+        card.querySelector("small").textContent = `Escudo ${formatPokemonType(type.value)}`;
+        card.addEventListener("click", () => {
+          const section = document.getElementById(`team-element-${type.value}`);
+          if (section) section.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+        grid.append(card);
+      });
+      container.append(panel);
+    }
+
+    function renderTeamElementGroups(container, rows) {
+      typeFilters.forEach(type => {
+        const matches = rows.filter(row => row.attackTypes.includes(type.value));
+        if (!matches.length) return;
+        const section = document.createElement("section");
+        section.className = "team-group-section team-element-section";
+        section.id = `team-element-${type.value}`;
+        section.innerHTML = `
+          <div class="team-group-heading">
+            <h3></h3>
+            <span class="category-count"></span>
+          </div>
+          <div class="team-element-note"></div>
+          <div class="team-pokemon-grid"></div>
+        `;
+        section.querySelector("h3").append(createTypeBadge(type.value));
+        section.querySelector(".category-count").textContent = `${matches.length} opcoes`;
+        const strongTargets = Object.keys(typeEffectiveness)
+          .filter(targetType => getTypeEffectiveness(type.value, [targetType]) > 1)
+          .map(formatPokemonType);
+        section.querySelector(".team-element-note").textContent = strongTargets.length
+          ? `Bate super efetivo em ${strongTargets.join(", ")}.`
+          : "Elemento sem vantagem super efetiva direta.";
+        const grid = section.querySelector(".team-pokemon-grid");
+        const collapsed = attachSectionCollapseControl(section, {
+          scope: "team-elements",
+          label: type.value,
+          headingSelector: ".team-group-heading",
+          content: [section.querySelector(".team-element-note"), grid]
+        });
+        if (!collapsed) matches.forEach(row => grid.append(createTeamPokemonCard(row.record)));
+        container.append(section);
+      });
+    }
+
+    function renderTeamElementsFlow(list) {
+      const shell = document.createElement("section");
+      shell.className = "teams-layout";
+      const rows = getTeamElementRows(getFilteredTeamPokemon());
+      const library = document.createElement("section");
+      library.className = "teams-panel teams-library";
+      library.innerHTML = `
+        <div class="team-panel-header">
+          <div>
+            <p class="eyebrow">Biblioteca</p>
+            <h2 class="filter-title">Pokemon por elemento</h2>
+          </div>
+          <span class="category-count"></span>
+        </div>
+        <input class="search-field" id="teams-search" type="search" list="pokemon-search-options" placeholder="Buscar nos prontos...">
+        <div class="team-group-list"></div>
+      `;
+      library.querySelector(".category-count").textContent = `${rows.length} encontrado${rows.length === 1 ? "" : "s"}`;
+      const search = library.querySelector("#teams-search");
+      search.value = teamsSearch;
+      search.addEventListener("input", event => {
+        teamsSearch = event.target.value;
+        focusTeamsSearchAfterRender = true;
+        render();
+      });
+      if (!teamBuiltPokemon.length) {
+        const empty = document.createElement("p");
+        empty.className = "team-note";
+        empty.textContent = "Cadastre Pokemon prontos para ver a cobertura por elemento.";
+        library.querySelector(".team-group-list").append(empty);
+      } else if (!rows.length) {
+        const empty = document.createElement("p");
+        empty.className = "team-note";
+        empty.textContent = "Nenhum Pokemon pronto encontrado com essa busca.";
+        library.querySelector(".team-group-list").append(empty);
+      } else {
+        renderTeamElementOverview(shell, rows);
+        renderTeamElementGroups(library.querySelector(".team-group-list"), rows);
+      }
+      shell.append(library);
+      list.append(shell);
+      if (focusTeamsSearchAfterRender) {
+        focusTeamsSearchAfterRender = false;
+        focusInputEnd(search);
+      }
+    }
+
     function renderTeamsFlow(list) {
       activeTitle.textContent = "Times";
       visibleCount.textContent = `${teamBuiltPokemon.length} prontos`;
+      renderTeamFlowTabs(list);
+      if (activeTeamTab === "elements") {
+        renderTeamElementsFlow(list);
+        return;
+      }
       const shell = document.createElement("section");
       shell.className = "teams-layout";
       const library = document.createElement("section");
@@ -5909,7 +6648,7 @@ Obs: pronto para boss"></textarea>
       const filtered = getFilteredTeamPokemon();
       renderTeamBuilderForm(shell);
       renderSavedTeams(shell);
-      renderTeamAnalysis(shell);
+      if (savedTeams.length) renderTeamAnalysis(shell);
       renderTeamLibraryGroups(library.querySelector(".team-group-list"), filtered);
       shell.append(library);
       list.append(shell);
@@ -6150,7 +6889,7 @@ Obs: pronto para boss"></textarea>
       return targetTypes;
     }
 
-    function getCounterDefenseTypes(targetTypes, shieldType = counterShieldType) {
+    function getCounterDefenseTypes(targetTypes) {
       return [...new Set(targetTypes)];
     }
 
@@ -6173,12 +6912,12 @@ Obs: pronto para boss"></textarea>
       return selectedCounterBossKey ? catalogByKey.get(selectedCounterBossKey) || null : null;
     }
 
-    function getCounterTargetLabel(targetTypes) {
+    function getCounterTargetLabel(targetTypes, shieldType = "") {
       const boss = getSelectedCounterBoss();
       const baseLabel = boss
         ? boss.name
         : targetTypes.map(formatPokemonType).join(" / ") || "alvo";
-      return counterShieldType ? `${baseLabel} com escudo ${formatPokemonType(counterShieldType)}` : baseLabel;
+      return shieldType ? `${baseLabel} com escudo ${formatPokemonType(shieldType)}` : baseLabel;
     }
 
     function normalizeMoveLookupKey(move) {
@@ -6813,9 +7552,9 @@ Obs: pronto para boss"></textarea>
     }
 
     function getCounterCandidates(targetTypes, search = "", options = {}) {
-      const shieldType = Object.prototype.hasOwnProperty.call(options, "shieldType") ? options.shieldType : counterShieldType;
+      const shieldType = Object.prototype.hasOwnProperty.call(options, "shieldType") ? options.shieldType : "";
       const offenseTypes = getCounterOffenseTypes(targetTypes);
-      const defenseTypes = getCounterDefenseTypes(targetTypes, shieldType);
+      const defenseTypes = getCounterDefenseTypes(targetTypes);
       if (!offenseTypes.length && !shieldType) return [];
       const normalizedSearch = normalize(search.trim());
       return getBuildEligibleEntries()
@@ -6823,18 +7562,21 @@ Obs: pronto para boss"></textarea>
         .filter(entry => !normalizedSearch || matchesTextSearch(entry, normalizedSearch))
         .map(entry => {
           const builds = getBuildRecommendations(entry);
-          const readyRecords = getReadyTeamPokemon(entry);
+          const readyMatches = getReadyTeamCounterMatches(entry, offenseTypes, shieldType);
+          const readyRecords = readyMatches.map(item => item.record);
           if (counterReadyOnly && !readyRecords.length) return null;
-          const readyRecord = readyRecords[0] || null;
-          const readyBuild = readyRecord ? getTeamPokemonBuild(readyRecord) : null;
+          const readyMatch = readyMatches[0] || null;
+          const readyRecord = readyMatch?.record || null;
+          const readyBuild = readyMatch?.build || null;
+          const readyCounterMoves = readyMatch?.counterMoves || [];
           const attackOptions = getCounterAttackOptions(entry, builds, readyBuild, offenseTypes, { requiredAttackType: shieldType });
           const strongTypes = getCounterStrongTypes(attackOptions, shieldType);
           if (!strongTypes.length) return null;
-          const bestAttack = attackOptions[0] || strongTypes[0];
+          const bestAttack = readyCounterMoves[0] || attackOptions[0] || strongTypes[0];
           const hasMetaBuild = builds.some(build =>
             build.isMeta && getBuildAttackTypes(entry, build).some(type => strongTypes.some(item => item.type === type))
           );
-          const teamLabels = getTeamMembershipLabels(entry);
+          const teamLabels = getTeamMembershipLabelsForRecords(readyRecords);
           const defense = getCounterDefenseSummary(entry, defenseTypes);
           const isRealCounter = defense.worst <= 1;
           if (!isRealCounter && !readyRecords.length) return null;
@@ -6855,6 +7597,7 @@ Obs: pronto para boss"></textarea>
             hasReadyBuild: Boolean(readyRecords.length),
             readyRecord,
             readyBuild,
+            readyCounterMoves,
             teamLabels,
             defense,
             defenseLabel: defense.label,
@@ -6910,6 +7653,12 @@ Obs: pronto para boss"></textarea>
       });
     }
 
+    function updateCounterBossSearchSuggestions(wrapper, value) {
+      counterBossSearch = value;
+      selectedCounterBossKey = "";
+      renderCounterBossSuggestions(wrapper, getCounterBossSuggestions(counterBossSearch));
+    }
+
     function renderCounterTools(list) {
       const wrapper = document.createElement("section");
       wrapper.className = "counter-tools";
@@ -6937,10 +7686,7 @@ Obs: pronto para boss"></textarea>
       const bossSuggestions = selectedCounterBossKey ? [] : getCounterBossSuggestions(counterBossSearch);
       bossInput.value = counterBossSearch;
       bossInput.addEventListener("input", event => {
-        counterBossSearch = event.target.value;
-        selectedCounterBossKey = "";
-        focusCounterBossSearchAfterRender = true;
-        render();
+        updateCounterBossSearchSuggestions(wrapper, event.target.value);
       });
       bossInput.addEventListener("keydown", event => {
         if (event.key !== "Enter") return;
@@ -6962,7 +7708,7 @@ Obs: pronto para boss"></textarea>
         chipList.append(createFilterChip({
           label: type.label,
           active: counterTargetTypes.has(type.value),
-          count: getCounterCandidates(countTypes, "", { shieldType: counterShieldType }).length,
+          count: getCounterCandidates(countTypes, "", { shieldType: "" }).length,
           onClick: () => {
             if (counterTargetTypes.has(type.value)) counterTargetTypes.delete(type.value);
             else counterTargetTypes.add(type.value);
@@ -6977,7 +7723,6 @@ Obs: pronto para boss"></textarea>
       shieldList.append(createFilterChip({
         label: "Sem escudo",
         active: !counterShieldType,
-        count: getCounterCandidates(getCounterTargetTypes(), "", { shieldType: "" }).length,
         onClick: () => {
           counterShieldType = "";
           render();
@@ -6987,7 +7732,7 @@ Obs: pronto para boss"></textarea>
         shieldList.append(createFilterChip({
           label: type.label,
           active: counterShieldType === type.value,
-          count: getCounterCandidates(getCounterTargetTypes(), "", { shieldType: type.value }).length,
+          count: getShieldBreakerResults(type.value).length,
           onClick: () => {
             counterShieldType = counterShieldType === type.value ? "" : type.value;
             render();
@@ -7004,10 +7749,6 @@ Obs: pronto para boss"></textarea>
       });
 
       list.append(wrapper);
-      if (focusCounterBossSearchAfterRender) {
-        focusCounterBossSearchAfterRender = false;
-        focusInputEnd(bossInput);
-      }
     }
 
     function renderCounterResultsSearch(list) {
@@ -7076,6 +7817,7 @@ Obs: pronto para boss"></textarea>
         return;
       }
       readyResults.forEach(result => {
+        const readyMove = result.readyCounterMoves?.[0] || null;
         const button = document.createElement("button");
         button.className = "counter-team-option";
         button.type = "button";
@@ -7093,12 +7835,111 @@ Obs: pronto para boss"></textarea>
           : result.entry.name;
         button.querySelector("small").textContent = [
           result.teamLabels.length ? result.teamLabels.join(", ") : "Build pronta",
+          readyMove ? `${readyMove.label} (${formatPokemonType(readyMove.type)})` : "",
           result.defenseLabel
-        ].join(" | ");
+        ].filter(Boolean).join(" | ");
         button.querySelector("b").textContent = `${result.bestAttack.estimatedPower}`;
         button.addEventListener("click", () => openCounterModal(result));
         listWrap.append(button);
       });
+      list.append(section);
+    }
+
+    function getShieldBreakerResults(shieldType = counterShieldType) {
+      if (!shieldType) return [];
+      return teamBuiltPokemon
+        .map(record => {
+          const entry = getTeamPokemonEntry(record);
+          const build = getTeamPokemonBuild(record);
+          if (!entry || !build) return null;
+          const moveOptions = (record.moves || [])
+            .map(move => {
+              const info = getKnownMoveInfo(move, build);
+              if (!info?.type || info.type !== shieldType) return null;
+              return createCounterAttackOption(entry, [], info.type, info.label, info.power, "team-shield", { requiredAttackType: shieldType });
+            })
+            .filter(Boolean);
+          const fallbackOptions = moveOptions.length
+            ? []
+            : getBuildAttackTypes(entry, build)
+                .filter(type => type === shieldType)
+                .map(type => createCounterAttackOption(entry, [], type, `Ataque ${formatPokemonType(type)}`, entry.types.includes(type) ? 90 : 80, "type", { requiredAttackType: shieldType }));
+          const [bestAttack] = [...moveOptions, ...fallbackOptions].sort((a, b) =>
+            b.estimatedPower - a.estimatedPower
+            || b.power - a.power
+            || a.label.localeCompare(b.label, "pt-BR")
+          );
+          if (!bestAttack) return null;
+          return {
+            record,
+            entry,
+            build,
+            bestAttack,
+            teamLabels: getTeamMembershipLabelsForRecord(record),
+            score: bestAttack.estimatedPower - entry.id / 10000
+          };
+        })
+        .filter(Boolean)
+        .sort((a, b) => b.score - a.score || a.entry.id - b.entry.id);
+    }
+
+    function renderCounterShieldBreakers(list) {
+      if (!counterShieldType) return;
+      const results = getShieldBreakerResults(counterShieldType);
+      const section = document.createElement("section");
+      section.className = "counter-team-summary counter-shield-summary";
+      section.innerHTML = `
+        <div class="counter-summary-header">
+          <div>
+            <p class="eyebrow">Quebrar escudo</p>
+            <h2></h2>
+          </div>
+          <span class="category-count"></span>
+        </div>
+        <div class="counter-team-list"></div>
+      `;
+      section.querySelector("h2").textContent = `Maior dano ${formatPokemonType(counterShieldType)}`;
+      section.querySelector(".category-count").textContent = `${results.length} pronto${results.length === 1 ? "" : "s"}`;
+      const listWrap = section.querySelector(".counter-team-list");
+      const collapsed = attachSectionCollapseControl(section, {
+        scope: "counters",
+        label: `Quebrar escudo ${counterShieldType}`,
+        headingSelector: ".counter-summary-header",
+        content: listWrap
+      });
+      if (!collapsed && !results.length) {
+        const empty = document.createElement("p");
+        empty.className = "raid-note";
+        empty.textContent = "Nenhum Pokemon pronto com golpe desse elemento cadastrado em Times.";
+        listWrap.append(empty);
+      }
+      if (!collapsed) {
+        results.slice(0, 6).forEach(result => {
+          const button = document.createElement("button");
+          button.className = "counter-team-option counter-shield-option";
+          button.type = "button";
+          button.innerHTML = `
+            <span class="counter-team-image"></span>
+            <span>
+              <strong></strong>
+              <small></small>
+            </span>
+            <b></b>
+          `;
+          button.querySelector(".counter-team-image").replaceWith(createPokemonImage(result.entry, ""));
+          button.querySelector("strong").textContent = result.record.nickname
+            ? `${result.record.nickname} - ${result.entry.name}`
+            : result.entry.name;
+          button.querySelector("small").textContent = [
+            result.bestAttack.label,
+            result.bestAttack.stab === 1.5 ? "STAB" : "",
+            result.teamLabels.length ? result.teamLabels.join(", ") : "Build pronta"
+          ].filter(Boolean).join(" | ");
+          button.querySelector("b").textContent = `${result.bestAttack.estimatedPower}`;
+          button.addEventListener("click", () => openTeamPokemonModal(result.record));
+          listWrap.append(button);
+        });
+      }
       list.append(section);
     }
 
@@ -7120,26 +7961,12 @@ Obs: pronto para boss"></textarea>
         ? targetTypes.map(formatPokemonType).join(" / ")
         : "Escolha um ou mais tipos";
       section.querySelector("h2").textContent = targetTypes.length
-        ? counterShieldType
-          ? `Golpe obrigatorio para escudo ${formatPokemonType(counterShieldType)}`
-          : `Bater forte contra ${title}`
-        : counterShieldType
-          ? `Golpe obrigatorio para escudo ${formatPokemonType(counterShieldType)}`
-          : "O que levar contra cada elemento";
-      const strongAttackTypes = counterShieldType
-        ? [{
-            type: counterShieldType,
-            multiplier: offenseTypes.length ? getTypeEffectiveness(counterShieldType, offenseTypes) : 1,
-            shieldRequired: true
-          }]
-        : getCounterAttackTypes(offenseTypes);
+        ? `Bater forte contra ${title}`
+        : "O que levar contra cada elemento";
+      const strongAttackTypes = getCounterAttackTypes(offenseTypes);
       section.querySelector(".category-count").textContent = targetTypes.length
-        ? counterShieldType
-          ? `1 elemento obrigatorio | ${getCounterShieldLabel()}`
-          : `${strongAttackTypes.length} tipos fortes`
-        : counterShieldType
-          ? `1 elemento obrigatorio | ${getCounterShieldLabel()}`
-          : "Selecione no filtro";
+        ? `${strongAttackTypes.length} tipos fortes`
+        : "Selecione no filtro";
 
       const grid = section.querySelector(".counter-type-grid");
       const collapsed = attachSectionCollapseControl(section, {
@@ -7152,10 +7979,10 @@ Obs: pronto para boss"></textarea>
         list.append(section);
         return;
       }
-      if (!offenseTypes.length && !counterShieldType) {
+      if (!offenseTypes.length) {
         const note = document.createElement("p");
         note.className = "raid-note";
-        note.textContent = "Marque o tipo do Pokemon inimigo ou escolha um escudo elemental para simular raid.";
+        note.textContent = "Marque o tipo do Pokemon inimigo para ver os melhores tipos de ataque contra o boss.";
         grid.append(note);
       } else if (!strongAttackTypes.length) {
         const note = document.createElement("p");
@@ -7172,12 +7999,8 @@ Obs: pronto para boss"></textarea>
             <span></span>
           `;
           card.querySelector(".counter-type-card-main").append(createTypeBadge(item.type));
-          card.querySelector("strong").textContent = item.shieldRequired
-            ? "Obrigatorio no escudo"
-            : `${formatMultiplier(item.multiplier)} de dano`;
-          card.querySelector("span").textContent = item.shieldRequired
-            ? `Use golpes ${formatPokemonType(item.type)} para baixar o escudo`
-            : `Ataques ${formatPokemonType(item.type)}`;
+          card.querySelector("strong").textContent = `${formatMultiplier(item.multiplier)} de dano`;
+          card.querySelector("span").textContent = `Ataques ${formatPokemonType(item.type)}`;
           grid.append(card);
         });
       }
@@ -7186,9 +8009,10 @@ Obs: pronto para boss"></textarea>
     }
 
     function openCounterModal(result) {
-      const { entry, bestAttack, attackOptions, strongTypes, readyRecord, readyBuild, teamLabels, defense, shieldType, offenseTypes, isRealCounter } = result;
+      const { entry, bestAttack, attackOptions, strongTypes, readyRecord, readyBuild, readyCounterMoves, teamLabels, defense, shieldType, offenseTypes, isRealCounter } = result;
+      const readyMove = readyCounterMoves?.[0] || null;
       const targetTypes = getCounterTargetTypes();
-      const targetLabel = getCounterTargetLabel(targetTypes);
+      const targetLabel = getCounterTargetLabel(targetTypes, shieldType);
       const attackTargetLabel = shieldType
         ? `escudo ${formatPokemonType(shieldType)}`
         : offenseTypes.map(formatPokemonType).join(" / ");
@@ -7232,7 +8056,7 @@ Obs: pronto para boss"></textarea>
 
       const summaryList = document.createElement("dl");
       summaryList.className = "modal-definition-list";
-      summaryList.append(
+      summaryList.append(...[
         createModalInfoRow("Alvo", targetLabel),
         createModalInfoRow("Escudo", shieldType ? formatPokemonType(shieldType) : "Sem escudo"),
         createModalInfoRow("Golpe sugerido", `${bestAttack.label} - ${formatPokemonType(bestAttack.type)}`),
@@ -7241,8 +8065,9 @@ Obs: pronto para boss"></textarea>
           : `${bestAttack.estimatedPower} (${bestAttack.power} base, ${formatMultiplier(bestAttack.multiplier)}, STAB ${bestAttack.stab === 1.5 ? "sim" : "nao"})`),
         createModalInfoRow("Defesa", defense.label),
         createModalInfoRow("Counter real", isRealCounter ? "Sim: bate forte e nao toma super efetivo" : "Risco: bate forte, mas pode apanhar"),
+        readyMove ? createModalInfoRow("Golpe no time", `${readyMove.label} - ${formatPokemonType(readyMove.type)}`) : null,
         createModalInfoRow("Origem", readyRecord ? `Build pronta${teamLabels.length ? ` em ${teamLabels.join(", ")}` : ""}` : "Catalogo e cobertura sugerida")
-      );
+      ].filter(Boolean));
       primaryColumn.append(createModalSection("Resumo", summaryList));
 
       const attackBlock = document.createElement("div");
@@ -7306,8 +8131,9 @@ Obs: pronto para boss"></textarea>
     }
 
     function createCounterCard(result) {
-      const { entry, strongTypes, bestAttack, hasMetaBuild, hasReadyBuild, readyRecord, readyBuild, teamLabels, defense, defenseLabel, shieldType, offenseTypes, isRealCounter } = result;
-      const targetLabel = getCounterTargetLabel(getCounterTargetTypes());
+      const { entry, strongTypes, bestAttack, hasMetaBuild, hasReadyBuild, readyRecord, readyBuild, readyCounterMoves, teamLabels, defense, defenseLabel, shieldType, offenseTypes, isRealCounter } = result;
+      const readyMove = readyCounterMoves?.[0] || null;
+      const targetLabel = getCounterTargetLabel(getCounterTargetTypes(), shieldType);
       const attackTargetLabel = shieldType
         ? `escudo ${formatPokemonType(shieldType)}`
         : offenseTypes.map(formatPokemonType).join(" / ");
@@ -7375,9 +8201,10 @@ Obs: pronto para boss"></textarea>
         `;
         readyBox.querySelector("strong").textContent = readyRecord.buildName || readyBuild.name || "Build salva";
         readyBox.querySelector("span").textContent = [
+          readyMove ? `${readyMove.label} (${formatPokemonType(readyMove.type)})` : "",
           readyRecord.item || readyBuild.item || "Item flex",
           buildDamageLabels[readyRecord.damageType] || "Dano flex"
-        ].join(" - ");
+        ].filter(Boolean).join(" - ");
         readyBox.querySelector("button").addEventListener("click", event => {
           event.stopPropagation();
           const button = event.currentTarget;
@@ -7401,26 +8228,286 @@ Obs: pronto para boss"></textarea>
       return card;
     }
 
+    function matchesCollectionSearch(entry) {
+      const search = normalize(collectionSearch.trim());
+      return matchesTextSearch(entry, search);
+    }
+
+    function getShinyCollectionTargets() {
+      const seen = new Set();
+      const targets = [];
+      allEntries.forEach(entry => {
+        const rootEntry = getShinyTrackingEntry(entry);
+        const key = canonicalKey(rootEntry.name);
+        if (seen.has(key)) return;
+        seen.add(key);
+        targets.push(rootEntry);
+      });
+      return targets.sort((a, b) => a.id - b.id);
+    }
+
+    function getHaCollectionTargets() {
+      const seen = new Set();
+      const targets = [];
+      allEntries.forEach(entry => {
+        const rootEntry = getHaTrackingEntry(entry);
+        const key = canonicalKey(rootEntry.name);
+        if (seen.has(key) || !entryHasHiddenAbilityData(rootEntry)) return;
+        seen.add(key);
+        targets.push(rootEntry);
+      });
+      return targets.sort((a, b) => a.id - b.id);
+    }
+
+    function matchesEvolutionLineCollectionSearch(entry) {
+      const search = normalize(collectionSearch.trim());
+      if (!search) return true;
+      return getEvolutionLineEntries(entry).some(lineEntry => matchesTextSearch(lineEntry, search));
+    }
+
+    function getCollectionHaEntries() {
+      return getHaCollectionTargets()
+        .filter(matchesEvolutionLineCollectionSearch)
+        .filter(entry => {
+          const record = getCollectionRecord(getHaTrackingEntry(entry));
+          if (collectionHaFilter === "missing") return !record.hasHiddenAbility;
+          if (collectionHaFilter === "owned") return record.hasHiddenAbility;
+          if (collectionHaFilter === "all") return true;
+          return record.hasHiddenAbility && record.hiddenAbilityCategory === collectionHaFilter;
+        });
+    }
+
+    function getCollectionShinyEntries() {
+      return getShinyCollectionTargets()
+        .filter(matchesEvolutionLineCollectionSearch)
+        .filter(entry => {
+          const record = getCollectionRecord(getShinyTrackingEntry(entry));
+          if (collectionShinyFilter === "missing") return !record.shiny;
+          if (collectionShinyFilter === "owned") return record.shiny;
+          return true;
+        });
+    }
+
+    function renderCollectionTabs(list) {
+      const tabs = document.createElement("section");
+      tabs.className = "team-flow-tabs collection-flow-tabs";
+      [
+        { value: "ha", label: "HA" },
+        { value: "shiny", label: "Shiny" }
+      ].forEach(tab => {
+        const button = document.createElement("button");
+        const active = collectionMode === tab.value;
+        button.className = `team-flow-tab${active ? " active" : ""}`;
+        button.type = "button";
+        button.setAttribute("aria-pressed", active ? "true" : "false");
+        button.textContent = tab.label;
+        button.addEventListener("click", () => {
+          collectionMode = tab.value;
+          render();
+        });
+        tabs.append(button);
+      });
+      list.append(tabs);
+    }
+
+    function renderCollectionTools(list) {
+      const section = document.createElement("section");
+      section.className = "collection-tools";
+      section.innerHTML = `
+        <div class="collection-search-row">
+          <input class="search-field" id="collection-search" type="search" list="pokemon-search-options" placeholder="Buscar por nome, numero, tipo ou ability...">
+          <button class="muted-button collection-copy-button" id="collection-copy" type="button">Copiar</button>
+        </div>
+        <div class="collection-filter-row" aria-label="Filtros da colecao"></div>
+      `;
+      const search = section.querySelector("#collection-search");
+      const copyButton = section.querySelector("#collection-copy");
+      const defaultCopyLabel = collectionMode === "ha" ? "Copiar HA" : "Copiar Shiny";
+      copyButton.textContent = defaultCopyLabel;
+      copyButton.title = collectionMode === "ha"
+        ? "Copiar Pokemon com HA e estado"
+        : "Copiar Pokemon shiny";
+      search.value = collectionSearch;
+      search.addEventListener("input", event => {
+        collectionSearch = event.target.value;
+        focusCollectionSearchAfterRender = true;
+        render();
+      });
+      copyButton.addEventListener("click", async () => {
+        const text = formatCollectionTabForCopy();
+        if (!text) {
+          copyButton.textContent = "Nada";
+          setTimeout(() => {
+            copyButton.textContent = defaultCopyLabel;
+          }, 1200);
+          return;
+        }
+        try {
+          await copyTextToClipboard(text);
+          copyButton.textContent = "Copiado";
+          setTimeout(() => {
+            copyButton.textContent = defaultCopyLabel;
+          }, 1200);
+        } catch {
+          copyButton.textContent = "Erro";
+          setTimeout(() => {
+            copyButton.textContent = defaultCopyLabel;
+          }, 1600);
+        }
+      });
+
+      const filterRow = section.querySelector(".collection-filter-row");
+      const filterItems = collectionMode === "ha" ? haCollectionFilters : shinyCollectionFilters;
+      filterItems.forEach(filter => {
+        const active = collectionMode === "ha"
+          ? collectionHaFilter === filter.value
+          : collectionShinyFilter === filter.value;
+        const count = collectionMode === "ha"
+          ? getHaCollectionTargets().filter(entry => {
+            const record = getCollectionRecord(getHaTrackingEntry(entry));
+            if (filter.value === "missing") return !record.hasHiddenAbility;
+            if (filter.value === "owned") return record.hasHiddenAbility;
+            if (filter.value === "all") return true;
+            return record.hasHiddenAbility && record.hiddenAbilityCategory === filter.value;
+          }).length
+          : getShinyCollectionTargets().filter(entry => {
+            const record = getCollectionRecord(getShinyTrackingEntry(entry));
+            if (filter.value === "missing") return !record.shiny;
+            if (filter.value === "owned") return record.shiny;
+            return true;
+          }).length;
+        filterRow.append(createFilterChip({
+          label: filter.label,
+          active,
+          count,
+          onClick: () => {
+            if (collectionMode === "ha") {
+              collectionHaFilter = filter.value;
+            } else {
+              collectionShinyFilter = filter.value;
+            }
+            render();
+          }
+        }));
+      });
+      list.append(section);
+
+      if (focusCollectionSearchAfterRender) {
+        focusCollectionSearchAfterRender = false;
+        focusInputEnd(search);
+      }
+    }
+
+    function createCollectionCard(entry) {
+      const record = getCollectionRecord(entry);
+      const card = document.createElement("article");
+      card.className = `collection-card${record.hasHiddenAbility ? " has-ha" : ""}${record.shiny ? " has-shiny" : ""}`;
+      card.tabIndex = 0;
+      card.setAttribute("role", "button");
+      card.setAttribute("aria-label", `Abrir detalhes de ${entry.name}`);
+      card.innerHTML = `
+        <div class="collection-card-main">
+          <span class="collection-card-image"></span>
+          <div>
+            <p class="modal-kicker"></p>
+            <h3></h3>
+            <span class="collection-card-category"></span>
+            <span class="collection-card-ha"></span>
+          </div>
+        </div>
+      `;
+      card.querySelector(".collection-card-image").replaceWith(createPokemonImage(entry, ""));
+      card.querySelector(".modal-kicker").textContent = `#${String(entry.id).padStart(4, "0")} - ${getCollectionGenerationLabel(entry)}`;
+      card.querySelector("h3").textContent = entry.name;
+      card.querySelector(".collection-card-category").textContent = collectionMode === "ha"
+        ? (record.hasHiddenAbility ? getHaCollectionCategoryLabel(record.hiddenAbilityCategory) : "HA faltando")
+        : (record.shiny ? "Shiny obtido" : "Shiny faltando");
+      card.querySelector(".collection-card-ha").textContent = `HA: ${getHiddenAbilityLabel(entry)}`;
+
+      card.addEventListener("click", () => openPokemonModal(entry));
+      card.addEventListener("keydown", event => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
+        openPokemonModal(entry);
+      });
+      return card;
+    }
+
+    function renderCollectionFlow(list) {
+      const haTargets = getHaCollectionTargets();
+      const shinyTargets = getShinyCollectionTargets();
+      const haOwned = haTargets.filter(hasTrackedHiddenAbility).length;
+      const shinyOwned = shinyTargets.filter(hasTrackedShiny).length;
+      activeTitle.textContent = "Colecao";
+      renderCollectionTabs(list);
+      renderCollectionTools(list);
+
+      const entries = collectionMode === "ha" ? getCollectionHaEntries() : getCollectionShinyEntries();
+      visibleCount.textContent = `${entries.length} Pokemon`;
+
+      const summary = document.createElement("section");
+      summary.className = "collection-summary";
+      [
+        { label: "HA", value: `${haOwned}/${haTargets.length}` },
+        { label: "Shiny", value: `${shinyOwned}/${shinyTargets.length}` },
+        { label: "Default", value: haTargets.filter(entry => getCollectionRecord(getHaTrackingEntry(entry)).hiddenAbilityCategory === "default" && hasTrackedHiddenAbility(entry)).length },
+        { label: "Perfeito", value: haTargets.filter(entry => getCollectionRecord(getHaTrackingEntry(entry)).hiddenAbilityCategory === "perfect" && hasTrackedHiddenAbility(entry)).length },
+        { label: "F6", value: haTargets.filter(entry => getCollectionRecord(getHaTrackingEntry(entry)).hiddenAbilityCategory === "f6" && hasTrackedHiddenAbility(entry)).length }
+      ].forEach(item => {
+        const block = document.createElement("article");
+        block.className = "collection-summary-item";
+        block.innerHTML = `<strong></strong><span></span>`;
+        block.querySelector("strong").textContent = item.value;
+        block.querySelector("span").textContent = item.label;
+        summary.append(block);
+      });
+      list.append(summary);
+
+      const section = document.createElement("section");
+      section.className = "collection-results";
+      section.innerHTML = `
+        <div class="category-heading">
+          <h2></h2>
+          <span class="category-count"></span>
+        </div>
+        <div class="collection-grid"></div>
+      `;
+      section.querySelector("h2").textContent = collectionMode === "ha" ? "Hidden Ability" : "Shiny";
+      section.querySelector(".category-count").textContent = `${entries.length} resultado${entries.length === 1 ? "" : "s"}`;
+      const grid = section.querySelector(".collection-grid");
+      entries.forEach(entry => grid.append(createCollectionCard(entry)));
+      if (!entries.length) {
+        const empty = document.createElement("div");
+        empty.className = "empty";
+        empty.textContent = "Nenhum Pokemon encontrado nesse filtro.";
+        grid.append(empty);
+      }
+      list.append(section);
+    }
+
     function renderBuildsFlow(list) {
       activeTitle.textContent = "Counters por tipo";
       const targetTypes = getCounterTargetTypes();
       const offenseTypes = getCounterOffenseTypes(targetTypes);
       renderCounterTools(list);
       renderCounterSummary(list, targetTypes);
-      const results = getCounterCandidates(targetTypes, counterSearch);
+      renderCounterShieldBreakers(list);
+      const results = getCounterCandidates(targetTypes, counterSearch, { shieldType: "" });
       visibleCount.textContent = targetTypes.length
         ? `${results.length} sugestoes`
         : counterShieldType
-          ? `${results.length} sugestoes`
+          ? `${getShieldBreakerResults(counterShieldType).length} prontos`
           : `${typeFilters.length} tipos`;
 
-      if (!offenseTypes.length) {
+      if (!offenseTypes.length && !counterShieldType) {
         const empty = document.createElement("div");
         empty.className = "empty";
         empty.textContent = "Selecione o tipo do inimigo ou um escudo elemental acima para ver o que levar.";
         list.append(empty);
         return;
       }
+
+      if (!offenseTypes.length) return;
 
       renderCounterResultsSearch(list);
       renderCounterTeamSummary(list, results);
@@ -7477,6 +8564,7 @@ Obs: pronto para boss"></textarea>
       const itemsActive = activeView === "items";
       const teamsActive = activeView === "teams";
       const buildsActive = activeView === "builds";
+      const collectionActive = activeView === "collection";
       const settingsActive = activeView === "settings";
       checklistTab.classList.toggle("active", checklistActive);
       captureTab.classList.toggle("active", captureActive);
@@ -7485,6 +8573,7 @@ Obs: pronto para boss"></textarea>
       itemsTab.classList.toggle("active", itemsActive);
       teamsTab.classList.toggle("active", teamsActive);
       buildsTab.classList.toggle("active", buildsActive);
+      collectionTab.classList.toggle("active", collectionActive);
       settingsTab.classList.toggle("active", settingsActive);
       checklistTab.setAttribute("aria-pressed", checklistActive ? "true" : "false");
       captureTab.setAttribute("aria-pressed", captureActive ? "true" : "false");
@@ -7493,8 +8582,9 @@ Obs: pronto para boss"></textarea>
       itemsTab.setAttribute("aria-pressed", itemsActive ? "true" : "false");
       teamsTab.setAttribute("aria-pressed", teamsActive ? "true" : "false");
       buildsTab.setAttribute("aria-pressed", buildsActive ? "true" : "false");
+      collectionTab.setAttribute("aria-pressed", collectionActive ? "true" : "false");
       settingsTab.setAttribute("aria-pressed", settingsActive ? "true" : "false");
-      document.body.classList.toggle("flow-without-kpis", captureActive || breedingActive || itemsActive || teamsActive || buildsActive || settingsActive);
+      document.body.classList.toggle("flow-without-kpis", captureActive || breedingActive || itemsActive || teamsActive || buildsActive || collectionActive || settingsActive);
       checklistNavSections.hidden = !checklistActive;
       toolbar.hidden = !checklistActive;
       const owned = allEntries.filter(isOwned).length;
@@ -7508,6 +8598,7 @@ Obs: pronto para boss"></textarea>
       itemsFlowCount.textContent = getKnownItemNames().length;
       teamsFlowCount.textContent = teamBuiltPokemon.length;
       buildsFlowCount.textContent = typeFilters.length;
+      collectionFlowCount.textContent = collectionTrackingState.size;
       settingsFlowCount.textContent = isTauriApp() ? "Desk" : "Web";
     }
 
@@ -7648,16 +8739,111 @@ Obs: pronto para boss"></textarea>
       list.append(section);
     }
 
+    function parseActivityTimestamp(value) {
+      if (!value) return 0;
+      const text = String(value);
+      if (/^\d+$/.test(text)) return Number(text) * 1000;
+      return Date.parse(text) || 0;
+    }
+
+    function formatActivityDate(value, logTime = "") {
+      const timestamp = parseActivityTimestamp(value);
+      if (!timestamp) return logTime || "Sem data";
+      return new Date(timestamp).toLocaleString("pt-BR", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+      });
+    }
+
+    function getRewardTypeLabel(type) {
+      if (type === "gacha") return "Gacha";
+      if (type === "money") return "Dinheiro";
+      if (type === "reward") return "Recompensa";
+      return "Item recebido";
+    }
+
+    function getRecentActivityRows(captureRows) {
+      const captureActivities = captureRows.map(({ entry, record }) => ({
+        kind: "capture",
+        entry,
+        record,
+        sortTime: Date.parse(record.capturedAt) || 0
+      }));
+      const rewardActivities = (logCaptureState.rewardEvents || []).map(event => ({
+        kind: "reward",
+        event,
+        sortTime: parseActivityTimestamp(event.detectedAt) || Date.now()
+      }));
+      return [...captureActivities, ...rewardActivities]
+        .sort((a, b) => b.sortTime - a.sortTime)
+        .slice(0, 12);
+    }
+
+    function renderRecentActivityList(list, rows) {
+      const activityRows = getRecentActivityRows(rows);
+      if (!activityRows.length) return;
+      const section = document.createElement("section");
+      section.className = "capture-recent-card";
+      section.innerHTML = `
+        <div class="capture-recent-header">
+          <div>
+            <p class="eyebrow">Historico</p>
+            <h2>Ultimos ganhos/capturas</h2>
+          </div>
+          <span class="category-count"></span>
+        </div>
+        <div class="capture-recent-list"></div>
+      `;
+      section.querySelector(".category-count").textContent = `${activityRows.length} recente${activityRows.length === 1 ? "" : "s"}`;
+      const recentList = section.querySelector(".capture-recent-list");
+      activityRows.forEach(activity => {
+        const item = document.createElement(activity.kind === "capture" ? "button" : "div");
+        item.className = `capture-recent-item${activity.kind === "reward" ? " is-reward" : ""}`;
+        if (activity.kind === "capture") item.type = "button";
+        item.innerHTML = `
+          <span class="capture-recent-image"></span>
+          <span class="capture-recent-main">
+            <strong></strong>
+            <span></span>
+          </span>
+          <span class="capture-recent-date"></span>
+        `;
+        if (activity.kind === "capture") {
+          const { entry, record } = activity;
+          item.querySelector(".capture-recent-image").replaceWith(createPokemonImage(entry, ""));
+          item.querySelector("strong").textContent = `#${String(entry.id).padStart(4, "0")} ${entry.name}`;
+          item.querySelector(".capture-recent-main span").textContent = getMethodFilterLabel(entry);
+          item.querySelector(".capture-recent-date").textContent = formatCapturedDateTime(record.capturedAt);
+          item.addEventListener("click", () => openPokemonModal(entry));
+        } else {
+          const event = activity.event || {};
+          const icon = item.querySelector(".capture-recent-image");
+          icon.className = "capture-recent-icon";
+          icon.textContent = getRewardTypeLabel(event.type).slice(0, 2).toUpperCase();
+          item.querySelector("strong").textContent = event.title || getRewardTypeLabel(event.type);
+          item.querySelector(".capture-recent-main span").textContent = getRewardTypeLabel(event.type);
+          item.querySelector(".capture-recent-date").textContent = formatActivityDate(event.detectedAt, event.logTime);
+          item.title = event.detail || event.text || "";
+        }
+        recentList.append(item);
+      });
+      list.append(section);
+    }
+
     function renderCapturedTelemetry(list) {
       const rows = getCapturedTelemetryRows();
       const tableSearch = normalize(telemetrySearch.trim());
       const tableRows = rows.filter(({ entry }) => matchesTextSearch(entry, tableSearch));
-      activeTitle.textContent = "Telemetria de captura";
+      const rewardCount = (logCaptureState.rewardEvents || []).length;
+      activeTitle.textContent = "Telemetria de capturas e ganhos";
       visibleCount.textContent = tableSearch
         ? `${tableRows.length} de ${rows.length} Pok\u00e9mon`
-        : `${rows.length} Pok\u00e9mon`;
+        : `${rows.length} Pokemon | ${rewardCount} ganho${rewardCount === 1 ? "" : "s"}`;
       renderCaptureCharts(list, rows);
-      renderRecentCaptureList(list, rows);
+      renderRecentActivityList(list, rows);
 
       const searchWrap = document.createElement("div");
       searchWrap.className = "telemetry-search";
@@ -7771,6 +8957,116 @@ Obs: pronto para boss"></textarea>
       }, 2600);
     }
 
+    function createLocalRecordId() {
+      return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    }
+
+    function getBreedingParentSyncKey(parent) {
+      return JSON.stringify({
+        name: canonicalKey(parent.name),
+        nickname: normalize(parent.nickname),
+        gender: parent.gender,
+        ivs: breedingIvStats.map(stat => Number.parseInt(parent.ivs?.[stat.key], 10) || 0),
+        natureOk: Boolean(parent.natureOk),
+        hasHiddenAbility: Boolean(parent.hasHiddenAbility),
+        item: parent.item || ""
+      });
+    }
+
+    function mergeBreedingParentsFromBackup(records) {
+      const known = new Set(breedingSavedParents.map(getBreedingParentSyncKey));
+      let added = 0;
+      (Array.isArray(records) ? records : [])
+        .map(normalizeBreedingParent)
+        .filter(Boolean)
+        .forEach(parent => {
+          const key = getBreedingParentSyncKey(parent);
+          if (known.has(key)) return;
+          known.add(key);
+          breedingSavedParents.push({
+            ...parent,
+            id: breedingSavedParents.some(item => item.id === parent.id) ? createLocalRecordId() : parent.id
+          });
+          added += 1;
+        });
+      return added;
+    }
+
+    function getTeamPokemonSyncKey(record) {
+      return JSON.stringify({
+        name: canonicalKey(record.name),
+        nickname: normalize(record.nickname),
+        buildName: normalize(record.buildName),
+        role: normalize(record.role),
+        damageType: record.damageType,
+        level: record.level,
+        item: normalize(record.item),
+        nature: normalize(record.nature),
+        ability: normalize(record.ability),
+        shiny: Boolean(record.shiny),
+        ivs: breedingIvStats.map(stat => Number.parseInt(record.ivs?.[stat.key], 10) || 0),
+        evs: breedingIvStats.map(stat => Number.parseInt(record.evs?.[stat.key], 10) || 0),
+        moves: record.moves.map(move => normalize(move)),
+        notes: normalize(record.notes)
+      });
+    }
+
+    function mergeTeamsDataFromBackup(data = {}) {
+      const idMap = new Map();
+      const knownPokemon = new Map(teamBuiltPokemon.map(record => [getTeamPokemonSyncKey(record), record.id]));
+      let pokemonAdded = 0;
+      (Array.isArray(data.builtPokemon) ? data.builtPokemon : [])
+        .map(normalizeTeamPokemon)
+        .filter(Boolean)
+        .forEach(record => {
+          const key = getTeamPokemonSyncKey(record);
+          const existingId = knownPokemon.get(key);
+          if (existingId) {
+            idMap.set(record.id, existingId);
+            return;
+          }
+          const nextId = teamBuiltPokemon.some(item => item.id === record.id) ? createLocalRecordId() : record.id;
+          idMap.set(record.id, nextId);
+          knownPokemon.set(key, nextId);
+          teamBuiltPokemon.push({ ...record, id: nextId });
+          pokemonAdded += 1;
+        });
+
+      const teamsByName = new Map(savedTeams.map(team => [normalize(team.name), team]));
+      let teamsAdded = 0;
+      (Array.isArray(data.teams) ? data.teams : [])
+        .map(normalizeSavedTeam)
+        .filter(Boolean)
+        .forEach(team => {
+          const mappedMembers = team.memberIds
+            .map(id => idMap.get(id) || id)
+            .filter(id => teamBuiltPokemon.some(record => record.id === id))
+            .slice(0, 6);
+          const key = normalize(team.name);
+          const current = teamsByName.get(key);
+          if (current) {
+            const before = current.memberIds.length;
+            current.memberIds = [...new Set([...current.memberIds, ...mappedMembers])].slice(0, 6);
+            if (current.memberIds.length > before) teamsAdded += 1;
+            return;
+          }
+          const next = {
+            ...team,
+            id: savedTeams.some(item => item.id === team.id) ? createLocalRecordId() : team.id,
+            memberIds: mappedMembers
+          };
+          savedTeams.push(next);
+          teamsByName.set(key, next);
+          teamsAdded += 1;
+        });
+
+      return { pokemonAdded, teamsAdded };
+    }
+
+    function validateBackupPayload(backup) {
+      return backup && backup.app === "Pixelmon - Pokelist" && Array.isArray(backup.captured);
+    }
+
     function createFullBackupPayload() {
       const backup = {
         app: "Pixelmon - Pokelist",
@@ -7778,6 +9074,7 @@ Obs: pronto para boss"></textarea>
         appVersion: APP_META.version,
         exportedAt: new Date().toISOString(),
         captured: getCapturedRecords(),
+        collectionTracking: getCollectionRecords(),
         breedingParents: breedingSavedParents,
         teamsData: {
           builtPokemon: teamBuiltPokemon,
@@ -7786,6 +9083,7 @@ Obs: pronto para boss"></textarea>
         preferences: {
           theme: activeTheme,
           density: isCompactMode ? "compact" : "normal",
+          playerName: configuredPlayerName || logCaptureState.playerName || "",
           logSidebarCollapsed: isLogSidebarCollapsed,
           logMonitorMinimized: isLogMonitorMinimized,
           collapsedSections: [...collapsedSections]
@@ -7817,7 +9115,7 @@ Obs: pronto para boss"></textarea>
         return;
       }
 
-      if (!backup || backup.app !== "Pixelmon - Pokelist" || !Array.isArray(backup.captured)) {
+      if (!validateBackupPayload(backup)) {
         await showAppDialog({
           title: "Backup nao reconhecido",
           message: "Escolha um arquivo exportado pelo Pixelmon - Pokelist.",
@@ -7828,7 +9126,7 @@ Obs: pronto para boss"></textarea>
 
       const confirmed = await showAppDialog({
         title: "Importar backup?",
-        message: "Os capturados, pais de breeding, Pokemon prontos e times salvos serao substituidos pelos dados do arquivo.",
+        message: "Os capturados, colecao, pais de breeding, Pokemon prontos e times salvos serao substituidos pelos dados do arquivo.",
         detail: `Backup de ${backup.exportedAt || "data nao informada"}.`,
         confirmLabel: "Importar",
         cancelLabel: "Cancelar",
@@ -7837,6 +9135,7 @@ Obs: pronto para boss"></textarea>
       if (!confirmed) return;
 
       setCapturedFromRecords(backup.captured);
+      setCollectionFromRecords(backup.collectionTracking || []);
       breedingSavedParents = (Array.isArray(backup.breedingParents) ? backup.breedingParents : [])
         .map(normalizeBreedingParent)
         .filter(Boolean);
@@ -7851,6 +9150,18 @@ Obs: pronto para boss"></textarea>
 
       if (backup.preferences?.theme) activeTheme = backup.preferences.theme === "dark" ? "dark" : "light";
       if (backup.preferences?.density) isCompactMode = backup.preferences.density === "compact";
+      if (typeof backup.preferences?.playerName === "string") {
+        configuredPlayerName = backup.preferences.playerName.trim();
+        logCaptureState.playerName = configuredPlayerName;
+        localStorage.setItem(PLAYER_NAME_STORAGE_KEY, configuredPlayerName);
+        if (useFileDatabase) {
+          try {
+            applyLogCaptureState(await postLogCapture("/api/log-capture/player", { playerName: configuredPlayerName }));
+          } catch {
+            logCaptureState.lastError = "Nao foi possivel restaurar o nome de usuario no monitor de logs.";
+          }
+        }
+      }
       if (Array.isArray(backup.preferences?.collapsedSections)) {
         collapsedSections = new Set(backup.preferences.collapsedSections.filter(item => typeof item === "string" && item.trim()));
         saveCollapsedSections();
@@ -7858,21 +9169,75 @@ Obs: pronto para boss"></textarea>
       localStorage.setItem(THEME_KEY, activeTheme);
       localStorage.setItem(DENSITY_KEY, isCompactMode ? "compact" : "normal");
       saveBreedingParents();
+      saveCollectionTracking();
       saveTeamsData();
       await persistData();
       applyViewPreferences();
       render();
     }
 
-    function selectBackupForImport() {
+    async function mergeFullBackupFile(file) {
+      if (!file) return;
+      let backup;
+      try {
+        backup = JSON.parse(await file.text());
+      } catch {
+        await showAppDialog({
+          title: "Backup invalido",
+          message: "Nao foi possivel ler esse arquivo JSON.",
+          confirmLabel: "OK"
+        });
+        return;
+      }
+
+      if (!validateBackupPayload(backup)) {
+        await showAppDialog({
+          title: "Backup nao reconhecido",
+          message: "Escolha um arquivo exportado pelo Pixelmon - Pokelist.",
+          confirmLabel: "OK"
+        });
+        return;
+      }
+
+      const confirmed = await showAppDialog({
+        title: "Atualizar dados com backup?",
+        message: "Os dados do arquivo serao somados aos dados deste PC. Nada sera apagado.",
+        detail: `Backup de ${backup.exportedAt || "data nao informada"}.`,
+        confirmLabel: "Atualizar",
+        cancelLabel: "Cancelar",
+        showCancel: true
+      });
+      if (!confirmed) return;
+
+      const capturedAdded = mergeCapturedFromRecords(backup.captured);
+      const collectionAdded = mergeCollectionFromRecords(backup.collectionTracking || []);
+      const breedingAdded = mergeBreedingParentsFromBackup(backup.breedingParents || []);
+      const teamMerge = mergeTeamsDataFromBackup(backup.teamsData || {});
+      activeTeamEditId = "";
+
+      saveBreedingParents();
+      saveCollectionTracking();
+      saveTeamsData();
+      await persistData();
+      render();
+
+      await showAppDialog({
+        title: "Dados atualizados",
+        message: "O backup foi mesclado com a base deste PC.",
+        detail: `${capturedAdded} capturados, ${collectionAdded} colecao, ${breedingAdded} pais, ${teamMerge.pokemonAdded} prontos, ${teamMerge.teamsAdded} times.`,
+        confirmLabel: "OK"
+      });
+    }
+
+    function selectBackupFile(handler) {
       const input = document.createElement("input");
       input.type = "file";
       input.accept = "application/json,.json";
       input.addEventListener("change", () => {
-        importFullBackupFile(input.files?.[0]).catch(() => {
+        handler(input.files?.[0]).catch(() => {
           showAppDialog({
-            title: "Erro ao importar",
-            message: "Nao foi possivel concluir a importacao do backup.",
+            title: "Erro no backup",
+            message: "Nao foi possivel concluir a operacao com o backup.",
             confirmLabel: "OK"
           });
         }).finally(() => input.remove());
@@ -7880,6 +9245,14 @@ Obs: pronto para boss"></textarea>
       input.hidden = true;
       document.body.append(input);
       input.click();
+    }
+
+    function selectBackupForImport() {
+      selectBackupFile(importFullBackupFile);
+    }
+
+    function selectBackupForMerge() {
+      selectBackupFile(mergeFullBackupFile);
     }
 
     function renderSettingsStatus(list, title, detail) {
@@ -7919,6 +9292,14 @@ Obs: pronto para boss"></textarea>
           </div>
           <p class="settings-row-note" id="settings-log-note"></p>
         </div>
+        <div class="settings-row">
+          <label for="settings-player-name">Nome de usuario</label>
+          <div class="settings-path-row">
+            <input id="settings-player-name" type="text" placeholder="Seu nick no servidor">
+            <button class="modal-capture-button" id="settings-save-player-name" type="button">Salvar</button>
+          </div>
+          <p class="settings-row-note" id="settings-player-note"></p>
+        </div>
         <div class="settings-action-row">
           <button class="muted-button" id="settings-toggle-log-capture" type="button"></button>
           <button class="muted-button" id="settings-refresh-log-capture" type="button">Atualizar logs</button>
@@ -7927,17 +9308,25 @@ Obs: pronto para boss"></textarea>
       const settingsLogPath = logPanel.querySelector("#settings-log-path");
       const settingsSaveLogPath = logPanel.querySelector("#settings-save-log-path");
       const settingsLogNote = logPanel.querySelector("#settings-log-note");
+      const settingsPlayerName = logPanel.querySelector("#settings-player-name");
+      const settingsSavePlayerName = logPanel.querySelector("#settings-save-player-name");
+      const settingsPlayerNote = logPanel.querySelector("#settings-player-note");
       const settingsToggleLogCapture = logPanel.querySelector("#settings-toggle-log-capture");
       const settingsRefreshLogCapture = logPanel.querySelector("#settings-refresh-log-capture");
       settingsLogPath.value = logCaptureState.configuredLogPath || logCaptureState.defaultLogPath;
+      settingsPlayerName.value = configuredPlayerName || logCaptureState.playerName || "";
       settingsLogPath.disabled = !useFileDatabase;
       settingsSaveLogPath.disabled = !useFileDatabase;
+      settingsSavePlayerName.disabled = false;
       settingsToggleLogCapture.disabled = !useFileDatabase;
       settingsRefreshLogCapture.disabled = !useFileDatabase;
       settingsToggleLogCapture.textContent = logCaptureState.enabled ? "Desligar monitor" : "Ligar monitor";
       settingsLogNote.textContent = useFileDatabase
         ? `Atual: ${maskLocalPath(logCaptureState.activePath || logCaptureState.configuredLogPath || logCaptureState.defaultLogPath || "nao configurado")}`
         : "Abra pelo app desktop para usar captura por logs.";
+      settingsPlayerNote.textContent = settingsPlayerName.value
+        ? "Usado para filtrar gachas, recompensas e ganhos que citam seu nick nos logs."
+        : "Opcional para capturas; necessario para ganhos e recompensas por logs.";
       settingsSaveLogPath.addEventListener("click", () => {
         saveLogCapturePath(settingsLogPath.value, settingsSaveLogPath).then(render);
       });
@@ -7945,6 +9334,14 @@ Obs: pronto para boss"></textarea>
         if (event.key !== "Enter") return;
         event.preventDefault();
         saveLogCapturePath(settingsLogPath.value, settingsSaveLogPath).then(render);
+      });
+      settingsSavePlayerName.addEventListener("click", () => {
+        savePlayerName(settingsPlayerName.value, settingsSavePlayerName);
+      });
+      settingsPlayerName.addEventListener("keydown", event => {
+        if (event.key !== "Enter") return;
+        event.preventDefault();
+        savePlayerName(settingsPlayerName.value, settingsSavePlayerName);
       });
       settingsToggleLogCapture.addEventListener("click", () => {
         postLogCapture("/api/log-capture", { enabled: !logCaptureState.enabled }).then(render).catch(() => {
@@ -8016,20 +9413,22 @@ Obs: pronto para boss"></textarea>
         <div>
           <p class="eyebrow">Dados locais</p>
           <h3 class="settings-panel-title">Backup e exportacao</h3>
-          <p class="settings-panel-note">Exporte ou importe todos os dados salvos do app.</p>
+          <p class="settings-panel-note">Exporte tudo, importe substituindo ou atualize somando dados de outro PC.</p>
         </div>
         <div class="settings-action-row">
           <button class="modal-capture-button" id="settings-export-backup" type="button">Exportar tudo</button>
           <button class="muted-button" id="settings-import-backup" type="button">Importar backup</button>
+          <button class="muted-button" id="settings-merge-backup" type="button">Atualizar com backup</button>
           <button class="muted-button" id="settings-export-missing" type="button">Exportar faltantes</button>
         </div>
       `;
       backupPanel.querySelector("#settings-export-backup").addEventListener("click", exportCapturedBackup);
       backupPanel.querySelector("#settings-import-backup").addEventListener("click", selectBackupForImport);
+      backupPanel.querySelector("#settings-merge-backup").addEventListener("click", selectBackupForMerge);
       backupPanel.querySelector("#settings-export-missing").addEventListener("click", exportMissingPokemon);
       renderSettingsStatus(
         backupPanel,
-        `${getCapturedRecords().length} capturados | ${breedingSavedParents.length} pais | ${teamBuiltPokemon.length} prontos`,
+        `${getCapturedRecords().length} capturados | ${getCollectionRecords().length} colecao | ${breedingSavedParents.length} pais | ${teamBuiltPokemon.length} prontos`,
         useFileDatabase ? "Banco local do app e dados complementares exportaveis." : "Dados salvos no navegador atual."
       );
 
@@ -8244,6 +9643,12 @@ Obs: pronto para boss"></textarea>
         return;
       }
 
+      if (activeView === "collection") {
+        renderCollectionFlow(list);
+        finishRender();
+        return;
+      }
+
       if (activeView === "settings") {
         renderSettingsFlow(list);
         finishRender();
@@ -8368,6 +9773,10 @@ Obs: pronto para boss"></textarea>
     });
     buildsTab.addEventListener("click", () => {
       activeView = "builds";
+      render();
+    });
+    collectionTab.addEventListener("click", () => {
+      activeView = "collection";
       render();
     });
     settingsTab.addEventListener("click", () => {
