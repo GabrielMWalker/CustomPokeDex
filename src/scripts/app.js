@@ -6,7 +6,6 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     const EVOLUTION_DATA = window.POKEMON_EVOLUTION_DATA || { pokemon: [], chains: [] };
     const BREEDING_DATA = window.POKEMON_BREEDING_DATA || [];
     const ABILITIES_DATA = window.POKEMON_ABILITIES_DATA || [];
-    const ITEM_SOURCES = window.POKEMON_ITEM_SOURCES || [];
     const BIOME_DATA_LOADED = Array.isArray(window.POKEMON_CAPTURE_BIOMES);
     const STORAGE_KEY = "pokemon-checklist-captured-v2";
     const LEGACY_STORAGE_KEY = "pokemon-checklist-status-v1";
@@ -57,8 +56,6 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     let fragmentSearch = "";
     let fragmentOwnedOnly = true;
     let fragmentIncludeCombinations = false;
-    let itemSearch = "";
-    let itemLookupMode = "sources";
     let teamsSearch = "";
     let teamBuiltPokemon = [];
     let savedTeams = [];
@@ -88,7 +85,6 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     let focusBreedingParentSearchAfterRender = false;
     let focusBreedingSavedSearchAfterRender = false;
     let focusFragmentSearchAfterRender = false;
-    let focusItemSearchAfterRender = false;
     let focusTeamsSearchAfterRender = false;
     let focusBuildSearchAfterRender = false;
     let focusCollectionSearchAfterRender = false;
@@ -1802,7 +1798,6 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     const captureTab = document.querySelector("#flow-capture");
     const capturedTab = document.querySelector("#flow-telemetry");
     const breedingTab = document.querySelector("#flow-breeding");
-    const itemsTab = document.querySelector("#flow-items");
     const teamsTab = document.querySelector("#flow-teams");
     const buildsTab = document.querySelector("#flow-builds");
     const collectionTab = document.querySelector("#flow-collection");
@@ -1812,7 +1807,6 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     const captureFlowCount = document.querySelector("#flow-capture-count");
     const telemetryFlowCount = document.querySelector("#flow-telemetry-count");
     const breedingFlowCount = document.querySelector("#flow-breeding-count");
-    const itemsFlowCount = document.querySelector("#flow-items-count");
     const teamsFlowCount = document.querySelector("#flow-teams-count");
     const buildsFlowCount = document.querySelector("#flow-builds-count");
     const collectionFlowCount = document.querySelector("#flow-collection-count");
@@ -4655,398 +4649,6 @@ IVs: HP 31 / Atk 31 / Def 19 / SpA 31 / SpD 31 / Spe 31"></textarea>
         grid.append(card);
       });
       list.append(grid);
-    }
-
-    function getKnownItemNames() {
-      const names = new Map();
-      const addName = nameValue => {
-        const name = String(nameValue || "").trim();
-        if (!name) return;
-        const key = canonicalKey(name);
-        const current = names.get(key) || { name, count: 0 };
-        current.count += 1;
-        names.set(key, current);
-      };
-      allEntries.forEach(entry => {
-        (entry.materials || []).forEach(addName);
-      });
-      ITEM_SOURCES.forEach(source => addName(source.item));
-      return [...names.values()].sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, "pt-BR"));
-    }
-
-    function getItemSourceTypeLabel(type) {
-      const labels = {
-        "pokemon-drop": "Drop de Pokémon",
-        mining: "Mineração",
-        forage: "Craft",
-        fishing: "Pesca",
-        raid: "Raid",
-        crafting: "Craft (forge)",
-        chest: "Bau/loot",
-        held: "Held item",
-        headbutt: "Headbutt"
-      };
-      return labels[type] || "Fonte";
-    }
-
-    function getItemSourceActionLabel(type) {
-      const labels = {
-        "pokemon-drop": "Matando",
-        mining: "Minerando",
-        forage: "Craft",
-        fishing: "Pescando",
-        raid: "Raid",
-        crafting: "Craft (forge)",
-        chest: "Abrindo bau",
-        held: "Capturando",
-        headbutt: "Headbutt"
-      };
-      return labels[type] || "Obtendo";
-    }
-
-    function getItemEntryBiomeText(entry, limit = 4) {
-      if (!entry) return "";
-      const uniqueBiomes = [];
-      const seen = new Set();
-      getEntryBiomes(entry).forEach(item => {
-        const biome = String(item.biome || "").trim();
-        if (!biome || seen.has(`${biome}|${item.period || ""}`)) return;
-        seen.add(`${biome}|${item.period || ""}`);
-        uniqueBiomes.push(item.period && item.period !== "Any" ? `${biome} (${item.period})` : biome);
-      });
-      if (!uniqueBiomes.length) return "";
-      const visible = uniqueBiomes.slice(0, limit);
-      const extra = uniqueBiomes.length - visible.length;
-      return `${visible.join("; ")}${extra > 0 ? `; +${extra}` : ""}`;
-    }
-
-    function createItemSourceToolImage(sourceType) {
-      const icons = {
-        mining: { alt: "Minerando", src: "./styles/pickaxe.png" },
-        fishing: { alt: "Pesca", src: "./styles/rod.webp" },
-        crafting: { alt: "Craft", src: "./styles/craft.png" },
-        forage: { alt: "Craft", src: "./styles/craft.png" },
-        chest: { alt: "Chest loot", src: "./styles/chest.png" },
-        held: { alt: "Held item", src: "./styles/chest.png" },
-        headbutt: { alt: "Headbutt", src: "./styles/chest.png" }
-      };
-      const icon = icons[sourceType];
-      if (!icon) return null;
-      const image = document.createElement("img");
-      image.className = `item-source-tool-image item-source-tool-${sourceType}`;
-      image.alt = icon.alt;
-      image.src = icon.src;
-      return image;
-    }
-
-    function getItemSourceNote(result) {
-      const { entry, source } = result;
-      if (source?.sourceType === "mining") {
-        if (source.note) return source.note;
-        return source.biome ? `Minerar em biomas ${source.biome}.` : "Fonte de mineracao cadastrada.";
-      }
-      if (source?.sourceType === "pokemon-drop") {
-        const biomeText = getItemEntryBiomeText(entry);
-        return biomeText
-          ? `Biomas onde aparece: ${biomeText}.`
-          : "Bioma de spawn nao cadastrado para esse Pokemon.";
-      }
-      if (source?.note) return source.note;
-      return entry?.detail || "Sem detalhe de obtencao cadastrado.";
-    }
-
-    function getItemUtilitySummary(itemNames) {
-      const names = (itemNames || []).filter(Boolean);
-      if (!names.length) return "Usa o item pesquisado.";
-      return `Usa ${names.join(", ")}.`;
-    }
-
-    function itemSourceMatchesSearch(source, normalizedSearch) {
-      const text = [
-        source.item,
-        source.source,
-        source.sourceType,
-        source.chance,
-        source.quantity,
-        source.biome,
-        ...(source.aliases || [])
-      ].join(" ");
-      return normalize(text).includes(normalizedSearch);
-    }
-
-    function getItemLookupResults(search = itemSearch) {
-      const normalizedSearch = normalize(search.trim());
-      if (!normalizedSearch) return [];
-
-      const methodResults = allEntries
-        .map(entry => {
-          const materialMatches = (entry.materials || []).filter(material => normalize(material).includes(normalizedSearch));
-          const detailMatches = normalize(entry.detail).includes(normalizedSearch);
-          if (!materialMatches.length && !detailMatches) return null;
-          const exactMaterialMatch = materialMatches.some(material => normalize(material) === normalizedSearch);
-          return {
-            kind: "method",
-            entry,
-            itemNames: materialMatches.length ? materialMatches : [search.trim()],
-            detailMatches,
-            exactMaterialMatch,
-            score: (exactMaterialMatch ? 100 : 0)
-              + (materialMatches.length ? 60 : 0)
-              + (getCurrentCategory(entry) === itemCategory || getCurrentCategory(entry) === fossilCategory ? 20 : 0)
-              + (isOwned(entry) ? 0 : 8)
-              - entry.id / 10000
-          };
-        })
-        .filter(Boolean);
-
-      const sourceResults = ITEM_SOURCES
-        .map((source, index) => {
-          const entry = catalogByKey.get(canonicalKey(source.source || ""));
-          if (!itemSourceMatchesSearch(source, normalizedSearch)) return null;
-          const exactItemMatch = normalize(source.item) === normalizedSearch;
-          return {
-            kind: "source",
-            entry,
-            source,
-            itemNames: [source.item],
-            exactMaterialMatch: exactItemMatch,
-            score: (exactItemMatch ? 140 : 0)
-              + (normalize(source.item).includes(normalizedSearch) ? 80 : 0)
-              + (source.sourceType === "pokemon-drop" ? 25 : 15)
-              + (entry && !isOwned(entry) ? 8 : 0)
-              - index / 10000
-          };
-        })
-        .filter(Boolean);
-
-      return [...sourceResults, ...methodResults]
-        .sort((a, b) => b.score - a.score || (a.entry?.id || 99999) - (b.entry?.id || 99999));
-    }
-
-    function createItemLookupCard(result) {
-      const { entry, source, itemNames } = result;
-      const sourceLabel = source?.sourceType === "forage" ? "Craft" : (source?.source || entry?.name || "Fonte cadastrada");
-      const typeLabel = source ? getItemSourceTypeLabel(source.sourceType) : getCurrentCategory(entry);
-      const actionLabel = source ? getItemSourceActionLabel(source.sourceType) : "Utilidade";
-      const card = document.createElement("article");
-      card.className = `fragment-pair-card item-source-card${source?.sourceType === "mining" ? " is-mining" : ""}${source?.sourceType === "pokemon-drop" ? " is-pokemon-drop" : ""}${result.kind === "method" ? " is-utility" : ""}`;
-      if (entry) {
-        card.tabIndex = 0;
-        card.setAttribute("role", "button");
-        card.setAttribute("aria-label", `Abrir detalhes de ${entry.name}`);
-      }
-      card.innerHTML = `
-        <div class="item-source-main">
-          <span class="item-source-image"></span>
-          <div>
-            <p class="modal-kicker"></p>
-            <h3></h3>
-          </div>
-        </div>
-        <div class="fragment-generated-types item-source-items"></div>
-        <div class="fragment-pair-tags"></div>
-        <p class="fragment-note"></p>
-        <div class="fragment-pair-meta">
-          <strong></strong>
-          <span></span>
-        </div>
-      `;
-      if (entry && (!source || source.sourceType === "pokemon-drop")) {
-        card.querySelector(".item-source-image").replaceWith(createPokemonImage(entry, ""));
-        card.querySelector(".modal-kicker").textContent = actionLabel;
-      } else {
-        const sourceIcon = createItemSourceToolImage(source?.sourceType);
-        if (sourceIcon) {
-          card.querySelector(".item-source-image").replaceWith(sourceIcon);
-        } else {
-          const placeholder = document.createElement("span");
-          placeholder.className = "item-source-placeholder";
-          placeholder.textContent = "IT";
-          card.querySelector(".item-source-image").replaceWith(placeholder);
-        }
-        card.querySelector(".modal-kicker").textContent = actionLabel;
-      }
-      card.querySelector("h3").textContent = sourceLabel;
-
-      const itemWrap = card.querySelector(".item-source-items");
-      itemWrap.append(document.createElement("span"));
-      itemWrap.querySelector("span").textContent = "Item";
-      itemNames.forEach(item => itemWrap.append(createTextBadge(item)));
-
-      const tags = card.querySelector(".fragment-pair-tags");
-      tags.append(createTextBadge(actionLabel));
-      if (!source && typeLabel) tags.append(createTextBadge(typeLabel));
-      if (source?.chance) tags.append(createTextBadge(`Chance ${source.chance}`));
-      if (source?.quantity) tags.append(createTextBadge(`Qtd ${source.quantity}`));
-      if (source?.biome) tags.append(createTextBadge(`Bioma ${source.biome}`));
-
-      card.querySelector(".fragment-note").textContent = getItemSourceNote(result);
-      card.querySelector(".fragment-pair-meta strong").textContent = source
-        ? `${source.item} via ${typeLabel.toLowerCase()}.`
-        : getItemUtilitySummary(itemNames);
-      card.querySelector(".fragment-pair-meta span").textContent = entry
-        ? "Clique para abrir detalhes"
-        : (source?.wiki ? "Fonte externa cadastrada" : "Fonte cadastrada");
-
-      if (entry) {
-        card.addEventListener("click", () => openPokemonModal(entry));
-        card.addEventListener("keydown", event => {
-          if (event.key !== "Enter" && event.key !== " ") return;
-          event.preventDefault();
-          openPokemonModal(entry);
-        });
-      }
-      return card;
-    }
-
-    function renderItemLookupTools(list) {
-      const knownItems = getKnownItemNames();
-      const wrapper = document.createElement("section");
-      wrapper.className = "fragment-tools item-lookup-tools";
-      wrapper.innerHTML = `
-        <div class="fragment-panel">
-          <div class="fragment-panel-header">
-            <div>
-              <p class="eyebrow">Itens</p>
-              <h2 class="filter-title">Pesquisar item</h2>
-            </div>
-            <button class="link-button" id="clear-item-search" type="button">Voltar</button>
-          </div>
-          <input class="search-field" id="item-search" type="search" list="item-search-options" placeholder="Buscar item, fóssil, pedra...">
-          <datalist id="item-search-options"></datalist>
-        </div>
-      `;
-      const input = wrapper.querySelector("#item-search");
-      const options = wrapper.querySelector("#item-search-options");
-      knownItems.forEach(item => {
-        const option = document.createElement("option");
-        option.value = item.name;
-        options.append(option);
-      });
-      input.value = itemSearch;
-      input.addEventListener("input", event => {
-        itemSearch = event.target.value;
-        itemLookupMode = "sources";
-        focusItemSearchAfterRender = true;
-        render();
-      });
-      wrapper.querySelector("#clear-item-search").addEventListener("click", () => {
-        itemSearch = "";
-        itemLookupMode = "sources";
-        focusItemSearchAfterRender = true;
-        render();
-      });
-      list.append(wrapper);
-      if (focusItemSearchAfterRender) {
-        focusItemSearchAfterRender = false;
-        focusInputEnd(input);
-      }
-    }
-
-    function renderItemOverview(list) {
-      const grid = document.createElement("section");
-      grid.className = "fragment-type-grid item-overview-grid";
-      getKnownItemNames().slice(0, 24).forEach(item => {
-        const button = document.createElement("button");
-        button.className = "fragment-type-card item-type-card";
-        button.type = "button";
-        button.innerHTML = "<strong></strong><span></span><span></span>";
-        button.querySelector("strong").textContent = item.name;
-        button.children[1].textContent = `${item.count} registro${item.count === 1 ? "" : "s"} cadastrado${item.count === 1 ? "" : "s"}`;
-        button.children[2].textContent = "Clique para pesquisar";
-        button.addEventListener("click", () => {
-          itemSearch = item.name;
-          itemLookupMode = "sources";
-          focusItemSearchAfterRender = true;
-          render();
-        });
-        grid.append(button);
-      });
-      list.append(grid);
-    }
-
-    function renderItemLookupFlow(list) {
-      activeTitle.textContent = "Itens";
-      renderItemLookupTools(list);
-      const results = getItemLookupResults();
-      const sourceResults = results.filter(result => result.kind === "source");
-      const utilityResults = results.filter(result => result.kind === "method");
-      const modeTabs = [
-        { value: "sources", label: "Obtenção", count: sourceResults.length },
-        { value: "utility", label: "Utilidade", count: utilityResults.length }
-      ];
-      if (!modeTabs.some(mode => mode.value === itemLookupMode)) itemLookupMode = "sources";
-      const activeResults = itemLookupMode === "utility" ? utilityResults : sourceResults;
-      if (!itemSearch.trim()) {
-        visibleCount.textContent = `${getKnownItemNames().length} itens`;
-        const empty = document.createElement("div");
-        empty.className = "empty";
-        empty.textContent = "Digite um item para ver fontes de drop, mineração e métodos cadastrados.";
-        list.append(empty);
-        renderItemOverview(list);
-        return;
-      }
-
-      visibleCount.textContent = `${activeResults.length} ${itemLookupMode === "utility" ? "utilidade" : "fonte"}${activeResults.length === 1 ? "" : "s"}`;
-      const section = document.createElement("section");
-      section.className = "fragment-results item-results";
-      section.innerHTML = `
-        <div class="category-heading">
-          <h2></h2>
-          <span class="category-count"></span>
-        </div>
-        <p class="fragment-note"></p>
-        <div class="fragment-result-filters item-mode-tabs" aria-label="Modo de item"></div>
-        <div class="item-source-grid"></div>
-      `;
-      section.querySelector("h2").textContent = `Item: ${itemSearch.trim()}`;
-      section.querySelector(".category-count").textContent = `${sourceResults.length} obtenção${sourceResults.length === 1 ? "" : "ões"} · ${utilityResults.length} utilidade${utilityResults.length === 1 ? "" : "s"}`;
-      section.querySelector(".fragment-note").textContent = itemLookupMode === "utility"
-        ? "Utilidade mostra Pokémon ou métodos que usam esse item, como evoluções e requisitos cadastrados."
-        : "Obtenção mostra apenas como conseguir o item, como drop de Pokémon, mineração, pesca, raid ou craft.";
-      const grid = section.querySelector(".item-source-grid");
-      const note = section.querySelector(".fragment-note");
-      const tabs = section.querySelector(".item-mode-tabs");
-      modeTabs.forEach(mode => {
-        tabs.append(createFilterChip({
-          label: mode.label,
-          count: mode.count,
-          active: itemLookupMode === mode.value,
-          onClick: () => {
-            itemLookupMode = mode.value;
-            render();
-          }
-        }));
-      });
-      const collapsed = attachSectionCollapseControl(section, {
-        scope: "items",
-        label: `Item: ${itemSearch.trim()}`,
-        content: [note, tabs, grid]
-      });
-      if (collapsed) {
-        list.append(section);
-        return;
-      }
-
-      if (!activeResults.length) {
-        const empty = document.createElement("div");
-        empty.className = "empty";
-        empty.textContent = itemLookupMode === "utility"
-          ? "Nenhuma utilidade cadastrada para esse item na base atual."
-          : "Nenhuma fonte de obtenção cadastrada para esse item na base atual.";
-        section.append(empty);
-      } else if (appUtils.appendProgressiveItems) {
-        appUtils.appendProgressiveItems({
-          container: grid,
-          items: activeResults,
-          renderItem: createItemLookupCard,
-          batchSize: 60,
-          buttonLabel: "Mostrar mais itens"
-        });
-      } else {
-        activeResults.slice(0, 80).forEach(result => grid.append(createItemLookupCard(result)));
-      }
-      list.append(section);
     }
 
     function renderBreedingFlow(list) {
@@ -8561,7 +8163,6 @@ Obs: pronto para boss"></textarea>
       const captureActive = activeView === "capture";
       const telemetryActive = activeView === "captured";
       const breedingActive = activeView === "breeding";
-      const itemsActive = activeView === "items";
       const teamsActive = activeView === "teams";
       const buildsActive = activeView === "builds";
       const collectionActive = activeView === "collection";
@@ -8570,7 +8171,6 @@ Obs: pronto para boss"></textarea>
       captureTab.classList.toggle("active", captureActive);
       capturedTab.classList.toggle("active", telemetryActive);
       breedingTab.classList.toggle("active", breedingActive);
-      itemsTab.classList.toggle("active", itemsActive);
       teamsTab.classList.toggle("active", teamsActive);
       buildsTab.classList.toggle("active", buildsActive);
       collectionTab.classList.toggle("active", collectionActive);
@@ -8579,12 +8179,11 @@ Obs: pronto para boss"></textarea>
       captureTab.setAttribute("aria-pressed", captureActive ? "true" : "false");
       capturedTab.setAttribute("aria-pressed", telemetryActive ? "true" : "false");
       breedingTab.setAttribute("aria-pressed", breedingActive ? "true" : "false");
-      itemsTab.setAttribute("aria-pressed", itemsActive ? "true" : "false");
       teamsTab.setAttribute("aria-pressed", teamsActive ? "true" : "false");
       buildsTab.setAttribute("aria-pressed", buildsActive ? "true" : "false");
       collectionTab.setAttribute("aria-pressed", collectionActive ? "true" : "false");
       settingsTab.setAttribute("aria-pressed", settingsActive ? "true" : "false");
-      document.body.classList.toggle("flow-without-kpis", captureActive || breedingActive || itemsActive || teamsActive || buildsActive || collectionActive || settingsActive);
+      document.body.classList.toggle("flow-without-kpis", captureActive || breedingActive || teamsActive || buildsActive || collectionActive || settingsActive);
       checklistNavSections.hidden = !checklistActive;
       toolbar.hidden = !checklistActive;
       const owned = allEntries.filter(isOwned).length;
@@ -8595,7 +8194,6 @@ Obs: pronto para boss"></textarea>
       captureFlowCount.textContent = captureMissing;
       telemetryFlowCount.textContent = `${percent}%`;
       breedingFlowCount.textContent = breedable;
-      itemsFlowCount.textContent = getKnownItemNames().length;
       teamsFlowCount.textContent = teamBuiltPokemon.length;
       buildsFlowCount.textContent = typeFilters.length;
       collectionFlowCount.textContent = collectionTrackingState.size;
@@ -9625,12 +9223,6 @@ Obs: pronto para boss"></textarea>
         return;
       }
 
-      if (activeView === "items") {
-        renderItemLookupFlow(list);
-        finishRender();
-        return;
-      }
-
       if (activeView === "teams") {
         renderTeamsFlow(list);
         finishRender();
@@ -9761,10 +9353,6 @@ Obs: pronto para boss"></textarea>
     });
     breedingTab.addEventListener("click", () => {
       activeView = "breeding";
-      render();
-    });
-    itemsTab.addEventListener("click", () => {
-      activeView = "items";
       render();
     });
     teamsTab.addEventListener("click", () => {
