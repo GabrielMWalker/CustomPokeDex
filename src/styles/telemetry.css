@@ -130,6 +130,34 @@
     .capture-recent-item.is-reward {
       cursor: default;
     }
+    .capture-recent-item.is-invasion {
+      background: #fff7e5;
+      border-color: #efc46f;
+    }
+    .capture-recent-item.is-invasion .capture-recent-icon {
+      color: #6f3b00;
+      background: #ffe3a8;
+      border-color: #dfae4f;
+      font-size: 18px;
+    }
+    .capture-recent-item.is-quiz {
+      background: #f2fbf7;
+      border-color: #9bd6bc;
+    }
+    .capture-recent-item.is-quiz .capture-recent-icon {
+      color: #09543b;
+      background: #d9f3e8;
+      border-color: #8fcdb3;
+    }
+    .capture-recent-item.is-gts {
+      background: #eef9ff;
+      border-color: #9bc9dc;
+    }
+    .capture-recent-item.is-gts .capture-recent-icon {
+      color: #15536f;
+      background: #d6edf7;
+      border-color: #8bbdd3;
+    }
     .capture-recent-item img {
       grid-row: 1 / 3;
       width: 46px;

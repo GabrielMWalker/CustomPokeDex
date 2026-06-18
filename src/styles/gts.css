@@ -1,0 +1,140 @@
+.gts-flow-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.gts-tools,
+.gts-watch-form,
+.gts-card {
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--surface-color);
+  box-shadow: var(--shadow-sm);
+}
+
+.gts-tools {
+  display: grid;
+  gap: 14px;
+  padding: 14px;
+}
+
+.gts-watch-form {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+}
+
+.gts-watch-form label {
+  color: var(--muted-text);
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.gts-watch-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+}
+
+.gts-watch-row input,
+.gts-flow-panel .quiz-filter-row input {
+  min-width: 0;
+}
+
+.gts-watch-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.gts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 10px;
+}
+
+.gts-card {
+  display: grid;
+  gap: 10px;
+  padding: 13px;
+  min-height: 126px;
+}
+
+.gts-card.is-match {
+  border-color: rgba(77, 184, 255, 0.55);
+}
+
+.gts-card.is-sale {
+  border-color: rgba(66, 211, 146, 0.5);
+}
+
+.gts-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.gts-card h3 {
+  margin: 0;
+  font-size: 0.96rem;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.gts-status-badge {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: var(--soft-bg);
+  color: var(--muted-text);
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 3px 7px;
+  text-transform: uppercase;
+}
+
+.gts-status-badge.is-match {
+  background: rgba(77, 184, 255, 0.16);
+  color: var(--accent-color);
+}
+
+.gts-status-badge.is-sale {
+  background: rgba(66, 211, 146, 0.16);
+  color: #2a9d68;
+}
+
+.gts-card-meta {
+  display: grid;
+  gap: 7px;
+}
+
+.gts-meta-item {
+  display: grid;
+  gap: 1px;
+}
+
+.gts-meta-item strong {
+  color: var(--muted-text);
+  font-size: 0.68rem;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.gts-meta-item b {
+  color: var(--text-color);
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.gts-meta-item.is-price b {
+  font-size: 1.08rem;
+  line-height: 1.2;
+}
+
+@media (max-width: 720px) {
+  .gts-watch-row {
+    grid-template-columns: 1fr;
+  }
+}

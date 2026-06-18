@@ -72,6 +72,25 @@
   gap: 8px;
 }
 
+.settings-switch-row {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-height: 42px;
+}
+
+.settings-switch-copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.settings-switch-copy strong {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 900;
+}
+
 .settings-status {
   padding: 10px 12px;
   color: var(--muted);

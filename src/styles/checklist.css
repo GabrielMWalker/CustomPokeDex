@@ -141,6 +141,13 @@
       opacity: 1;
       transform: translateY(0);
     }
+    .download-toast.is-alert {
+      border-color: #efc46f;
+      box-shadow: 0 16px 34px rgba(116, 69, 12, .2);
+    }
+    .download-toast.is-alert strong {
+      color: #7a4300;
+    }
     .download-toast strong {
       color: #0f5a3b;
       font-size: 13px;

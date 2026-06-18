@@ -1,0 +1,3822 @@
+{
+  "version": 1,
+  "updatedAt": "1781747341",
+  "entries": [
+    {
+      "key": "abrigasuacolniaemclulasemseucorpoeliberavriosferomniosparafazeressaslarvasfazeremseuspedidos",
+      "question": "Abriga sua colnia em clulas em seu corpo e libera vrios feromnios para fazer essas larvas fazerem seus pedidos.",
+      "answer": "vespiquen",
+      "source": "2026-06-08-3.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747340",
+      "count": 26
+    },
+    {
+      "key": "agitaseumarteloartesanalparaseprotegermasomartelofrequentementeroubadoporpokmonquecomemmetal",
+      "question": "Agita seu martelo artesanal para se proteger, mas o martelo frequentemente roubado por Pokmon que comem metal.",
+      "answer": "Tinkatink",
+      "source": "manual",
+      "learnedAt": "1781631692",
+      "lastSeenAt": "1781658516",
+      "count": 2
+    },
+    {
+      "key": "amaochorodascrianaseleassustacrianasruinspassandopelasparedesefazendoaschorar",
+      "question": "Ama o choro das crianas. Ele assusta crianas ruins passando pelas paredes e fazendo-as chorar.",
+      "answer": "duskull",
+      "source": "2026-06-11-6.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747340",
+      "count": 52
+    },
+    {
+      "key": "amandoparalutarestepokmonbeliscatodosospokmonqueentramemseuterritriocomsuaspinaseosjogamfora",
+      "question": "Amando para lutar, este Pokmon belisca todos os Pokmon que entram em seu territrio com suas pinas e os jogam fora.",
+      "answer": "crawdaunt",
+      "source": "2026-06-07-3.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747340",
+      "count": 52
+    },
+    {
+      "key": "anexadosuacabeaumenormeconjuntodemandbulasformadasporchifrespodemastigaratravsdevigasdeferro",
+      "question": "Anexado sua cabea um enorme conjunto de mandbulas formadas por chifres. Pode mastigar atravs de vigas de ferro.",
+      "answer": "Mawile",
+      "source": "manual",
+      "learnedAt": "1781631694",
+      "lastSeenAt": "1781747340",
+      "count": 14
+    },
+    {
+      "key": "anulacertosmovimentosdeefeitosenviandoosdevoltaparaousurio",
+      "question": "Anula certos movimentos de efeitos, enviando-os de volta para o usurio.",
+      "answer": "magic bounce",
+      "source": "2026-05-27-3.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747339",
+      "count": 24
+    },
+    {
+      "key": "aobaterasasascomtodaaforapodefazerumarajadadeventocapazdedobrarrvoresaltas",
+      "question": "Ao bater as asas com toda a fora, _____ pode fazer uma rajada de vento capaz de dobrar rvores altas.",
+      "answer": "pidgeot",
+      "source": "2026-06-09-5.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747340",
+      "count": 39
+    },
+    {
+      "key": "aobaterasasasemaltavelocidadepodevoarlivrementepeloarmesmoparadasrepentinasnosoproblema",
+      "question": "Ao bater as asas em alta velocidade, pode voar livremente pelo ar. Mesmo paradas repentinas no so problema.",
+      "answer": "yanma",
+      "source": "2026-06-02-2.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 39
+    },
+    {
+      "key": "aocaminharemterracobreocorpocomumfilmevenenosoqueimpedeadesidrataodapele",
+      "question": "Ao caminhar em terra, cobre o corpo com um filme venenoso que impede a desidratao da pele.",
+      "answer": "wooper",
+      "source": "2026-06-11-1.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747340",
+      "count": 103
+    },
+    {
+      "key": "aodispararbolasdefogoapartirdeseusbraosseucorpoassumeumatonalidadeesbranquiadadevidoaocalorintenso",
+      "question": "Ao disparar bolas de fogo a partir de seus braos, seu corpo assume uma tonalidade esbranquiada devido ao calor intenso.",
+      "answer": "magmortar",
+      "source": "2026-06-16-2.log.gz",
+      "learnedAt": "1781619797",
+      "lastSeenAt": "1781747341",
+      "count": 28
+    },
+    {
+      "key": "aoentraremcampoativaoefeitodeelectricterrain",
+      "question": "Ao entrar em campo, ativa o efeito de Electric Terrain.",
+      "answer": "electric surge",
+      "source": "2026-06-14-4.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747340",
+      "count": 24
+    },
+    {
+      "key": "aoentraremcampoativaoefeitodegrassyterrain",
+      "question": "Ao entrar em campo, ativa o efeito de Grassy Terrain.",
+      "answer": "Grassy Surge",
+      "source": "manual",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781658523",
+      "count": 2
+    },
+    {
+      "key": "aoentraremcampoativaoefeitodemistyterrain",
+      "question": "Ao entrar em campo, ativa o efeito de Misty Terrain.",
+      "answer": "misty surge",
+      "source": "2026-05-27-3.log.gz",
+      "learnedAt": "1781631692",
+      "lastSeenAt": "1781747339",
+      "count": 24
+    },
+    {
+      "key": "aoentraremcampoativaoefeitodepsychicterrain",
+      "question": "Ao entrar em campo, ativa o efeito de Psychic Terrain.",
+      "answer": "psychic surge",
+      "source": "latest.log",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747341",
+      "count": 66
+    },
+    {
+      "key": "aoentraremcampoativaoefeitodomovimentohail",
+      "question": "Ao entrar em campo, ativa o efeito do movimento Hail.",
+      "answer": "snow warning",
+      "source": "2026-05-31-1.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747339",
+      "count": 24
+    },
+    {
+      "key": "aoentraremcampoativaoefeitodomovimentoraindance",
+      "question": "Ao entrar em campo, ativa o efeito do movimento Rain Dance.",
+      "answer": "Drizzle",
+      "source": "manual",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781658526",
+      "count": 2
+    },
+    {
+      "key": "aoentraremcampoativaoefeitodomovimentosandstorm",
+      "question": "Ao entrar em campo, ativa o efeito do movimento Sandstorm.",
+      "answer": "sand stream",
+      "source": "2026-06-12-2.log.gz",
+      "learnedAt": "1781631692",
+      "lastSeenAt": "1781747340",
+      "count": 24
+    },
+    {
+      "key": "aoentraremcampooataqueeavelocidadedestepokemonsoreduzidospelametadepor5turnos",
+      "question": "Ao entrar em campo, o Ataque e a Velocidade deste pokemon so reduzidos pela metade por 5 turnos.",
+      "answer": "slow start",
+      "source": "2026-06-05-2.log.gz",
+      "learnedAt": "1781631692",
+      "lastSeenAt": "1781747339",
+      "count": 68
+    },
+    {
+      "key": "aoentraremcampoopokemonsetransformanoseuadversrio",
+      "question": "Ao entrar em campo, o pokemon se transforma no seu adversrio.",
+      "answer": "Imposter",
+      "source": "manual",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781658529",
+      "count": 2
+    },
+    {
+      "key": "aoentraremcamporeduzoataquedooponenteem1estgio",
+      "question": "Ao entrar em campo, reduz o Ataque do oponente em 1 estgio.",
+      "answer": "leaf guard",
+      "source": "2026-06-05-2.log.gz",
+      "learnedAt": "1781631452",
+      "lastSeenAt": "1781747339",
+      "count": 24
+    },
+    {
+      "key": "aoestendersuasorelhasenroladaseatingirochoelepodesefixartoaltoquesurpreendeasimesmo",
+      "question": "Ao estender suas orelhas enroladas e atingir o cho, ele pode se fixar to alto que surpreende a si mesmo.",
+      "answer": "uneary",
+      "source": "2026-06-16-2.log.gz",
+      "learnedAt": "1781631641",
+      "lastSeenAt": "1781747341",
+      "count": 42
+    },
+    {
+      "key": "aogiraremtornodesuastrspontasedisparospodedestruirumoponente",
+      "question": "Ao girar em torno de suas trs pontas e disparos, pode destruir um oponente.",
+      "answer": "ferrothorn",
+      "source": "2026-06-02-2.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 26
+    },
+    {
+      "key": "aorealizarummovimentoficaimpossibilitadodeusaroutronoturnoseguinte",
+      "question": "Ao realizar um movimento, fica impossibilitado de usar outro no turno seguinte.",
+      "answer": "truant",
+      "source": "2026-06-10-1.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747340",
+      "count": 70
+    },
+    {
+      "key": "aovibrarsuasbochechasemiteondassonorasimperceptveisaoshumanoseadverteoutraspessoasdeperigo",
+      "question": "Ao vibrar suas bochechas, emite ondas sonoras imperceptveis aos humanos e adverte outras pessoas de perigo.",
+      "answer": "tympole",
+      "source": "2026-06-07-3.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747340",
+      "count": 26
+    },
+    {
+      "key": "aparentementeacoceiradadentiooimpeleafecharamandbulaemqualquercoisasuafrente",
+      "question": "Aparentemente a coceira da dentio o impele a fechar a mandbula em qualquer coisa sua frente.",
+      "answer": "chewtle",
+      "source": "2026-06-02-2.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 39
+    },
+    {
+      "key": "aparentementecuriosossobreaspessoaselesserenememtornodepassosqueencontramnasmontanhasnevadas",
+      "question": "Aparentemente curiosos sobre as pessoas, eles se renem em torno de passos que encontram nas montanhas nevadas.",
+      "answer": "snover",
+      "source": "2026-06-01-3.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 26
+    },
+    {
+      "key": "aparentementeestepokmonnascequandoumespritomortohabitaumaespadaeleseligaspessoasebebesuaforavital",
+      "question": "Aparentemente este Pokmon nasce quando um esprito morto habita uma espada. Ele se liga s pessoas e bebe sua fora vital.",
+      "answer": "Honedge",
+      "source": "manual",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747340",
+      "count": 14
+    },
+    {
+      "key": "aplaudeamigoscompomponsfeitosdefascaseledrenaenergiadepostesdetelefone",
+      "question": "Aplaude amigos com pompons feitos de fascas. Ele drena energia de postes de telefone.",
+      "answer": "plusle",
+      "source": "2026-06-05-1.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 26
+    },
+    {
+      "key": "armazenavenenoemumabolsainternaeosecretapelapelesevoctocarnestepokmonumasensaodeformigamentooseguir",
+      "question": "Armazena veneno em uma bolsa interna e o secreta pela pele. Se voc tocar neste Pokmon, uma sensao de formigamento o seguir.",
+      "answer": "toxel",
+      "source": "2026-05-27-2.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 43
+    },
+    {
+      "key": "armazenandoenergiaparaaevoluoelasesentamasquandoospredadoresseaproximameleosapunhalacompontasdeveneno",
+      "question": "Armazenando energia para a evoluo, ela se senta. Mas, quando os predadores se aproximam, ele os apunhala com pontas de veneno.",
+      "answer": "whirlipede",
+      "source": "2026-06-04-2.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 39
+    },
+    {
+      "key": "asduascabeasnosedobemqualquerquesejaacabeaquecomamaisdoqueaoutraserolder",
+      "question": "As duas cabeas no se do bem. Qualquer que seja a cabea que coma mais do que a outra, ser o lder.",
+      "answer": "Zweilous",
+      "source": "manual",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747339",
+      "count": 14
+    },
+    {
+      "key": "asfloresportodoocorpoexplodemseelaforcarinhosamenteabraadaesentirgratido",
+      "question": "As flores por todo o corpo explodem se ela for carinhosamente abraada e sentir gratido.",
+      "answer": "shaymin",
+      "source": "2026-06-08-3.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747340",
+      "count": 39
+    },
+    {
+      "key": "asfoicesafiadasnosbraosdessepokemonficamaindamaisafiadascadavezqcortamatravsdeobjetosduros",
+      "question": "As foices afiadas nos braos desse pokemon ficam ainda mais afiadas cada vez q cortam atravs de objetos duros.",
+      "answer": "Scyther",
+      "source": "manual",
+      "learnedAt": "1781706830",
+      "lastSeenAt": "1781734716",
+      "count": 1
+    },
+    {
+      "key": "aslendasdizemquepodemcompartilharavidaeternadormiupormilanosnaformadeumarvoreantesdeseurenascimento",
+      "question": "As lendas dizem que podem compartilhar a vida eterna. Dormiu por mil anos na forma de uma rvore antes de seu renascimento.",
+      "answer": "xerneas",
+      "source": "2026-06-01-1.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 26
+    },
+    {
+      "key": "asondasdechoquedeseusgritospodemvirarcaminhescarimbaseuspsparaenergizar",
+      "question": "As ondas de choque de seus gritos podem virar caminhes. Carimba seus ps para energizar.",
+      "answer": "loudred",
+      "source": "2026-05-27-6.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 26
+    },
+    {
+      "key": "asondaseletromagnticasemitidaspelasunidadesnosladosdesuacabeaexpelemaantigravidadeoquepermitequeelaflutue",
+      "question": "As ondas eletromagnticas emitidas pelas unidades nos lados de sua cabea expelem a antigravidade, o que permite que ela flutue.",
+      "answer": "Magnemite",
+      "source": "2026-05-24-2.log.gz",
+      "learnedAt": "1781631692",
+      "lastSeenAt": "1781747339",
+      "count": 18
+    },
+    {
+      "key": "asondasultrassnicasgeradaspelafricodasduasasascausamfortesdoresdecabea",
+      "question": "As ondas ultrassnicas geradas pela frico das duas asas causam fortes dores de cabea.",
+      "answer": "vibrava",
+      "source": "2026-06-09-2.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747340",
+      "count": 39
+    },
+    {
+      "key": "aspenasnacabesgeralmentemolesquandoosflexionaospontostornamsetduroseafiadosquepodemperfurararocha",
+      "question": "As penas na cabe s geralmente moles. Quando os flexiona, os pontos tornam-se t duros e afiados que podem perfurar a rocha.",
+      "answer": "chespin",
+      "source": "latest.log",
+      "learnedAt": "1781747292",
+      "lastSeenAt": "1781747341",
+      "count": 3
+    },
+    {
+      "key": "assolasdosseuspssocobertasporincontveispicosminsculospermitindolheandarnasparedesetetos",
+      "question": "As solas dos seus ps so cobertas por incontveis ??picos minsculos, permitindo-lhe andar nas paredes e tetos.",
+      "answer": "shed skin",
+      "source": "2026-06-10-2.log.gz",
+      "learnedAt": "1781619804",
+      "lastSeenAt": "1781747340",
+      "count": 16
+    },
+    {
+      "key": "atmesmoadinamitenopodeferirseucorpodurocomoumpedregulhoeleseescondeapenasumavezporano",
+      "question": "At mesmo a dinamite no pode ferir seu corpo duro como um pedregulho. Ele se esconde apenas uma vez por ano.",
+      "answer": "golem",
+      "source": "2026-06-11-3.log.gz",
+      "learnedAt": "1781619804",
+      "lastSeenAt": "1781747340",
+      "count": 43
+    },
+    {
+      "key": "ataqueespecialaumentaem2estgiosparacadastatusreduzidoporoutropokemon",
+      "question": "Ataque Especial aumenta em 2 estgios para cada status reduzido por outro pokemon.",
+      "answer": "competitive",
+      "source": "latest.log",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747341",
+      "count": 89
+    },
+    {
+      "key": "ataqueaumenta1estgioseseuataquenocautearoutropokemon",
+      "question": "Ataque aumenta 1 estgio se seu ataque nocautear outro pokemon.",
+      "answer": "moxie",
+      "source": "2026-06-03-4.log.gz",
+      "learnedAt": "1781631692",
+      "lastSeenAt": "1781747339",
+      "count": 70
+    },
+    {
+      "key": "ataquedestepokemonaumentaem15xmaselespodeselecionaroprimeiromovimentoqueexecuta",
+      "question": "Ataque deste pokemon aumenta em 1.5x, mas ele s pode selecionar o primeiro movimento que executa.",
+      "answer": "gorilla tactics",
+      "source": "2026-06-06-1.log.gz",
+      "learnedAt": "1781631452",
+      "lastSeenAt": "1781747340",
+      "count": 24
+    },
+    {
+      "key": "ataquedestepokemonaumentaem2estgiosparacadastatusreduzidoporoutropokemon",
+      "question": "Ataque deste pokemon aumenta em 2 estgios para cada status reduzido por outro pokemon.",
+      "answer": "defiant",
+      "source": "2026-06-13-1.log.gz",
+      "learnedAt": "1781631692",
+      "lastSeenAt": "1781747340",
+      "count": 24
+    },
+    {
+      "key": "ataquedestepokemondobrado",
+      "question": "Ataque deste pokemon dobrado.",
+      "answer": "Huge Power",
+      "source": "manual",
+      "learnedAt": "1781631692",
+      "lastSeenAt": "1781734724",
+      "count": 1
+    },
+    {
+      "key": "ataquesbaseadosemsocostmseupodermultiplicadopor12",
+      "question": "Ataques baseados em socos tm seu poder multiplicado por 1.2.",
+      "answer": "Iron Fist",
+      "source": "manual",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747339",
+      "count": 27
+    },
+    {
+      "key": "ataquescontraopokemoncustamumppadicional",
+      "question": "Ataques contra o pokemon custam um PP adicional.",
+      "answer": "swift swim",
+      "source": "2026-06-01-5.log.gz",
+      "learnedAt": "1781631692",
+      "lastSeenAt": "1781747339",
+      "count": 24
+    },
+    {
+      "key": "ataquesquefazemcontatocomestepokemonreduzem18dohpmximodoatacante",
+      "question": "Ataques que fazem contato com este pokemon reduzem 1/8 do HP mximo do atacante.",
+      "answer": "iron barbs",
+      "source": "2026-06-07-2.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747340",
+      "count": 47
+    },
+    {
+      "key": "aumentaadefesaem2estgiosaoseratingidoporummovimentodotipogua",
+      "question": "Aumenta a defesa em 2 estgios ao ser atingido por um movimento do tipo gua.",
+      "answer": "water compaction",
+      "source": "2026-06-15-2.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747340",
+      "count": 24
+    },
+    {
+      "key": "aumentaoataqueem1estgioaoseratingidoporummovimentodotipodark",
+      "question": "Aumenta o Ataque em 1 estgio ao ser atingido por um movimento do tipo Dark.",
+      "answer": "Justified",
+      "source": "manual",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781734734",
+      "count": 1
+    },
+    {
+      "key": "aumentaseuataqueem1estgioquandoatingidoporummovimentodotipogramaimuneamovimentosdotipograma",
+      "question": "Aumenta seu Ataque em 1 estgio quando atingido por um movimento do tipo Grama. Imune a movimentos do tipo Grama.",
+      "answer": "sap sipper",
+      "source": "2026-06-08-1.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747340",
+      "count": 47
+    },
+    {
+      "key": "bateasescamasdesuacabeacontrarochasoucontraochoparaassustarseusoponentestambmpodesecomunicarcomseuscompanheirospormeiodessessons",
+      "question": "Bate as escamas de sua cabea contra rochas ou contra o cho para assustar seus oponentes. Tambm pode se comunicar com seus companheiros por meio desses sons.",
+      "answer": "jangmo-o",
+      "source": "2026-06-10-1.log.gz",
+      "learnedAt": "1781619804",
+      "lastSeenAt": "1781747340",
+      "count": 39
+    },
+    {
+      "key": "bloqueiaosataquesdosoponentescomogeloqueprotegeseucorpoeleusaarfriopararepararqualquerrachaduracomgelonovo",
+      "question": "Bloqueia os ataques dos oponentes com o gelo que protege seu corpo. Ele usa ar frio para reparar qualquer rachadura com gelo novo.",
+      "answer": "ergmite",
+      "source": "2026-06-03-4.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 26
+    },
+    {
+      "key": "carvoqueimadoganhouvidaesetornouumpokmoncomumespritocombativoardenteenfrentaratosoponentesmaisdifceis",
+      "question": "Carvo queimado ganhou vida e se tornou um Pokmon. Com um esprito combativo ardente, _____ enfrentar at os oponentes mais difceis.",
+      "answer": "Charcadet",
+      "source": "manual",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747340",
+      "count": 14
+    },
+    {
+      "key": "cogumeloschamadostochukasocrescemnassuascostaselescrescemjuntocomoseuhospedeiro",
+      "question": "Cogumelos chamados tochukaso crescem nas suas costas. Eles crescem junto com o seu _____ hospedeiro.",
+      "answer": "paras",
+      "source": "2026-06-07-3.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747340",
+      "count": 26
+    },
+    {
+      "key": "comclulassimilaressdasplantaselefazfotossnteseecriaarpuro",
+      "question": "Com clulas similares s das plantas, ele faz fotossntese e cria ar puro.",
+      "answer": "leafeon",
+      "source": "2026-06-05-1.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 26
+    },
+    {
+      "key": "comseuaromadoceguiavolbeatadesenharsinaiscomluznocunoturno",
+      "question": "Com seu aroma doce, guia Volbeat a desenhar sinais com luz no cu noturno.",
+      "answer": "sand stream",
+      "source": "2026-06-12-2.log.gz",
+      "learnedAt": "1781619804",
+      "lastSeenAt": "1781630201",
+      "count": 3
+    },
+    {
+      "key": "comseuexcelenteolfatocapazdeencontrarcogumelosenterradosemsolocongelado",
+      "question": "Com seu excelente olfato, capaz de encontrar cogumelos enterrados em solo congelado.",
+      "answer": "piloswine",
+      "source": "2026-06-02-2.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 52
+    },
+    {
+      "key": "comeseupesonasfolhastodososdiaseleafastaosatacantescomaagulhanacabea",
+      "question": "Come seu peso nas folhas todos os dias. Ele afasta os atacantes com a agulha na cabea.",
+      "answer": "Weedle",
+      "source": "manual",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747340",
+      "count": 14
+    },
+    {
+      "key": "comoresultadodeumtreinamentorigorosocadaaprendediferentesformasdeusarosescalchops",
+      "question": "Como resultado de um treinamento rigoroso, cada _____ aprende diferentes formas de usar os escalchops.",
+      "answer": "dewott",
+      "source": "2026-05-31-2.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 26
+    },
+    {
+      "key": "comoseucorpopraticamentecompostodeguaeleencolheseficaencalhadoemterra",
+      "question": "Como seu corpo praticamente composto de gua, ele encolhe se fica encalhado em terra.",
+      "answer": "tentacool",
+      "source": "2026-06-15-2.log.gz",
+      "learnedAt": "1781619804",
+      "lastSeenAt": "1781747340",
+      "count": 26
+    },
+    {
+      "key": "compartilhamuitasbnoscompessoasquerespeitamosdireitosunsdosoutroseevitamconflitosdesnecessrios",
+      "question": "Compartilha muitas bnos com pessoas que respeitam os direitos uns dos outros e evitam conflitos desnecessrios.",
+      "answer": "contrary",
+      "source": "2026-06-08-3.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781630201",
+      "count": 6
+    },
+    {
+      "key": "conformecadacaudacrescesuapeleficamaislustrosaquandoseguradopareceumpoucoquente",
+      "question": "Conforme cada cauda cresce, sua pele fica mais lustrosa. Quando segurado, parece um pouco quente.",
+      "answer": "vulpix",
+      "source": "2026-06-04-2.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 26
+    },
+    {
+      "key": "consumirlixoproduznovostiposdegasestxicoselquidosdentrodeseuscorpos",
+      "question": "Consumir lixo produz novos tipos de gases txicos e lquidos dentro de seus corpos.",
+      "answer": "Trubbish",
+      "source": "manual",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781734749",
+      "count": 1
+    },
+    {
+      "key": "cortarapelefofanosatornamaiselegantemastambmaumentaarapidezdeseusmovimentos",
+      "question": "Cortar a pele fofa no s a torna mais elegante, mas tambm aumenta a rapidez de seus movimentos.",
+      "answer": "furfrou",
+      "source": "2026-06-09-5.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747340",
+      "count": 39
+    },
+    {
+      "key": "criabarreirasdesedaeletrificadaqueatordoamosinimigosissofuncionacomoumaarmabemcomoumadefesa",
+      "question": "Cria barreiras de seda eletrificada que atordoam os inimigos. Isso funciona como uma arma, bem como uma defesa.",
+      "answer": "Galvantula",
+      "source": "manual",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781734757",
+      "count": 1
+    },
+    {
+      "key": "criaestrelasdearremessodeguacomprimidaquandoelegiraejogaemaltavelocidadeessasestrelaspodemdividirometalemdois",
+      "question": "Cria estrelas de arremesso de gua comprimida. Quando ele gira e joga em alta velocidade, essas estrelas podem dividir o metal em dois.",
+      "answer": "greninja",
+      "source": "2026-06-02-2.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 26
+    },
+    {
+      "key": "cuidadocomoforteempurroemseucorpomolepoisissofazcomqueumfluidoroxomisteriosoescorra",
+      "question": "Cuidado com o forte empurro em seu corpo mole, pois isso faz com que um fluido roxo misterioso escorra.",
+      "answer": "shellos",
+      "source": "2026-06-01-2.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 43
+    },
+    {
+      "key": "curacondiesdestatusnofinaldecadaturnonoclimarain",
+      "question": "Cura condies de status no final de cada turno no clima Rain.",
+      "answer": "hydration",
+      "source": "2026-06-15-2.log.gz",
+      "learnedAt": "1781631692",
+      "lastSeenAt": "1781747340",
+      "count": 70
+    },
+    {
+      "key": "dasforasdoraioedoventocriaenergiaparafornecernutrientesaosoloetornaraterraabundante",
+      "question": "Das foras do raio e do vento, cria energia para fornecer nutrientes ao solo e tornar a terra abundante.",
+      "answer": "landorus",
+      "source": "2026-06-08-5.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747340",
+      "count": 26
+    },
+    {
+      "key": "deacordocommuitoscontosantigoscriaamigosparasicontrolandocrianasadormecidasemnoitesestreladas",
+      "question": "De acordo com muitos contos antigos, cria amigos para si controlando crianas adormecidas em noites estreladas.",
+      "answer": "Gothorita",
+      "source": "manual",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781734759",
+      "count": 1
+    },
+    {
+      "key": "debicoexpeleasbrasasqueincendeiamagramaaltaemseguidaeleselanasobreapresadesnorteadaquesaidagrama",
+      "question": "De bico, expele as brasas que incendeiam a grama alta. Em seguida, ele se lana sobre a presa desnorteada que sai da grama.",
+      "answer": "Fletchinder",
+      "source": "manual",
+      "learnedAt": "1781631694",
+      "lastSeenAt": "1781747340",
+      "count": 14
+    },
+    {
+      "key": "deixasairovaporedesaparecenodensonevoeirodizsequeviveemmontanhasondeoshumanosntrilham",
+      "question": "Deixa sair o vapor e desaparece no denso nevoeiro. Diz-se que vive em montanhas onde os humanos n trilham.",
+      "answer": "volcanion",
+      "source": "latest.log",
+      "learnedAt": "1781712449",
+      "lastSeenAt": "1781747341",
+      "count": 20
+    },
+    {
+      "key": "dekinhokkjkteveasuawinstreakde4vitriasquebradaporlitylmf1",
+      "question": "DekinhoKKJK teve a sua Win Streak de 4 vitrias quebrada por LityLMF1.",
+      "answer": "gluttony",
+      "source": "latest.log",
+      "learnedAt": "1781627105",
+      "lastSeenAt": "1781630201",
+      "count": 2
+    },
+    {
+      "key": "demonstrandoexcelentetrabalhoemequipeusamseusincisivosparacortarpedaosdequalquermaterialtilparaumninhoeentofogemcomeles",
+      "question": "Demonstrando excelente trabalho em equipe, usam seus incisivos para cortar pedaos de qualquer material til para um ninho e ento fogem com eles.",
+      "answer": "tandemaus",
+      "source": "2026-06-16-2.log.gz",
+      "learnedAt": "1781619797",
+      "lastSeenAt": "1781747341",
+      "count": 41
+    },
+    {
+      "key": "dentrodesuacascasperasuasclulascomearamamudaracascadescascanoinstanteemqueevolui",
+      "question": "Dentro de sua casca spera, suas clulas comearam a mudar. A casca descasca no instante em que evolui.",
+      "answer": "shelgon",
+      "source": "latest.log",
+      "learnedAt": "1781699702",
+      "lastSeenAt": "1781747341",
+      "count": 20
+    },
+    {
+      "key": "derretepartculasdeferroeoutrosmetaisencontradosnosubsoloparaabsorvlosemseucorpodeaofundido",
+      "question": "Derrete partculas de ferro e outros metais encontrados no subsolo para absorv-los em seu corpo de ao fundido.",
+      "answer": "Meltan",
+      "source": "manual",
+      "learnedAt": "1781631694",
+      "lastSeenAt": "1781747340",
+      "count": 14
+    },
+    {
+      "key": "desafiarcorajosamentequalqueroponentenoimportaquopoderososejaestepokmonsebeneficiadecadabatalhaatumaderrotaaumentaumpoucosuafora",
+      "question": "Desafiar corajosamente qualquer oponente, no importa quo poderoso seja. Este Pokmon se beneficia de cada batalha at uma derrota aumenta um pouco sua fora.",
+      "answer": "snow cloak",
+      "source": "2026-06-08-3.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747340",
+      "count": 16
+    },
+    {
+      "key": "desdequeestepokmonfazsuasprpriasroupasdefolhasummascotepopularparadesignersdemoda",
+      "question": "Desde que este Pokmon faz suas prprias roupas de folhas, um mascote popular para designers de moda.",
+      "answer": "sewaddle",
+      "source": "latest.log",
+      "learnedAt": "1781737090",
+      "lastSeenAt": "1781747341",
+      "count": 9
+    },
+    {
+      "key": "desejandoomaisfortegolpedecaratelesseisolamnasmontanhasetreinamsemdormir",
+      "question": "Desejando o mais forte golpe de carat, eles se isolam nas montanhas e treinam sem dormir.",
+      "answer": "Sawk",
+      "source": "manual",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781737247",
+      "count": 1
+    },
+    {
+      "key": "deslizasobresuamembranaestendidaenquantochocaosinimigoscomaeletricidadearmazenadanasbolsasemsuasbochechas",
+      "question": "Desliza sobre sua membrana estendida enquanto choca os inimigos com a eletricidade armazenada nas bolsas em suas bochechas.",
+      "answer": "Emolga",
+      "source": "manual",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781737252",
+      "count": 1
+    },
+    {
+      "key": "divididoemdoisascaudassthbeisemlidarefazerascoisasqueararamenteusasuasmos",
+      "question": "Dividido em dois, as caudas s t hbeis em lidar e fazer as coisas que a _____ raramente usa suas mos.",
+      "answer": "ambipom",
+      "source": "latest.log",
+      "learnedAt": "1781734011",
+      "lastSeenAt": "1781747341",
+      "count": 9
+    },
+    {
+      "key": "dizsequeascrianasquebebemoleitedecrescemparasetornaremadultossaudveisesaudveis",
+      "question": "Diz-se que as crianas que bebem o leite de _____ crescem para se tornarem adultos saudveis ??e saudveis.",
+      "answer": "reckless",
+      "source": "2026-06-02-2.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 26
+    },
+    {
+      "key": "dizsequeofogodeardemaisquentesetiversofridodurasbatalhas",
+      "question": "Diz-se que o fogo de _____ arde mais quente se tiver sofrido duras batalhas.",
+      "answer": "charizard",
+      "source": "2026-05-31-2.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 26
+    },
+    {
+      "key": "dizemquevriosserenemsobfolhasgigantesevivemjuntosemharmonia",
+      "question": "Dizem que vrios _____ se renem sob folhas gigantes e vivem juntos em harmonia.",
+      "answer": "snorunt",
+      "source": "2026-05-31-2.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 26
+    },
+    {
+      "key": "doisbinculosvivemjuntosemumarochaquandoeleslutamumdelessemudarparaumarochadiferente",
+      "question": "Dois Binculos vivem juntos em uma rocha. Quando eles lutam, um deles se mudar para uma rocha diferente.",
+      "answer": "Binacle",
+      "source": "manual",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781737255",
+      "count": 1
+    },
+    {
+      "key": "dormeemumavalaprofundasebaterasasasdizsequecausaumatempestadede40dias",
+      "question": "Dorme em uma vala profunda. Se bater as asas, diz-se que causa uma tempestade de 40 dias.",
+      "answer": "lugia",
+      "source": "2026-06-04-1.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 26
+    },
+    {
+      "key": "elaamaomeldefloresepodelocalizarmanchasdefloresquetmatmesmopequenasquantidadesdeplen",
+      "question": "Ela ama o mel de flores e pode localizar manchas de flores que tm at mesmo pequenas quantidades de plen.",
+      "answer": "utterfree",
+      "source": "2026-06-09-4.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747340",
+      "count": 69
+    },
+    {
+      "key": "eleabsorveoferroqueencontranarochaenquantoseagarraaotetoatirapicosquandoestemperigo",
+      "question": "Ele absorve o ferro que encontra na rocha enquanto se agarra ao teto. Atira picos quando est em perigo.",
+      "answer": "marvel scale",
+      "source": "2026-06-07-3.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781630201",
+      "count": 3
+    },
+    {
+      "key": "eleadoracombinarpodercompokmondegrandeportepodebaterumcaminhovoandocomseusimpulsosdebrao",
+      "question": "Ele adora combinar poder com Pokmon de grande porte. Pode bater um caminho voando com seus impulsos de brao.",
+      "answer": "hariyama",
+      "source": "2026-06-15-2.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747340",
+      "count": 69
+    },
+    {
+      "key": "eleagarraapresacomsuaspoderosaspinasenosoltaatqueapresasejarasgadaaomeio",
+      "question": "Ele agarra a presa com suas poderosas pinas e no solta at que a presa seja rasgada ao meio.",
+      "answer": "Pinsir",
+      "source": "manual",
+      "learnedAt": "1781631694",
+      "lastSeenAt": "1781747340",
+      "count": 18
+    },
+    {
+      "key": "eleatacaenrolandoedepoisrolandoemseuinimigopodeexplodirumacasaemumnicogolpe",
+      "question": "Ele ataca enrolando e depois rolando em seu inimigo. Pode explodir uma casa em um nico golpe.",
+      "answer": "donphan",
+      "source": "2026-06-08-1.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747340",
+      "count": 26
+    },
+    {
+      "key": "eleatacapulverizandoumlquidohorrivelmentefedorentodapontadacaudaosataquesdecimaconfundemisto",
+      "question": "Ele ataca pulverizando um lquido horrivelmente fedorento da ponta da cauda. Os ataques de cima confundem isto.",
+      "answer": "Stunky",
+      "source": "manual",
+      "learnedAt": "1781631694",
+      "lastSeenAt": "1781737264",
+      "count": 1
+    },
+    {
+      "key": "eleatacausandoexplosesdefogocriacalorbrilhacomfogointensoparaseesconder",
+      "question": "Ele ataca usando exploses de fogo. Cria calor brilha com fogo intenso para se esconder.",
+      "answer": "typhlosion",
+      "source": "2026-06-13-2.log.gz",
+      "learnedAt": "1781619804",
+      "lastSeenAt": "1781747340",
+      "count": 26
+    },
+    {
+      "key": "eleatingeseusinimigoscomumacaudacobertadeespinhosafolhanacabeaamarga",
+      "question": "Ele atinge seus inimigos com uma cauda coberta de espinhos. A folha na cabea amarga.",
+      "answer": "simisage",
+      "source": "2026-06-15-1.log.gz",
+      "learnedAt": "1781619804",
+      "lastSeenAt": "1781747340",
+      "count": 39
+    },
+    {
+      "key": "eleatraipokmoncomseupadroqueseparececomumpokeballeliberaesporosdeveneno",
+      "question": "Ele atrai Pokmon com seu padro que se parece com um Poke Ball e libera esporos de veneno.",
+      "answer": "foongus",
+      "source": "2026-06-02-2.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 69
+    },
+    {
+      "key": "elecarregapresasavelocidadessuperioresa60mphnoentantoporquespodeserexecutadoemlinharetaelegeralmentefalha",
+      "question": "Ele carrega presas a velocidades superiores a 60 mph. No entanto, porque s pode ser executado em linha reta, ele geralmente falha.",
+      "answer": "linoone",
+      "source": "2026-06-11-6.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747340",
+      "count": 52
+    },
+    {
+      "key": "eleconseguebaixaratemperaturaoseuredorparacongelarseuplooplosetranformaemagulhasquequeimam",
+      "question": "Ele consegue baixar a temperatur ao seu redor para congelar seu plo. O plo se tranforma em agulhas que queimam.",
+      "answer": "glaceon",
+      "source": "2026-06-06-2.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747340",
+      "count": 26
+    },
+    {
+      "key": "eleengolequalquercoisainteirasuamlquidostxicosdeseusfolculosparaextinguirosinimigos",
+      "question": "Ele engole qualquer coisa inteira. Suam lquidos txicos de seus folculos para extinguir os inimigos.",
+      "answer": "swalot",
+      "source": "2026-06-09-2.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747340",
+      "count": 26
+    },
+    {
+      "key": "eleenviaumaauracalmantedesuasantenasparecidascomfitasparaacalmaraslutas",
+      "question": "Ele envia uma aura calmante de suas antenas parecidas com fitas para acalmar as lutas.",
+      "answer": "sylveon",
+      "source": "2026-06-06-1.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747340",
+      "count": 26
+    },
+    {
+      "key": "eleescondesuatendnciarancorosadeengancharsuasgarrasnonarizdeseutreinadorsenoforalimentado",
+      "question": "Ele esconde sua tendncia rancorosa de enganchar suas garras no nariz de seu Treinador, se no for alimentado.",
+      "answer": "glameow",
+      "source": "2026-06-14-2.log.gz",
+      "learnedAt": "1781619804",
+      "lastSeenAt": "1781747340",
+      "count": 39
+    },
+    {
+      "key": "eleestendeseus80tentculosparaformarredesdecercovenenosoquedifcilescapar",
+      "question": "Ele estende seus 80 tentculos para formar redes de cerco venenoso que difcil escapar.",
+      "answer": "Tentacruel",
+      "source": "manual",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781737266",
+      "count": 1
+    },
+    {
+      "key": "eleflutuanosventosdizemquequandoasereneemcamposemontanhasaprimaveraestacaminho",
+      "question": "Ele flutua nos ventos. Dizem que quando a _____ se rene em campos e montanhas, a primavera est a caminho.",
+      "answer": "hoppip",
+      "source": "2026-06-17-1.log.gz",
+      "learnedAt": "1781670768",
+      "lastSeenAt": "1781747341",
+      "count": 12
+    },
+    {
+      "key": "elegostadecomerfrutasassadasmassvezesficamuitoanimadoeasqueimaaumabatatafrita",
+      "question": "Ele gosta de comer frutas assadas, mas s vezes fica muito animado e as queima a uma batata frita.",
+      "answer": "tepig",
+      "source": "2026-06-08-1.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747340",
+      "count": 26
+    },
+    {
+      "key": "eleintimidainimigoscomocalordesuaschamasofogoardemaisfortequandosepreparaparalutar",
+      "question": "Ele intimida inimigos com o calor de suas chamas. O fogo arde mais forte quando se prepara para lutar.",
+      "answer": "quilava",
+      "source": "2026-06-03-4.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 26
+    },
+    {
+      "key": "eleligaseucorpocomsuascaudasparaparecermaiorseelebloquearosolhoseleficarincessante",
+      "question": "Ele liga seu corpo com suas caudas para parecer maior. Se ele bloquear os olhos, ele ficar incessante.",
+      "answer": "purugly",
+      "source": "latest.log",
+      "learnedAt": "1781725905",
+      "lastSeenAt": "1781747341",
+      "count": 12
+    },
+    {
+      "key": "elelutaenquantogiracomoumtopaforacentrfugaaumentaseupoderdestrutivoem10",
+      "question": "Ele luta enquanto gira como um top. A fora centrfuga aumenta seu poder destrutivo em 10.",
+      "answer": "hitmontop",
+      "source": "2026-06-08-3.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747340",
+      "count": 39
+    },
+    {
+      "key": "elemudaassimcomooinimigoenganaeusaessaoportunidadeparafugir",
+      "question": "Ele muda, assim como o inimigo, engana e usa essa oportunidade para fugir.",
+      "answer": "Zorua",
+      "source": "manual",
+      "learnedAt": "1781631694",
+      "lastSeenAt": "1781737269",
+      "count": 1
+    },
+    {
+      "key": "eleolhaatentamenteparatudopodeficartoobcecadoemassistirquenopercebeataques",
+      "question": "Ele olha atentamente para tudo. Pode ficar to obcecado em assistir que no percebe ataques.",
+      "answer": "gothita",
+      "source": "2026-06-10-2.log.gz",
+      "learnedAt": "1781619804",
+      "lastSeenAt": "1781747340",
+      "count": 39
+    },
+    {
+      "key": "eleolhaparaachamanapontadeseuramoparaalcanarumestadofocadooquepermiteverofuturo",
+      "question": "Ele olha para a chama na ponta de seu ramo para alcanar um estado focado, o que permite ver o futuro.",
+      "answer": "Delphox",
+      "source": "manual",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781737273",
+      "count": 1
+    },
+    {
+      "key": "elepodeverclaramenteatravsdasparedespararastrearsuapresaeprocurarseusjovensperdidos",
+      "question": "Ele pode ver claramente atravs das paredes para rastrear sua presa e procurar seus jovens perdidos.",
+      "answer": "luxray",
+      "source": "2026-05-30-2.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 52
+    },
+    {
+      "key": "elepossuiospodereshipnticosmaisconvincentesdequalquerpokmoneforaosoutrosafazeroquequiserem",
+      "question": "Ele possui os poderes hipnticos mais convincentes de qualquer Pokmon, e fora os outros a fazer o que quiserem.",
+      "answer": "malamar",
+      "source": "2026-06-02-2.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 39
+    },
+    {
+      "key": "eleprendeasuapresaescolhidaemseguidaatacaoferronacaudaenquantoestatordoadodesurpresa",
+      "question": "Ele prende a sua presa escolhida, em seguida, ataca o ferro na cauda enquanto est atordoado de surpresa.",
+      "answer": "zen mode",
+      "source": "2026-06-01-4.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 16
+    },
+    {
+      "key": "elepuxaoarpelacaudatransformaoemfogoeousacomoumalnguaderretedurantecomeos",
+      "question": "Ele puxa o ar pela cauda, ??transforma-o em fogo e o usa como uma lngua. Derrete Durant e come-os.",
+      "answer": "water 1",
+      "source": "latest.log",
+      "learnedAt": "1781619797",
+      "lastSeenAt": "1781630201",
+      "count": 4
+    },
+    {
+      "key": "elerolaemcaminhosdemontanhaparasemoverumavezqueelecriamomentumnenhumpokmonpodeparlosemdificuldade",
+      "question": "Ele rola em caminhos de montanha para se mover. Uma vez que ele cria momentum, nenhum Pokmon pode par-lo sem dificuldade.",
+      "answer": "Golem",
+      "source": "manual",
+      "learnedAt": "1781631694",
+      "lastSeenAt": "1781737276",
+      "count": 1
+    },
+    {
+      "key": "elesecomunicacomosoutrosiluminandoapartetraseiraduranteanoiteadoraoaromaadocicadodeillumise",
+      "question": "Ele se comunica com os outros, iluminando a parte traseira durante a noite. Adora o aroma adocicado de Illumise.",
+      "answer": "volbeat",
+      "source": "2026-06-07-1.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747340",
+      "count": 26
+    },
+    {
+      "key": "eleseorgulhadavelocidadecomquepodeusarmovimentosoqueperdenopodercompensaemquantidade",
+      "question": "Ele se orgulha da velocidade com que pode usar movimentos. O que perde no poder compensa em quantidade.",
+      "answer": "mienfoo",
+      "source": "2026-06-15-2.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747340",
+      "count": 52
+    },
+    {
+      "key": "elesempretreinanasprofundezasdasmontanhaslevitaquandoaumentaseupoderespiritualatravsdameditao",
+      "question": "Ele sempre treina nas profundezas das montanhas. Levita quando aumenta seu poder espiritual atravs da meditao.",
+      "answer": "meditite",
+      "source": "2026-06-14-4.log.gz",
+      "learnedAt": "1781619804",
+      "lastSeenAt": "1781747340",
+      "count": 39
+    },
+    {
+      "key": "eletestatudoaotocarcomoslbiosquelembramoquegostaenogosta",
+      "question": "Ele testa tudo ao tocar com os lbios, que lembram o que gosta e no gosta.",
+      "answer": "smoochum",
+      "source": "2026-06-09-4.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747340",
+      "count": 69
+    },
+    {
+      "key": "eleusaosdiferentesvenenosemcadamoseparadamentequandoeleatacaquantomaisforteoseuaromamaissaudvel",
+      "question": "Ele usa os diferentes venenos em cada mo separadamente quando ele ataca. Quanto mais forte o seu aroma, mais saudvel .",
+      "answer": "roselia",
+      "source": "2026-06-13-1.log.gz",
+      "learnedAt": "1781619804",
+      "lastSeenAt": "1781747340",
+      "count": 43
+    },
+    {
+      "key": "elevivenacamadadeozniomuitoacimadasnuvensenopodeservistodocho",
+      "question": "Ele vive na camada de oznio muito acima das nuvens e no pode ser visto do cho.",
+      "answer": "Rayquaza",
+      "source": "manual",
+      "learnedAt": "1781631692",
+      "lastSeenAt": "1781747339",
+      "count": 14
+    },
+    {
+      "key": "elesaparecemjuntocomredemoinhoselesfazembrincadeirascomomovermveisedeixarbolasdealgodonascasas",
+      "question": "Eles aparecem junto com redemoinhos. Eles fazem brincadeiras, como mover mveis e deixar bolas de algodo nas casas.",
+      "answer": "whimsicott",
+      "source": "2026-05-31-1.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 39
+    },
+    {
+      "key": "elescarregampessoasepokmonmasoventopodepeglosentnpodehaverumdestinofixo",
+      "question": "Eles carregam pessoas e Pokmon, mas o vento pode peg-los, ent n pode haver um destino fixo.",
+      "answer": "drifblim",
+      "source": "latest.log",
+      "learnedAt": "1781725905",
+      "lastSeenAt": "1781747341",
+      "count": 12
+    },
+    {
+      "key": "elesmigramdeacordocomasestaesdoanoentoalgumaspessoaschamamdeosmensageirosdaprimavera",
+      "question": "Eles migram de acordo com as estaes do ano, ento algumas pessoas chamam _____ de os mensageiros da primavera.",
+      "answer": "sawsbuck",
+      "source": "2026-06-10-1.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747341",
+      "count": 81
+    },
+    {
+      "key": "elesnopodemnadarbemaindaeelessemovemmuitomaisrpidorolandoquandoestofelizesbatemasbarbatanas",
+      "question": "Eles no podem nadar bem ainda, e eles se movem muito mais rpido rolando. Quando esto felizes, batem as barbatanas.",
+      "answer": "spheal",
+      "source": "2026-06-10-2.log.gz",
+      "learnedAt": "1781619804",
+      "lastSeenAt": "1781747340",
+      "count": 39
+    },
+    {
+      "key": "elessocompostosdecristaisdegeloelescapturampresascomcadeiasdegelocongelandoapresaa148grausf",
+      "question": "Eles so compostos de cristais de gelo. Eles capturam presas com cadeias de gelo, congelando a presa a -148 graus F.",
+      "answer": "cryogonal",
+      "source": "2026-06-10-2.log.gz",
+      "learnedAt": "1781619804",
+      "lastSeenAt": "1781747340",
+      "count": 43
+    },
+    {
+      "key": "elessoencontradosemtmulosantigosdizemqueospadresemsuascostasestoimbudosdepodermisterioso",
+      "question": "Eles so encontrados em tmulos antigos. Dizem que os padres em suas costas esto imbudos de poder misterioso.",
+      "answer": "water compaction",
+      "source": "2026-06-15-2.log.gz",
+      "learnedAt": "1781619804",
+      "lastSeenAt": "1781747340",
+      "count": 16
+    },
+    {
+      "key": "elessomelhoresemnadardoquevoarecomemcomprazersuacomidafavoritamusgodeturfaenquantomergulhamdebaixodgua",
+      "question": "Eles so melhores em nadar do que voar, e comem com prazer sua comida favorita, musgo de turfa, enquanto mergulham debaixo d'gua.",
+      "answer": "ducklett",
+      "source": "2026-05-31-2.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 39
+    },
+    {
+      "key": "elesusamopoderpsquicoparacontrolarseusbraosquesofeitosdeumlquidoespecialelespodemesmagarpedregulhospsiquicamente",
+      "question": "Eles usam o poder psquico para controlar seus braos, que so feitos de um lquido especial. Eles podem esmagar pedregulhos psiquicamente.",
+      "answer": "reuniclus",
+      "source": "2026-06-11-6.log.gz",
+      "learnedAt": "1781619804",
+      "lastSeenAt": "1781747340",
+      "count": 43
+    },
+    {
+      "key": "elesvivemescondidossobasareiasquentesdodesertoafimdeevitarqueatemperaturadocorpocaia",
+      "question": "Eles vivem escondidos sob as areias quentes do deserto, a fim de evitar que a temperatura do corpo caia.",
+      "answer": "sandile",
+      "source": "2026-06-02-2.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 26
+    },
+    {
+      "key": "elesvoamemnoitessemluaeatacampresasdescuidadasnadapodevenclosemumabatalhanoescuro",
+      "question": "Eles voam em noites sem lua e atacam presas descuidadas. Nada pode venc-los em uma batalha no escuro.",
+      "answer": "noivern",
+      "source": "2026-05-26-3.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 26
+    },
+    {
+      "key": "eletrificasuasgarrasedespedaaosoponentescomelasmesmoqueesquivemdoataqueseroeletrocutadospelasfascasquevoam",
+      "question": "Eletrifica suas garras e despedaa os oponentes com elas. Mesmo que esquivem do ataque, sero eletrocutados pelas fascas que voam.",
+      "answer": "Zeraora",
+      "source": "manual",
+      "learnedAt": "1781631692",
+      "lastSeenAt": "1781747339",
+      "count": 18
+    },
+    {
+      "key": "emdiasdesolvoalivrementepelocuesemisturacomasnuvenscantaemumalindasoprano",
+      "question": "Em dias de sol, voa livremente pelo cu e se mistura com as nuvens. Canta em uma linda soprano.",
+      "answer": "altaria",
+      "source": "2026-06-02-2.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 26
+    },
+    {
+      "key": "emrepousopareceumapedradescuidadamentepisarnelefarbalanarospunhoscomraiva",
+      "question": "Em repouso, parece uma pedra. Descuidadamente pisar nele far balanar os punhos com raiva.",
+      "answer": "geodude",
+      "source": "2026-05-31-1.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 26
+    },
+    {
+      "key": "emvezdeconfiarnaforaelesdominammovimentosqueutilizamaforacentrfugadoconcretogiratrio",
+      "question": "Em vez de confiar na fora, eles dominam movimentos que utilizam a fora centrfuga do concreto giratrio.",
+      "answer": "Conkeldurr",
+      "source": "2026-06-03-5.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747339",
+      "count": 18
+    },
+    {
+      "key": "emborapossuaumtemperamentoviolentonotoleraobullyingusaafolhanabocaparasentirosmovimentosdeseusinimigos",
+      "question": "Embora possua um temperamento violento, no tolera o bullying. Usa a folha na boca para sentir os movimentos de seus inimigos.",
+      "answer": "pangoro",
+      "source": "2026-06-11-2.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747340",
+      "count": 69
+    },
+    {
+      "key": "emborasejaumpokmonmuitocorajosotambminteligenteosuficienteparachecaraforadeseuoponenteeevitarabatalha",
+      "question": "Embora seja um Pokmon muito corajoso, tambm inteligente o suficiente para checar a fora de seu oponente e evitar a batalha.",
+      "answer": "lillipup",
+      "source": "2026-06-11-6.log.gz",
+      "learnedAt": "1781619804",
+      "lastSeenAt": "1781747340",
+      "count": 39
+    },
+    {
+      "key": "emitepoderpsquicoforteosuficienteparacausardoresdecabeacomoformadedissuadiraaproximaodeoutros",
+      "question": "Emite poder psquico forte o suficiente para causar dores de cabea como forma de dissuadir a aproximao de outros.",
+      "answer": "iron fist",
+      "source": "2026-05-27-3.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 39
+    },
+    {
+      "key": "enquantoaguardaaevoluoescondesedospredadoressobasfolhasenosrecantosdosramos",
+      "question": "Enquanto aguarda a evoluo, esconde-se dos predadores sob as folhas e nos recantos dos ramos.",
+      "answer": "kakuna",
+      "source": "2026-06-08-3.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747340",
+      "count": 107
+    },
+    {
+      "key": "enquantoestepokemonestiverativoexplosionmindblownselfdestructmistyexplosioneahabilidadeaftermatchnofuncionam",
+      "question": "Enquanto este pokemon estiver ativo, Explosion, Mind Blown, Self-Destruct, Misty Explosion e a habilidade Aftermatch no funcionam.",
+      "answer": "Damp",
+      "source": "2026-06-12-2.log.gz",
+      "learnedAt": "1781631694",
+      "lastSeenAt": "1781747340",
+      "count": 18
+    },
+    {
+      "key": "enquantoestepokemonestiveremcamposeusoponentesnopodemusarberries",
+      "question": "Enquanto este pokemon estiver em campo, seus oponentes no podem usar Berries.",
+      "answer": "unnerve",
+      "source": "2026-06-08-1.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747340",
+      "count": 61
+    },
+    {
+      "key": "enquantoopokemonestiveremcampoosefeitosdascondiesclimticassodesativados",
+      "question": "Enquanto o pokemon estiver em campo, os efeitos das condies climticas so desativados.",
+      "answer": "Cloud Nine",
+      "source": "2026-06-02-1.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747339",
+      "count": 30
+    },
+    {
+      "key": "enquantoseuncleovermelhopermanecerelepoderregenerarseucorpoinstantaneamentemesmoquesejadilacerado",
+      "question": "Enquanto seu ncleo vermelho permanecer, ele poder regenerar seu corpo instantaneamente, mesmo que seja dilacerado.",
+      "answer": "Staryu",
+      "source": "2026-06-08-3.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781631693",
+      "count": 1
+    },
+    {
+      "key": "enquantovoadispararaiosportodooladoecausaincndiosflorestaisportantoantipatizado",
+      "question": "Enquanto voa, dispara raios por todo o lado e causa incndios florestais. , portanto, antipatizado.",
+      "answer": "keen eye",
+      "source": "2026-06-05-2.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 26
+    },
+    {
+      "key": "enraizandoapontadeseufocinhonochoeleprocuracomidasvezesatdesenterraumafontetermal",
+      "question": "Enraizando a ponta de seu focinho no cho, ele procura comida. s vezes at desenterra uma fonte termal.",
+      "answer": "swinub",
+      "source": "2026-06-11-6.log.gz",
+      "learnedAt": "1781619804",
+      "lastSeenAt": "1781747340",
+      "count": 39
+    },
+    {
+      "key": "envolveseemtornodesuapresaeparalisaocomaeletricidadedospontosredondosemseusladosentomastiga",
+      "question": "Envolve-se em torno de sua presa e paralisa-o com a eletricidade dos pontos redondos em seus lados. Ento, mastiga.",
+      "answer": "Eelektrik",
+      "source": "2026-06-10-2.log.gz",
+      "learnedAt": "1781631694",
+      "lastSeenAt": "1781747340",
+      "count": 14
+    },
+    {
+      "key": "espalhaseusesporosbrilhantesaoredordesimesmomesmosendoperigososospasseiosnoturnosemflorestasondevivemsopopulares",
+      "question": "Espalha seus esporos brilhantes ao redor de si mesmo. Mesmo sendo perigosos, os passeios noturnos em florestas onde _____ vivem so populares.",
+      "answer": "morelull",
+      "source": "2026-06-16-2.log.gz",
+      "learnedAt": "1781619797",
+      "lastSeenAt": "1781747341",
+      "count": 71
+    },
+    {
+      "key": "essepokemoncorremelhordoquevoaelesobeaocucorrendoavelocidadede40kmh",
+      "question": "Esse Pokemon corre melhor do que voa. Ele sobe ao cu correndo a velocidade de 40Km/h.",
+      "answer": "archeops",
+      "source": "2026-05-27-2.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 26
+    },
+    {
+      "key": "esseestranhopokemonpodevertantopassadoquantofuturoseusolhosseguemomovimentodosolcontinuamente",
+      "question": "Esse estranho pokemon pode ver tanto passado quanto futuro. Seus olhos seguem o movimento do sol continuamente.",
+      "answer": "Xatu",
+      "source": "2026-06-10-2.log.gz",
+      "learnedAt": "1781631694",
+      "lastSeenAt": "1781631694",
+      "count": 1
+    },
+    {
+      "key": "essepokemonacumulaemsuabocaumlquidocomodorparecidocommelquenaverdadeumcidoquedissolvequalquercoisa",
+      "question": "Esse pokemon acumula em sua boca um lquido com odor parecido com mel, que na verdade um cido que dissolve qualquer coisa.",
+      "answer": "victreebel",
+      "source": "2026-06-13-1.log.gz",
+      "learnedAt": "1781619804",
+      "lastSeenAt": "1781747340",
+      "count": 26
+    },
+    {
+      "key": "essepokemonexaminaseuambientelevantandoasorelhasacimadagramaseuchifretxicoparaproteo",
+      "question": "Esse pokemon examina seu ambiente levantando as orelhas acima da grama. Seu chifre txico para proteo.",
+      "answer": "nidoranmale",
+      "source": "latest.log",
+      "learnedAt": "1781649546",
+      "lastSeenAt": "1781747341",
+      "count": 42
+    },
+    {
+      "key": "essepokemonextremamentelealaoseutreinadorelevailatirecorreratrsdaquelesqueseaproximareminesperadamentedotreinador",
+      "question": "Esse pokemon extremamente leal ao seu treinador, ele vai latir e correr atrs daqueles que se aproximarem inesperadamente do treinador.",
+      "answer": "Growlithe",
+      "source": "2026-06-07-3.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781631693",
+      "count": 1
+    },
+    {
+      "key": "essepokemonnoctvagonanaturezaseeleencontraalgobrilhanteseusolhosreluzemfortemente",
+      "question": "Esse pokemon noctvago na natureza. Se ele encontra algo brilhante seus olhos reluzem fortemente.",
+      "answer": "meowth",
+      "source": "2026-06-14-3.log.gz",
+      "learnedAt": "1781619804",
+      "lastSeenAt": "1781747340",
+      "count": 26
+    },
+    {
+      "key": "essepokemonpodenocautearumadversriocomumtapadeumdosseusapndicesfrontaisemastigarconchasouossosetudomais",
+      "question": "Esse pokemon pode nocautear um adversrio com um tapa de um dos seus apndices frontais e mastigar conchas ou ossos e tudo mais.",
+      "answer": "Carracosta",
+      "source": "2026-06-02-2.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781631693",
+      "count": 1
+    },
+    {
+      "key": "essepokemonseenraivessesevocolharemseusolhoseficaenfurecidosevoccorrersevocoderrotaeleficaaindamaisenfurecido",
+      "question": "Esse pokemon se enraivesse se voc olhar em seus olhos e fica enfurecido se voc correr. Se voc o derrota ele fica ainda mais enfurecido.",
+      "answer": "primeape",
+      "source": "2026-06-13-1.log.gz",
+      "learnedAt": "1781619804",
+      "lastSeenAt": "1781747340",
+      "count": 26
+    },
+    {
+      "key": "essepokemontentadesesperadamentemantersuacaudanegraescondidadizemqueaprovadequeacaudaescondeumsegredo",
+      "question": "Esse pokemon tenta desesperadamente manter sua cauda negra escondida. Dizem que a prova de que a cauda esconde um segredo.",
+      "answer": "wobbuffet",
+      "source": "2026-06-16-2.log.gz",
+      "learnedAt": "1781619797",
+      "lastSeenAt": "1781747341",
+      "count": 28
+    },
+    {
+      "key": "essepokemonviveemcolniasnotopodasrvoresseumdelesseenfurecetodaacolniatambmseagitamesmosemrazo",
+      "question": "Esse pokemon vive em colnias no topo das rvores. Se um deles se enfurece toda a colnia tambm se agita mesmo sem razo.",
+      "answer": "Mankey",
+      "source": "2026-06-14-4.log.gz",
+      "learnedAt": "1781631694",
+      "lastSeenAt": "1781747340",
+      "count": 14
+    },
+    {
+      "key": "essepokemonvivemetocasfeitasnaareiadaspraiassuaspinascrescemdevoltaquandoquebradasembatalha",
+      "question": "Esse pokemon vive me tocas feitas na areia das praias. Suas pinas crescem de volta quando quebradas em batalha.",
+      "answer": "krabby",
+      "source": "2026-05-31-1.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 26
+    },
+    {
+      "key": "essepokemonaoabrirsuabocapodeingerirquantidadesenormesdesoloecriarlongostneis",
+      "question": "Esse pokemon, ao abrir sua boca, pode ingerir quantidades enormes de solo e criar longos tneis.",
+      "answer": "onix",
+      "source": "2026-06-08-3.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747340",
+      "count": 26
+    },
+    {
+      "key": "essespokmoncorremconstantementeemguasrasasparatreinaraspernasedepoiscompetementresiparaverquemchutacommaiselegncia",
+      "question": "Esses Pokmon correm constantemente em guas rasas para treinar as pernas e depois competem entre si para ver quem chuta com mais elegncia.",
+      "answer": "Quaxwell",
+      "source": "2026-06-15-2.log.gz",
+      "learnedAt": "1781631694",
+      "lastSeenAt": "1781631694",
+      "count": 1
+    },
+    {
+      "key": "essespokmonpreferemviveremcidadesformambandoscombasenacordesuaspenasebrigamporterritrio",
+      "question": "Esses Pokmon preferem viver em cidades. Formam bandos com base na cor de suas penas e brigam por territrio.",
+      "answer": "Squawkabilly",
+      "source": "2026-06-08-3.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781631693",
+      "count": 1
+    },
+    {
+      "key": "essespokmonsochamadosdesignpostforwanderingspiritsascrianasqueasseguramsvezesdesaparecem",
+      "question": "Esses Pokmon so chamados de \"Signpost for Wandering Spirits\". As crianas que as seguram s vezes desaparecem.",
+      "answer": "drifloon",
+      "source": "2026-05-24-1.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 39
+    },
+    {
+      "key": "essessimpticospokmonsenviamsinaisumparaooutrocombeloschiadosemovimentosdecauda",
+      "question": "Esses simpticos Pokmons enviam sinais um para o outro com belos chiados e movimentos de cauda.",
+      "answer": "fletchling",
+      "source": "2026-06-08-3.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747340",
+      "count": 26
+    },
+    {
+      "key": "estaespciedeixouooceanoecomeouaviveremterrafirmehmuitotempopareceserintimamenterelacionadaawailmer",
+      "question": "Esta espcie deixou o oceano e comeou a viver em terra firme h muito tempo. Parece ser intimamente relacionada a Wailmer.",
+      "answer": "Cetoddle",
+      "source": "2026-06-07-3.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781631693",
+      "count": 1
+    },
+    {
+      "key": "estaespcieviveembulesantigosamaioriadosbulessofalsificaesmasraramenteencontradaumapeaautntica",
+      "question": "Esta espcie vive em bules antigos. A maioria dos bules so falsificaes, mas raramente encontrada uma pea autntica.",
+      "answer": "Sinistea",
+      "source": "latest.log",
+      "learnedAt": "1781636410",
+      "lastSeenAt": "1781747341",
+      "count": 18
+    },
+    {
+      "key": "estarenvoltoemsuapelecompridatoconfortvelqueumapessoaficariabemmesmoduranteanoiteemumamontanhainvernal",
+      "question": "Estar envolto em sua pele comprida to confortvel que uma pessoa ficaria bem mesmo durante a noite em uma montanha invernal.",
+      "answer": "Stoutland",
+      "source": "2026-06-08-5.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747340",
+      "count": 14
+    },
+    {
+      "key": "estepokmonantigofoirestauradodepartedeseucorpoquehaviasidocongeladonogelopormaisde100milhesdeanos",
+      "question": "Este Pokmon antigo foi restaurado de parte de seu corpo que havia sido congelado no gelo por mais de 100 milhes de anos.",
+      "answer": "Amaura",
+      "source": "2026-05-27-4.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781631693",
+      "count": 1
+    },
+    {
+      "key": "estepokmonatacargruposdepawniardebisharpcoletandometaldelesparacriarummartelograndeeresistente",
+      "question": "Este Pokmon atacar grupos de Pawniard e Bisharp, coletando metal deles para criar um martelo grande e resistente.",
+      "answer": "tinkatuff",
+      "source": "2026-06-10-2.log.gz",
+      "learnedAt": "1781619804",
+      "lastSeenAt": "1781747340",
+      "count": 26
+    },
+    {
+      "key": "estepokmonfoirestauradodeumfssilsealgoacontecequenogostaelefazumabirraecorresolta",
+      "question": "Este Pokmon foi restaurado de um fssil. Se algo acontece que no gosta, ele faz uma birra e corre solta.",
+      "answer": "tyrunt",
+      "source": "2026-06-10-2.log.gz",
+      "learnedAt": "1781619804",
+      "lastSeenAt": "1781747340",
+      "count": 39
+    },
+    {
+      "key": "estepokmongulosomastemdificuldadeemconseguircomidauneforascomumtatsugiriparacapturarpresas",
+      "question": "Este Pokmon guloso, mas tem dificuldade em conseguir comida. Une foras com um Tatsugiri para capturar presas.",
+      "answer": "Dondozo",
+      "source": "2026-06-08-3.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781631693",
+      "count": 1
+    },
+    {
+      "key": "estepokmonimpiedosocomandaumgrupodepawniardparaperseguirapresaemimobilidadeemseguidaelesemoveparaterminarapresa",
+      "question": "Este Pokmon impiedoso comanda um grupo de Pawniard para perseguir a presa em imobilidade. Em seguida, ele se move para terminar a presa.",
+      "answer": "isharp",
+      "source": "2026-06-14-4.log.gz",
+      "learnedAt": "1781619804",
+      "lastSeenAt": "1781747340",
+      "count": 26
+    },
+    {
+      "key": "estepokmonmuitoesquecidovaiesperarporumnovopedidodoseutreinadormesmoqueelejtenhaum",
+      "question": "Este Pokmon muito esquecido vai esperar por um novo pedido do seu Treinador, mesmo que ele j tenha um.",
+      "answer": "pidove",
+      "source": "2026-06-12-2.log.gz",
+      "learnedAt": "1781619804",
+      "lastSeenAt": "1781747340",
+      "count": 26
+    },
+    {
+      "key": "estepokmonmuitolealajudaostreinadoresetambmcuidadeoutrospokmon",
+      "question": "Este Pokmon muito leal ajuda os Treinadores, e tambm cuida de outros Pokmon.",
+      "answer": "Herdier",
+      "source": "2026-06-06-2.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747340",
+      "count": 14
+    },
+    {
+      "key": "estepokmonnormalmentelentoparareagirmasumavezqueentraembatalhaderrubaseusinimigoscommovimentosextremamenterpidos",
+      "question": "Este Pokmon normalmente lento para reagir, mas uma vez que entra em batalha, derruba seus inimigos com movimentos extremamente rpidos.",
+      "answer": "Pawmot",
+      "source": "2026-06-08-3.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781631693",
+      "count": 1
+    },
+    {
+      "key": "estepokmonumconjuntodetrsquandoelesdormemelesserenemeformamumacolmiagigantede100",
+      "question": "Este Pokmon um conjunto de trs. Quando eles dormem, eles se renem e formam uma colmia gigante de 100 _____.",
+      "answer": "Combee",
+      "source": "2026-06-05-2.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781631693",
+      "count": 1
+    },
+    {
+      "key": "estepokmonusaopeloreflexivoqueforrasuacapaparacamuflarocauledesuaflorcriandoailusodequeaflorestflutuando",
+      "question": "Este Pokmon usa o pelo reflexivo que forra sua capa para camuflar o caule de sua flor, criando a iluso de que a flor est flutuando.",
+      "answer": "meowscarada",
+      "source": "2026-06-14-4.log.gz",
+      "learnedAt": "1781619804",
+      "lastSeenAt": "1781747340",
+      "count": 43
+    },
+    {
+      "key": "estepokmonusasuacaudaduraparafazerseuninhoperfurandoburacosnoleitorochosobemabaixodosolooninhopodeatingirmaisde10kmdecomprimento",
+      "question": "Este Pokmon usa sua cauda dura para fazer seu ninho perfurando buracos no leito rochoso bem abaixo do solo. O ninho pode atingir mais de 10 km de comprimento.",
+      "answer": "dudunsparce",
+      "source": "2026-06-04-2.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 26
+    },
+    {
+      "key": "estelendriopokmonpodequeimaromundocomfogoajudaaquelesquequeremconstruirummundodeverdade",
+      "question": "Este lendrio Pokmon pode queimar o mundo com fogo. Ajuda aqueles que querem construir um mundo de verdade.",
+      "answer": "reshiram",
+      "source": "2026-05-24-2.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 26
+    },
+    {
+      "key": "estelendriopokmonpodequeimaromundocomumraioajudaaquelesquequeremconstruirummundoideal",
+      "question": "Este lendrio Pokmon pode queimar o mundo com um raio. Ajuda aqueles que querem construir um mundo ideal.",
+      "answer": "synchronize",
+      "source": "2026-06-06-2.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781630201",
+      "count": 3
+    },
+    {
+      "key": "estepokemonignoramudanasdestatus",
+      "question": "Este pokemon ignora mudanas de status.",
+      "answer": "unaware",
+      "source": "2026-06-08-1.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747340",
+      "count": 24
+    },
+    {
+      "key": "estepokemonimunesandstormhaileataquesbaseadosemp",
+      "question": "Este pokemon imune Sandstorm, Hail e ataques baseados em p.",
+      "answer": "Overcoat",
+      "source": "2026-06-09-4.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781631693",
+      "count": 1
+    },
+    {
+      "key": "estepokemonimuneaataquesdotipogroundeaosefeitosdespikestoxicspikesstickywebeahabilidadearenatrap",
+      "question": "Este pokemon imune a ataques do tipo Ground e aos efeitos de Spikes, Toxic Spikes, Sticky Web e a habilidade Arena Trap.",
+      "answer": "levitate",
+      "source": "2026-06-15-2.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747340",
+      "count": 24
+    },
+    {
+      "key": "estepokemonnopodeserparalisadoimuneaparalisia",
+      "question": "Este pokemon no pode ser paralisado. Imune a paralisia.",
+      "answer": "limber",
+      "source": "2026-06-14-2.log.gz",
+      "learnedAt": "1781631692",
+      "lastSeenAt": "1781747340",
+      "count": 76
+    },
+    {
+      "key": "estepokemonpodeacertarostiposghostcommovimentosdotiponormalelutadorimuneahabilidadeintimidade",
+      "question": "Este pokemon pode acertar os tipos Ghost com movimentos do tipo Normal e Lutador. Imune a habilidade Intimidade.",
+      "answer": "scrappy",
+      "source": "2026-06-02-2.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747339",
+      "count": 24
+    },
+    {
+      "key": "estepokemontem33dechancedetersuacondiodestatuscuradanofinaldecadaturno",
+      "question": "Este pokemon tem 33% de chance de ter sua condio de status curada no final de cada turno.",
+      "answer": "shed skin",
+      "source": "2026-06-14-4.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747340",
+      "count": 91
+    },
+    {
+      "key": "estepokmonguardaossosdesdequenasceuepossuiumagrandehabilidadeparausloscomoarmas",
+      "question": "Este pokmon guarda ossos desde que nasceu e possui uma grande habilidade para us-los como armas.",
+      "answer": "Marowak",
+      "source": "2026-06-14-4.log.gz",
+      "learnedAt": "1781631694",
+      "lastSeenAt": "1781631694",
+      "count": 1
+    },
+    {
+      "key": "estesimpticopokmondragoabraarseuamadotreinadordeixandootreinadorcobertodelamapegajosa",
+      "question": "Este simptico Pokmon Drago abraar seu amado Treinador, deixando o Treinador coberto de lama pegajosa.",
+      "answer": "goodra",
+      "source": "2026-05-31-2.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 39
+    },
+    {
+      "key": "estescolecionadoresdechavesameaamqualqueratacanteferozmentetocandosuaschavesneles",
+      "question": "Estes colecionadores de chaves ameaam qualquer atacante, ferozmente tocando suas chaves neles.",
+      "answer": "klefki",
+      "source": "2026-06-05-2.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 26
+    },
+    {
+      "key": "extremamentecautelosorapidamenteseligaquandopercebeoperigo",
+      "question": "Extremamente cauteloso, rapidamente se liga quando percebe o perigo.",
+      "answer": "ug",
+      "source": "2026-06-05-2.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781630201",
+      "count": 3
+    },
+    {
+      "key": "extremamentecautelosoumdelessempreestaratentomasnonotaruminimigovindodetrs",
+      "question": "Extremamente cauteloso, um deles sempre estar atento, mas no notar um inimigo vindo de trs.",
+      "answer": "patrat",
+      "source": "2026-06-03-4.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 39
+    },
+    {
+      "key": "fazseuninhoempenhascosngremesmontandoabrisadomareledeslizaparaocucaro",
+      "question": "Faz seu ninho em penhascos ngremes. Montando a brisa do mar, ele desliza para o cu caro.",
+      "answer": "wingull",
+      "source": "2026-06-09-4.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747340",
+      "count": 26
+    },
+    {
+      "key": "felizmentecarregacargapesadaparaendurecerdebomgradofaztrabalhoduroparaaspessoas",
+      "question": "Felizmente carrega carga pesada para endurecer. De bom grado faz trabalho duro para as pessoas.",
+      "answer": "machoke",
+      "source": "2026-06-10-2.log.gz",
+      "learnedAt": "1781619804",
+      "lastSeenAt": "1781747340",
+      "count": 26
+    },
+    {
+      "key": "gostadebrincarcomoutrosdesuaespcieusandooaneldeguaemsuacaudausaondasultrassnicasparaperceberasemoesdeoutrosseresvivos",
+      "question": "Gosta de brincar com outros de sua espcie usando o anel de gua em sua cauda. Usa ondas ultrassnicas para perceber as emoes de outros seres vivos.",
+      "answer": "finizen",
+      "source": "latest.log",
+      "learnedAt": "1781619804",
+      "lastSeenAt": "1781747341",
+      "count": 35
+    },
+    {
+      "key": "gostadecarregarumapequenapedrapodeandarpelospsdosoutrosefazlostropear",
+      "question": "Gosta de carregar uma pequena pedra. Pode andar pelos ps dos outros e faz-los tropear.",
+      "answer": "happiny",
+      "source": "2026-06-10-2.log.gz",
+      "learnedAt": "1781619804",
+      "lastSeenAt": "1781747340",
+      "count": 26
+    },
+    {
+      "key": "graasssuasmandbulasgigantescasquepoderiamrasgargrossasplacasdemetalcomosefossempapelerainvencvelnomundoantigoqueumavezhabitara",
+      "question": "Graas s suas mandbulas gigantescas, que poderiam rasgar grossas placas de metal como se fossem papel, era invencvel no mundo antigo que uma vez habitara.",
+      "answer": "tyrantrum",
+      "source": "2026-05-30-2.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 26
+    },
+    {
+      "key": "humorbedentrodesuabocaquandoelepulaoorbrebateefazumsomdetoque",
+      "question": "H um orbe dentro de sua boca. Quando ele pula, o orb rebate e faz um som de toque.",
+      "answer": "chingling",
+      "source": "2026-05-31-2.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 26
+    },
+    {
+      "key": "identificaoitemseguradopelosadversrios",
+      "question": "Identifica o item segurado pelos adversrios.",
+      "answer": "frisk",
+      "source": "2026-06-13-1.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747340",
+      "count": 47
+    },
+    {
+      "key": "impedeoopontentedetrocardepokemonamenosquesejamimunesouestejamnoar",
+      "question": "Impede o opontente de trocar de pokemon, a menos que sejam imunes ou estejam no ar.",
+      "answer": "Arena Trap",
+      "source": "2026-06-04-2.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781631693",
+      "count": 1
+    },
+    {
+      "key": "impedequeoutrospokemonreduzamosestgiosdestatusdestepokemon",
+      "question": "Impede que outros pokemon reduzam os estgios de status deste pokemon.",
+      "answer": "clear body",
+      "source": "2026-05-24-1.log.gz",
+      "learnedAt": "1781631692",
+      "lastSeenAt": "1781747339",
+      "count": 24
+    },
+    {
+      "key": "impedequepokemonoponentespossamtrocaramenosquesejamimunesoutambmtenhamessahabilidade",
+      "question": "Impede que pokemon oponentes possam trocar, a menos que sejam imunes ou tambm tenham essa habilidade.",
+      "answer": "shadow tag",
+      "source": "2026-06-01-2.log.gz",
+      "learnedAt": "1781631692",
+      "lastSeenAt": "1781747339",
+      "count": 53
+    },
+    {
+      "key": "ladresdetmulosqueosconfundemcomcaixesreaiseficammuitopertoacabampresosdentrodeseuscorpos",
+      "question": "Ladres de tmulos que os confundem com caixes reais e ficam muito perto acabam presos dentro de seus corpos.",
+      "answer": "Cofagrigus",
+      "source": "2026-05-31-2.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781631693",
+      "count": 1
+    },
+    {
+      "key": "marcaotempocomprecisoalgunspasesconsideramserumamigosbioversadonoscaminhosdomundo",
+      "question": "Marca o tempo com preciso. Alguns pases consideram ser um amigo sbio, versado nos caminhos do mundo.",
+      "answer": "hoothoot",
+      "source": "2026-05-27-4.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 39
+    },
+    {
+      "key": "mesmoqueseucorpogasosoeindefesopossasersopradopelamaislevebrisaelenopareceseimportar",
+      "question": "Mesmo que seu corpo gasoso e indefeso possa ser soprado pela mais leve brisa, ele no parece se importar.",
+      "answer": "cosmog",
+      "source": "2026-06-04-1.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 39
+    },
+    {
+      "key": "moveascapasdosdoisbraosefazumadanparaatrairapresapreferelugaresmidos",
+      "question": "Move as capas dos dois braos e faz uma dan para atrair a presa. Prefere lugares midos.",
+      "answer": "amoonguss",
+      "source": "latest.log",
+      "learnedAt": "1781721625",
+      "lastSeenAt": "1781747341",
+      "count": 19
+    },
+    {
+      "key": "movimentoscom60oumenosdepoderbasesomultiplicadospor15",
+      "question": "Movimentos com 60 ou menos de poder base so multiplicados por 1.5.",
+      "answer": "levitate",
+      "source": "2026-06-14-2.log.gz",
+      "learnedAt": "1781631452",
+      "lastSeenAt": "1781747340",
+      "count": 76
+    },
+    {
+      "key": "muitasvezesalvodepokmondepssaroeleresistedesesperadamenteliberandovenenodeseuspicosdecauda",
+      "question": "Muitas vezes alvo de Pokmon de pssaro, ele resiste desesperadamente liberando veneno de seus picos de cauda.",
+      "answer": "Wurmple",
+      "source": "2026-06-08-3.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781631693",
+      "count": 1
+    },
+    {
+      "key": "muitasvinhascontorcendoacobrementosuaverdadeiraidentidadepermanecedesconhecidaasvideirasazuiscrescemavidainteira",
+      "question": "Muitas vinhas contorcendo a cobrem, ento sua verdadeira identidade permanece desconhecida. As videiras azuis crescem a vida inteira.",
+      "answer": "Tangela",
+      "source": "2026-06-03-5.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747339",
+      "count": 14
+    },
+    {
+      "key": "nafebredeumabatalhaemocionanteeledespejabrasasdasaberturasentresuaspenaselevaparaoar",
+      "question": "Na febre de uma batalha emocionante, ele despeja brasas das aberturas entre suas penas e leva para o ar.",
+      "answer": "talonflame",
+      "source": "2026-06-16-3.log.gz",
+      "learnedAt": "1781642938",
+      "lastSeenAt": "1781747341",
+      "count": 25
+    },
+    {
+      "key": "nasmontanhasrochosasondevivesuascaudasdefogobrilhamnoitecomoestrelas",
+      "question": "Nas montanhas rochosas onde _____ vive, suas caudas de fogo brilham noite como estrelas.",
+      "answer": "Charmeleon",
+      "source": "2026-06-04-2.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781631693",
+      "count": 1
+    },
+    {
+      "key": "nctareplensoseusalimentosfavoritosemcamposdefloresentraemconflitoscombutterfreepelacomida",
+      "question": "Nctar e plen so seus alimentos favoritos. Em campos de flores, entra em conflitos com Butterfree pela comida.",
+      "answer": "cutiefly",
+      "source": "2026-06-02-2.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 39
+    },
+    {
+      "key": "nemmesmoalfofacresceremsuasmanchasdepelenocondutivasdeborrachaqueevitamochoqueeltrico",
+      "question": "Nem mesmo a l fofa crescer em suas manchas de pele no condutivas, de borracha, que evitam o choque eltrico.",
+      "answer": "Flaaffy",
+      "source": "2026-06-10-2.log.gz",
+      "learnedAt": "1781631694",
+      "lastSeenAt": "1781747340",
+      "count": 18
+    },
+    {
+      "key": "noimportaquemvocsejasetrouxeremoesfortespertodestepokmoneleosilenciarviolentamente",
+      "question": "No importa quem voc seja, se trouxer emoes fortes perto deste Pokmon, ele o silenciar violentamente.",
+      "answer": "Hatterene",
+      "source": "2026-06-12-2.log.gz",
+      "learnedAt": "1781631694",
+      "lastSeenAt": "1781747340",
+      "count": 14
+    },
+    {
+      "key": "notempoquelevauminimigoapiscarelepodedesenhareembainharasmarmitaspresasssuaspatasdianteiras",
+      "question": "No tempo que leva um inimigo a piscar, ele pode desenhar e embainhar as marmitas presas s suas patas dianteiras.",
+      "answer": "samurott",
+      "source": "2026-05-27-3.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 26
+    },
+    {
+      "key": "nostemposantigoseraimbatvelgraassuapoderosametadeinferiormasacabouseextinguindomesmoassimapsesgotartodasassuasfontesdealimentobasedeplantas",
+      "question": "Nos tempos antigos, era imbatvel graas sua poderosa metade inferior, mas acabou se extinguindo mesmo assim aps esgotar todas as suas fontes de alimento base de plantas.",
+      "answer": "Dracozolt",
+      "source": "2026-05-27-2.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781631693",
+      "count": 1
+    },
+    {
+      "key": "nuncaseesquecedequalquerataquequesofreunocasuloapsaevoluobuscaoretorno",
+      "question": "Nunca se esquece de qualquer ataque que sofreu no casulo. Aps a evoluo, busca o retorno.",
+      "answer": "cascoon",
+      "source": "2026-06-12-1.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747340",
+      "count": 69
+    },
+    {
+      "key": "osataquesbaseadosemmordidasdopokemontmseupodermultiplicadopor15",
+      "question": "Os ataques baseados em mordidas do pokemon tm seu poder multiplicado por 1.5.",
+      "answer": "strong jaw",
+      "source": "2026-06-14-4.log.gz",
+      "learnedAt": "1781631452",
+      "lastSeenAt": "1781747340",
+      "count": 88
+    },
+    {
+      "key": "osataquesdestepokemoncomefeitossecundriostmseupodermultiplicadopor13masessesefeitossoanulados",
+      "question": "Os ataques deste pokemon com efeitos secundrios tm seu poder multiplicado por 1.3, mas esses efeitos so anulados.",
+      "answer": "water 1",
+      "source": "2026-06-16-2.log.gz",
+      "learnedAt": "1781631452",
+      "lastSeenAt": "1781747341",
+      "count": 58
+    },
+    {
+      "key": "osataquesmultihitdestepokemonsempreatingemonmeromximodevezes",
+      "question": "Os ataques multi-hit deste pokemon sempre atingem o nmero mximo de vezes.",
+      "answer": "Skill Link",
+      "source": "2026-06-13-1.log.gz",
+      "learnedAt": "1781631694",
+      "lastSeenAt": "1781631694",
+      "count": 1
+    },
+    {
+      "key": "osefeitossecundriosdosmovimentosdopokemontmchancedobrada",
+      "question": "Os efeitos secundrios dos movimentos do pokemon tm chance dobrada.",
+      "answer": "Serene Grace",
+      "source": "2026-06-04-2.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747339",
+      "count": 22
+    },
+    {
+      "key": "osespinhosemseucorposofeitosdesuapeleendurecidaeleseacumulaeatacainimigoscomseuspicos",
+      "question": "Os espinhos em seu corpo so feitos de sua pele endurecida. Ele se acumula e ataca inimigos com seus picos.",
+      "answer": "sandslash",
+      "source": "2026-06-11-6.log.gz",
+      "learnedAt": "1781619804",
+      "lastSeenAt": "1781747340",
+      "count": 39
+    },
+    {
+      "key": "osguardiesdeumacidadeantigaelessemprevoamnamesmarotaenquantovigiamosinvasores",
+      "question": "Os guardies de uma cidade antiga, eles sempre voam na mesma rota, enquanto vigiam os invasores.",
+      "answer": "sigilyph",
+      "source": "2026-05-27-6.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 26
+    },
+    {
+      "key": "osjatosdeguaquegotejamdoscanhesdefoguetesemsuacascapodemperfuraraogrosso",
+      "question": "Os jatos de gua que gotejam dos canhes de foguetes em sua casca podem perfurar ao grosso.",
+      "answer": "truant",
+      "source": "2026-06-03-2.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 16
+    },
+    {
+      "key": "osmovimentosdestatusefeitosusadosganhamprioridademaspokemonsdotipodarksoimunes",
+      "question": "Os movimentos de status/efeitos usados ganham prioridade, mas pokemons do tipo Dark so imunes.",
+      "answer": "Prankster",
+      "source": "2026-06-01-3.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747339",
+      "count": 22
+    },
+    {
+      "key": "osmovimentosdestepokemonignoramosefeitosdesubstitutereflectlightscreensafeguardmisteauroraveil",
+      "question": "Os movimentos deste pokemon ignoram os efeitos de Substitute, Reflect, Light Screen, Safeguard, Mist e Aurora Veil.",
+      "answer": "infiltrator",
+      "source": "2026-06-11-1.log.gz",
+      "learnedAt": "1781631452",
+      "lastSeenAt": "1781747340",
+      "count": 70
+    },
+    {
+      "key": "osmovimentosdopokemonedeseusaliadostmsuaprecisomultiplicadapor11",
+      "question": "Os movimentos do pokemon e de seus aliados tm sua preciso multiplicada por 1.1.",
+      "answer": "victory star",
+      "source": "2026-06-11-6.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747340",
+      "count": 49
+    },
+    {
+      "key": "osmovimentosdopokmoneseusefeitosignoramcertashabilidades",
+      "question": "Os movimentos do pokmon e seus efeitos ignoram certas habilidades.",
+      "answer": "mold breaker",
+      "source": "2026-06-13-1.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747340",
+      "count": 24
+    },
+    {
+      "key": "osmovimentosdotiponormaldopokemonsetornammovimentosdotipofadaetseupodermultiplicadopor12",
+      "question": "Os movimentos do tipo Normal do pokemon se tornam movimentos do tipo Fada e t seu poder multiplicado por 1.2.",
+      "answer": "pixilate",
+      "source": "2026-06-09-4.log.gz",
+      "learnedAt": "1781721630",
+      "lastSeenAt": "1781747340",
+      "count": 17
+    },
+    {
+      "key": "osmovimentosdotiponormaldopokemonsetornammovimentosdotipovoadoretmseupodermultiplicadopor12",
+      "question": "Os movimentos do tipo Normal do pokemon se tornam movimentos do tipo Voador e tm seu poder multiplicado por 1.2.",
+      "answer": "aerilate",
+      "source": "2026-05-27-2.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747339",
+      "count": 94
+    },
+    {
+      "key": "osmovimentosdosmesmostiposdopokemonganhamumbnusmaiordeataque",
+      "question": "Os movimentos dos mesmos tipos do pokemon ganham um bnus maior de ataque.",
+      "answer": "Adaptability",
+      "source": "2026-05-31-2.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781631693",
+      "count": 1
+    },
+    {
+      "key": "osmovimentosquefazemcontatotm30dechancedeenvenenaroalvo",
+      "question": "Os movimentos que fazem contato tm 30% de chance de envenenar o alvo.",
+      "answer": "poison touch",
+      "source": "2026-06-02-2.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747341",
+      "count": 88
+    },
+    {
+      "key": "osraiossolaresqueabsorvesoprocessadosemseuncleodeenergiaedisparadoscomoumaboladeluz",
+      "question": "Os raios solares que absorve so processados ??em seu ncleo de energia e disparados como uma bola de luz.",
+      "answer": "Solrock",
+      "source": "2026-06-07-3.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747340",
+      "count": 14
+    },
+    {
+      "key": "osvulcesnassuascostastmumagrandeerupoacada10anosousemprequeficarealmentecomraiva",
+      "question": "Os vulces nas suas costas tm uma grande erupo a cada 10 anos - ou sempre que fica realmente com raiva.",
+      "answer": "camerupt",
+      "source": "2026-06-09-4.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747340",
+      "count": 39
+    },
+    {
+      "key": "paraconstruirseucorpodeaoelecomeminriodeferroestepokmontraquinaconhecidoporcomertrilhosdetrem",
+      "question": "Para construir seu corpo de ao, ele come minrio de ferro. Este Pokmon traquina conhecido por comer trilhos de trem.",
+      "answer": "Aron",
+      "source": "2026-06-06-2.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747340",
+      "count": 14
+    },
+    {
+      "key": "paraseprotegerafligeosqueestosuavoltacompesadelosnoentantoissosignificanenhumdano",
+      "question": "Para se proteger, aflige os que esto sua volta com pesadelos. No entanto, isso significa nenhum dano.",
+      "answer": "Darkrai",
+      "source": "2026-05-31-2.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747339",
+      "count": 14
+    },
+    {
+      "key": "pareceapenasumapinhaseuescudoprotegeodepokmondepssaroqueobicamporengano",
+      "question": "Parece apenas uma pinha. Seu escudo protege-o de Pokmon de pssaro que o bicam por engano.",
+      "answer": "Pineco",
+      "source": "2026-06-09-2.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781631693",
+      "count": 1
+    },
+    {
+      "key": "parececomoumaboladepuxoperigosoporquepodeeletrocutarouexplodiremcontato",
+      "question": "Parece como uma bola de puxo. perigoso porque pode eletrocutar ou explodir em contato.",
+      "answer": "Voltorb",
+      "source": "2026-06-06-2.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747340",
+      "count": 14
+    },
+    {
+      "key": "parecequeestpatinandonaguaeleatraipresascomumaromadocedapontadacabea",
+      "question": "Parece que est patinando na gua. Ele atrai presas com um aroma doce da ponta da cabea.",
+      "answer": "surskit",
+      "source": "2026-06-14-4.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747340",
+      "count": 69
+    },
+    {
+      "key": "passandolevementesobreasuperfciedaguamergulhaseugrandebiconomarpegacomidaeguaeoscarrega",
+      "question": "Passando levemente sobre a superfcie da gua, mergulha seu grande bico no mar, pega comida e gua e os carrega.",
+      "answer": "Pelipper",
+      "source": "2026-06-08-3.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781631693",
+      "count": 1
+    },
+    {
+      "key": "pelonarizabsorveasemanaesproduzidasporpessoasepokmonquandosesentemirritadosprosperacomessaenergianegativa",
+      "question": "Pelo nariz, absorve as emanaes produzidas por pessoas e Pokmon quando se sentem irritados. Prospera com essa energia negativa.",
+      "answer": "Impidimp",
+      "source": "2026-06-10-2.log.gz",
+      "learnedAt": "1781631694",
+      "lastSeenAt": "1781631694",
+      "count": 1
+    },
+    {
+      "key": "pesquisastprogredidoemrelaacomooguardaenergiaparaqueumdiaelapossaserusadaparaqualquerfim",
+      "question": "Pesquisas t progredido em rela a como o _____ guarda energia, para que um dia ela possa ser usada para qualquer fim.",
+      "answer": "electabuzz",
+      "source": "2026-06-17-1.log.gz",
+      "learnedAt": "1781668703",
+      "lastSeenAt": "1781747341",
+      "count": 12
+    },
+    {
+      "key": "podedizeroqueaspessoasestosonhandocheirandocomonarizgrandeadorasonhosdivertidos",
+      "question": "Pode dizer o que as pessoas esto sonhando cheirando com o nariz grande. Adora sonhos divertidos.",
+      "answer": "drowzee",
+      "source": "2026-06-06-2.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747340",
+      "count": 69
+    },
+    {
+      "key": "podemudarlivrementeacordoseucorpoopadrodeziguezagueemsuabarriganomudanoentanto",
+      "question": "Pode mudar livremente a cor do seu corpo. O padro de ziguezague em sua barriga no muda, no entanto.",
+      "answer": "kecleon",
+      "source": "2026-06-02-2.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 39
+    },
+    {
+      "key": "podereconstituirtodaasuaestruturacelularparasetransformarnoquevmasvoltaaonormalquandorelaxa",
+      "question": "Pode reconstituir toda a sua estrutura celular para se transformar no que v, mas volta ao normal quando relaxa.",
+      "answer": "Ditto",
+      "source": "2026-06-13-1.log.gz",
+      "learnedAt": "1781631694",
+      "lastSeenAt": "1781631694",
+      "count": 1
+    },
+    {
+      "key": "pokmonmuitoviolentoelestentamreprimirqualquercoisaquesemovanafrentedeseusolhos",
+      "question": "Pokmon muito violento, eles tentam reprimir qualquer coisa que se mova na frente de seus olhos.",
+      "answer": "krookodile",
+      "source": "2026-06-02-2.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 26
+    },
+    {
+      "key": "poralgumtempoapsseunascimentoelecrescesenutrindodasementenassuascostas",
+      "question": "Por algum tempo aps seu nascimento ele cresce se nutrindo da semente nas suas costas.",
+      "answer": "ulbasaur",
+      "source": "2026-06-09-4.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747340",
+      "count": 52
+    },
+    {
+      "key": "porcausadovenenovirulentodeedesuatemvelforafsicanenhumaoutraespciepoderiasuperlonasterrasaltasgeladaspreferindoasolidoestaespcienoformabandos",
+      "question": "Por causa do veneno virulento de _____ e de sua temvel fora fsica, nenhuma outra espcie poderia super-lo nas terras altas geladas. Preferindo a solido, esta espcie no forma bandos.",
+      "answer": "sneasler",
+      "source": "2026-05-27-6.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 39
+    },
+    {
+      "key": "porqueelessofracosindividualmenteelesformamgruposnoentantoelesbrigamseogrupoficarmuitogrande",
+      "question": "Porque eles so fracos individualmente, eles formam grupos. No entanto, eles brigam se o grupo ficar muito grande.",
+      "answer": "starly",
+      "source": "2026-06-02-2.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 39
+    },
+    {
+      "key": "porquetodoseconsideraomaisimportanteelesnuncapodemformarumgrupo",
+      "question": "Porque todo _____ se considera o mais importante, eles nunca podem formar um grupo.",
+      "answer": "prinplup",
+      "source": "2026-06-17-1.log.gz",
+      "learnedAt": "1781619804",
+      "lastSeenAt": "1781747341",
+      "count": 36
+    },
+    {
+      "key": "preferelugarescomgualimpaquandoseutufoficabaixoelereabasteceosugandoaguacomacauda",
+      "question": "Prefere lugares com gua limpa. Quando seu tufo fica baixo, ele reabastece-o sugando a gua com a cauda.",
+      "answer": "simipour",
+      "source": "2026-06-16-3.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747341",
+      "count": 42
+    },
+    {
+      "key": "preferindolugaresescurosemidospassaodiainteirocomendofolhascadasqueestoaoredor",
+      "question": "Preferindo lugares escuros e midos, passa o dia inteiro comendo folhas cadas que esto ao redor.",
+      "answer": "swadloon",
+      "source": "2026-05-31-2.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 39
+    },
+    {
+      "key": "quandovoouaspessoasganharamacapacidadederesolverproblemasfoionascimentodoconhecimento",
+      "question": "Quando _____ voou, as pessoas ganharam a capacidade de resolver problemas. Foi o nascimento do conhecimento.",
+      "answer": "uxie",
+      "source": "2026-06-05-2.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747340",
+      "count": 26
+    },
+    {
+      "key": "quandovoouaspessoasganharamadeterminaodefazerascoisasfoionascimentodaforadevontade",
+      "question": "Quando _____ voou, as pessoas ganharam a determinao de fazer as coisas. Foi o nascimento da fora de vontade.",
+      "answer": "azelf",
+      "source": "latest.log",
+      "learnedAt": "1781650076",
+      "lastSeenAt": "1781747341",
+      "count": 42
+    },
+    {
+      "key": "quandoatemperaturasubiunofinaldaeradogeloamaioriadosdesapareceu",
+      "question": "Quando a temperatura subiu no final da era do gelo, a maioria dos _____ desapareceu.",
+      "answer": "Mamoswine",
+      "source": "2026-05-26-2.log.gz",
+      "learnedAt": "1781631692",
+      "lastSeenAt": "1781631692",
+      "count": 1
+    },
+    {
+      "key": "quandoatemporadadechuvaspesadasterminaelepuxadopelaluzmornadosolparadanaraoarlivre",
+      "question": "Quando a temporada de chuvas pesadas termina, ele puxado pela luz morna do sol para danar ao ar livre.",
+      "answer": "ellossom",
+      "source": "latest.log",
+      "learnedAt": "1781619804",
+      "lastSeenAt": "1781747341",
+      "count": 45
+    },
+    {
+      "key": "quandoasasaseaspenasdacaudadestelendriopokmonseespalhamebrilhamemvermelhoeleabsorveaforavitaldascriaturasvivas",
+      "question": "Quando as asas e as penas da cauda deste lendrio Pokmon se espalham e brilham em vermelho, ele absorve a fora vital das criaturas vivas.",
+      "answer": "Yveltal",
+      "source": "2026-06-10-2.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747340",
+      "count": 18
+    },
+    {
+      "key": "quandoatingidoporummovimentodotipofogoseustatusdeataquemultiplicadopor15imuneaataquesdotipofogo",
+      "question": "Quando atingido por um movimento do tipo fogo, seu status de ataque multiplicado por 1.5. imune a ataques do tipo fogo.",
+      "answer": "flash fire",
+      "source": "2026-06-03-4.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747339",
+      "count": 24
+    },
+    {
+      "key": "quandocompartilhaaenergiainfinitaqueelacriaocorpointeirodesseserestartransbordandodepoder",
+      "question": "Quando compartilha a energia infinita que ela cria, o corpo inteiro desse ser estar transbordando de poder.",
+      "answer": "victini",
+      "source": "2026-06-10-2.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747340",
+      "count": 52
+    },
+    {
+      "key": "quandoeleekarrablastestojuntoseambosrecebemestimulaoeltricaambosevoluem",
+      "question": "Quando ele e Karrablast esto juntos, e ambos recebem estimulao eltrica, ambos evoluem.",
+      "answer": "Shelmet",
+      "source": "2026-06-16-2.log.gz",
+      "learnedAt": "1781631452",
+      "lastSeenAt": "1781747341",
+      "count": 14
+    },
+    {
+      "key": "quandoelesevoluemdoisbinriossemultiplicamemseteeleslutamcomopoderdesetebinacle",
+      "question": "Quando eles evoluem, dois binrios se multiplicam em sete. Eles lutam com o poder de sete Binacle.",
+      "answer": "arbaracle",
+      "source": "2026-05-26-3.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 26
+    },
+    {
+      "key": "quandoemperigoelelevantaosouvidoseliberaforapsquicasuficienteparamoerumcaminhode10toneladas",
+      "question": "Quando em perigo, ele levanta os ouvidos e libera fora psquica suficiente para moer um caminho de 10 toneladas.",
+      "answer": "Meowstic",
+      "source": "2026-06-13-3.log.gz",
+      "learnedAt": "1781631694",
+      "lastSeenAt": "1781747340",
+      "count": 14
+    },
+    {
+      "key": "quandoencontraumapedradetamanhoadequadoelasegregaumlquidodesuabocaparaabrirumburacoparaentrar",
+      "question": "Quando encontra uma pedra de tamanho adequado, ela segrega um lquido de sua boca para abrir um buraco para entrar.",
+      "answer": "dwebble",
+      "source": "2026-06-06-1.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747340",
+      "count": 26
+    },
+    {
+      "key": "quandoesquentasuatemperaturacorporalchegaacercade815grauscelsiusgolpeiaseucorpocomoumchicoteeselanacontraosinimigos",
+      "question": "Quando esquenta, sua temperatura corporal chega a cerca de 815 graus Celsius. Golpeia seu corpo como um chicote e se lana contra os inimigos.",
+      "answer": "centiskorch",
+      "source": "2026-06-11-3.log.gz",
+      "learnedAt": "1781619804",
+      "lastSeenAt": "1781747340",
+      "count": 39
+    },
+    {
+      "key": "quandoestsaudvelseuncleosedestacasempredefrenteparaomesmocaminhoelesemoverapidamentedefrenteparatrsedaesquerdaparaadireita",
+      "question": "Quando est saudvel, seu ncleo se destaca. Sempre de frente para o mesmo caminho, ele se move rapidamente de frente para trs e da esquerda para a direita.",
+      "answer": "oldore",
+      "source": "2026-06-07-1.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747340",
+      "count": 26
+    },
+    {
+      "key": "quandoestsozinhonadaaconteceentretantosehdoisoumaisditoqueumestranhopoderserevela",
+      "question": "Quando est sozinho nada acontece. Entretanto, se h dois ou mais, dito que um estranho poder se revela.",
+      "answer": "Unown",
+      "source": "2026-06-09-5.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781631693",
+      "count": 1
+    },
+    {
+      "key": "quandoestsurpresoouagitadoos14espinhosdepeloemsuascostasficamdepinvoluntariamente",
+      "question": "Quando est surpreso ou agitado, os 14 espinhos de pelo em suas costas ficam de p involuntariamente.",
+      "answer": "togedemaru",
+      "source": "2026-06-10-2.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747340",
+      "count": 52
+    },
+    {
+      "key": "quandoexpostoauradaluaosanisemseucorpobrilhamlevementeeopreenchemcomumpodermisterioso",
+      "question": "Quando exposto aura da lua, os anis em seu corpo brilham levemente e o preenchem com um poder misterioso.",
+      "answer": "umbreon",
+      "source": "2026-06-02-2.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 26
+    },
+    {
+      "key": "quandoficasujasuasfolhasnopodemserusadasnafotossnteseentoelasempresemantmlimpa",
+      "question": "Quando fica suja, suas folhas no podem ser usadas na fotossntese, ento ela sempre se mantm limpa.",
+      "answer": "servine",
+      "source": "2026-06-07-3.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747340",
+      "count": 39
+    },
+    {
+      "key": "quandomordidoporshelldernacabeadespertaumpoderpsquicoincrveledesenvolveumagrandeintelignciaelesemprepermanecersemprecalmo",
+      "question": "Quando mordido por Shellder na cabea, desperta um poder psquico incrvel e desenvolve uma grande inteligncia. Ele sempre permanecer sempre calmo.",
+      "answer": "Slowking",
+      "source": "2026-06-06-2.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747340",
+      "count": 14
+    },
+    {
+      "key": "quandoopokemonestcom12oumenosdoseuhpmximoeleusacertasberriesmaiscedo",
+      "question": "Quando o pokemon est com 1/2 ou menos do seu HP mximo, ele usa certas Berries mais cedo.",
+      "answer": "gluttony",
+      "source": "2026-06-16-2.log.gz",
+      "learnedAt": "1781631452",
+      "lastSeenAt": "1781747341",
+      "count": 25
+    },
+    {
+      "key": "quandoseabaixacomoseestivessepedindoperdoesttentandoatrairosoponentesparaquepossaesfaqueloscomseucabeloemformadelana",
+      "question": "Quando se abaixa como se estivesse pedindo perdo, est tentando atrair os oponentes para que possa esfaque-los com seu cabelo em forma de lana.",
+      "answer": "morgrem",
+      "source": "2026-06-06-2.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747340",
+      "count": 39
+    },
+    {
+      "key": "quandosenteoperigoelalevantatodososplosdocorpodangeressesploscrscemmaisdevagarqueosdonidorino",
+      "question": "Quando sente o perigo, Ela levanta todos os plos do corpo danger. Esses plos crscem mais devagar que os do Nidorino.",
+      "answer": "nidorina",
+      "source": "2026-06-01-3.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 26
+    },
+    {
+      "key": "quandoseugrupoatacadooprimeiroaentrarembatalhaderrotandoosinimigoscomumatcnicadelutaqueutilizachoqueseltricos",
+      "question": "Quando seu grupo atacado, _____ o primeiro a entrar em batalha, derrotando os inimigos com uma tcnica de luta que utiliza choques eltricos.",
+      "answer": "pawmo",
+      "source": "2026-05-31-2.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 26
+    },
+    {
+      "key": "quandoseuoponentenopodeserparalisadoelesecontorcecomumavelocidadeinesperadaecaifora",
+      "question": "Quando seu oponente no pode ser paralisado, ele se contorce com uma velocidade inesperada e cai fora.",
+      "answer": "stunfisk",
+      "source": "2026-06-09-5.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747341",
+      "count": 63
+    },
+    {
+      "key": "quandoseupedregulhoquebradoembatalhasporterritrioelesesenteinseguroecomeaaenfraquecer",
+      "question": "Quando seu pedregulho quebrado em batalhas por territrio, ele se sente inseguro e comea a enfraquecer.",
+      "answer": "crustle",
+      "source": "2026-05-24-1.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 39
+    },
+    {
+      "key": "quandoseusdoiscrebrosdivididospensamosmesmospensamentosseupoderpsquicomaximizado",
+      "question": "Quando seus dois crebros divididos pensam os mesmos pensamentos, seu poder psquico maximizado.",
+      "answer": "duosion",
+      "source": "2026-06-07-3.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747340",
+      "count": 26
+    },
+    {
+      "key": "quandosobataquedepokmondepssaroelevomitaumppretovenenosoquecausaparalisiaaocontato",
+      "question": "Quando sob ataque de Pokmon de pssaro, ele vomita um p preto venenoso que causa paralisia ao contato.",
+      "answer": "scatterbug",
+      "source": "2026-06-04-2.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 26
+    },
+    {
+      "key": "quandosuatestabrilhaminteriosamenteopodeusaraforatotaldeseupoder",
+      "question": "Quando sua testa brilha minteriosamente, o _____ pode usar a fora total de seu poder.",
+      "answer": "golduck",
+      "source": "2026-06-11-1.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747340",
+      "count": 69
+    },
+    {
+      "key": "quantomaisforteooponentesedeparamaisocalorsobedesuajubaemaispoderfluiatravsdeseucorpo",
+      "question": "Quanto mais forte o oponente se depara, mais o calor sobe de sua juba e mais poder flui atravs de seu corpo.",
+      "answer": "Litleo",
+      "source": "latest.log",
+      "learnedAt": "1781664529",
+      "lastSeenAt": "1781664529",
+      "count": 1
+    },
+    {
+      "key": "quantomaisfrioeleficamelhorelesesenteelenadaalegrementeemoceanostofriosqueestorepletossegelo",
+      "question": "Quanto mais frio ele fica melhor ele se sente. Ele nada alegremente em oceanos to frios que esto repletos se gelo.",
+      "answer": "seel",
+      "source": "2026-06-10-2.log.gz",
+      "learnedAt": "1781619804",
+      "lastSeenAt": "1781747340",
+      "count": 43
+    },
+    {
+      "key": "quantomaisluzsolarestepokmonabsorvemaissubstnciasqumicaspicantessoproduzidasporseucorpotornandoseusgolpesaindamaisardentes",
+      "question": "Quanto mais luz solar este Pokmon absorve, mais substncias qumicas picantes so produzidas por seu corpo, tornando seus golpes ainda mais ardentes.",
+      "answer": "capsakid",
+      "source": "2026-05-30-1.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 39
+    },
+    {
+      "key": "quasetodooseucorpooestmagoseussucosdigestivosdurosdissolvemrapidamentetudooqueengole",
+      "question": "Quase todo o seu corpo o estmago. Seus sucos digestivos duros dissolvem rapidamente tudo o que engole.",
+      "answer": "gulpin",
+      "source": "2026-06-03-4.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 26
+    },
+    {
+      "key": "querendomaislixoelesseguemaspessoasqueninhamelessemprearremessamgsvenenoso",
+      "question": "Querendo mais lixo, eles seguem as pessoas que ninham. Eles sempre arremessam gs venenoso.",
+      "answer": "trubbish",
+      "source": "2026-06-16-3.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747341",
+      "count": 49
+    },
+    {
+      "key": "reconhecendosuaprpriafraquezaelessemprevivememumgrupoquandosozinhoumchoraruidosamente",
+      "question": "Reconhecendo sua prpria fraqueza, eles sempre vivem em um grupo. Quando sozinho, um _____ chora ruidosamente.",
+      "answer": "staravia",
+      "source": "2026-05-27-6.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 26
+    },
+    {
+      "key": "reduzodanodeataquesdotipofogoougelopelametade",
+      "question": "Reduz o dano de ataques do tipo Fogo ou Gelo pela metade.",
+      "answer": "thick fat",
+      "source": "2026-06-03-2.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747339",
+      "count": 24
+    },
+    {
+      "key": "reivindicarequintadosjardinsdeflorescomoseuterritrioeobtmenergiadeseaquecercomaenergiaemitidapelasplantasfloridas",
+      "question": "Reivindica requintados jardins de flores como seu territrio, e obtm energia de se aquecer com a energia emitida pelas plantas floridas.",
+      "answer": "power construct",
+      "source": "2026-05-26-3.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 16
+    },
+    {
+      "key": "restaura13deseuhpmximoquandosubstituido",
+      "question": "Restaura 1/3 de seu HP mximo quando substituido.",
+      "answer": "regenerator",
+      "source": "2026-06-10-2.log.gz",
+      "learnedAt": "1781631692",
+      "lastSeenAt": "1781747340",
+      "count": 47
+    },
+    {
+      "key": "restaura14deseuhpmximoaoseratingidoporataquesdotipoeltricoimuneaataquesdotipoeltrico",
+      "question": "Restaura 1/4 de seu HP mximo ao ser atingido por ataques do tipo Eltrico. Imune a ataques do tipo Eltrico.",
+      "answer": "iron fist",
+      "source": "2026-05-25-1.log.gz",
+      "learnedAt": "1781631692",
+      "lastSeenAt": "1781747339",
+      "count": 24
+    },
+    {
+      "key": "restaura14deseuhpmximoaoseratingidoporataquesdotipoguaimuneaataquesdotipogua",
+      "question": "Restaura 1/4 de seu HP mximo ao ser atingido por ataques do tipo gua. Imune a ataques do tipo gua.",
+      "answer": "Water Absorb",
+      "source": "2026-05-31-2.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781631693",
+      "count": 1
+    },
+    {
+      "key": "reverenciadohmuitotempoporsuacapacidadedecriarferrodonadaporalgumarazovoltouvidaaps3000anos",
+      "question": "Reverenciado h muito tempo por sua capacidade de criar ferro do nada, por alguma razo voltou vida aps 3.000 anos.",
+      "answer": "Meltan",
+      "source": "2026-06-06-2.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747340",
+      "count": 14
+    },
+    {
+      "key": "sdtudocontraadversriosfortesquenoseintimidamcomobrilhodosolhosnobresde",
+      "question": "S d tudo contra adversrios fortes que no se intimidam com o brilho dos olhos nobres de _____.",
+      "answer": "serperior",
+      "source": "2026-06-06-2.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747340",
+      "count": 39
+    },
+    {
+      "key": "seacumularvelocidadesuficienteparanadarpodevoara300psdaguadasuperfciedooceano",
+      "question": "Se acumular velocidade suficiente para nadar, pode voar a 300 ps da gua da superfcie do oceano.",
+      "answer": "mantine",
+      "source": "2026-06-10-2.log.gz",
+      "learnedAt": "1781619804",
+      "lastSeenAt": "1781747340",
+      "count": 26
+    },
+    {
+      "key": "sealgummachucasseseuorgulhoeleoscortariacomasasquepoderiamsequebraremumblocodegelo",
+      "question": "Se algum machucasse seu orgulho, ele os cortaria com asas que poderiam se quebrar em um bloco de gelo.",
+      "answer": "Empoleon",
+      "source": "2026-06-13-2.log.gz",
+      "learnedAt": "1781631694",
+      "lastSeenAt": "1781747340",
+      "count": 14
+    },
+    {
+      "key": "sealgumproferirumgritoprofundomuitosmurkrowserenemrapidamenteparaissochamadodeinvocadordanoite",
+      "question": "Se algum proferir um grito profundo, muitos Murkrow se renem rapidamente. Para isso, chamado de \"Invocador da Noite\".",
+      "answer": "honchkrow",
+      "source": "2026-06-09-5.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747340",
+      "count": 39
+    },
+    {
+      "key": "seestepokemonestiverafetadoporcondiodestatussuadefesasermultiplicadapor15",
+      "question": "Se este pokemon estiver afetado por condio de status, sua Defesa ser multiplicada por 1.5.",
+      "answer": "marvel scale",
+      "source": "2026-06-07-3.log.gz",
+      "learnedAt": "1781631692",
+      "lastSeenAt": "1781747340",
+      "count": 114
+    },
+    {
+      "key": "seestepokemonestivercomhpcheioodanorecebidodosataquesreduzidopelametadeessahabilidadenopodeserignoradapormoldbreakereoutrasdognero",
+      "question": "Se este pokemon estiver com HP cheio, o dano recebido dos ataques reduzido pela metade. Essa habilidade no pode ser ignorada por Mold Breaker e outras do gnero.",
+      "answer": "shadow shield",
+      "source": "2026-06-13-1.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747340",
+      "count": 48
+    },
+    {
+      "key": "seestepokemonforumzygardeemsuaformade10ou50elemudarparaaformacompletaquandotiver12oumenosdeseuhpmximonofinaldoturno",
+      "question": "Se este pokemon for um Zygarde em sua forma de 10% ou 50%, ele mudar para a forma completa quando tiver 1/2 ou menos de seu HP mximo no final do turno.",
+      "answer": "power construct",
+      "source": "2026-06-05-2.log.gz",
+      "learnedAt": "1781631692",
+      "lastSeenAt": "1781747339",
+      "count": 47
+    },
+    {
+      "key": "seestepokemonperderseuitemporqualquermotivosuavelocidadedobrada",
+      "question": "Se este pokemon perder seu item por qualquer motivo, sua velocidade dobrada.",
+      "answer": "unburden",
+      "source": "2026-06-13-1.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747340",
+      "count": 24
+    },
+    {
+      "key": "seestepokemontiverumacondiodestatusseuataquemultiplicadopor15areduodedanocausadaporburnignorada",
+      "question": "Se este pokemon tiver uma condio de status, seu Ataque multiplicado por 1.5. A reduo de dano causada por Burn ignorada.",
+      "answer": "anticipation",
+      "source": "2026-06-08-1.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747340",
+      "count": 104
+    },
+    {
+      "key": "seoclimahailestiverativoaevasodestepokmonmultiplicadapor125eanulaodanodehail",
+      "question": "Se o clima Hail estiver ativo, a evaso deste Pokmon multiplicada por 1.25 e anula o dano de Hail.",
+      "answer": "snow cloak",
+      "source": "2026-06-08-3.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747340",
+      "count": 68
+    },
+    {
+      "key": "seoclimasandstormestiverativoaevasodestepokemonmultiplicadapor125",
+      "question": "Se o clima Sandstorm estiver ativo, a evaso deste pokemon multiplicada por 1.25.",
+      "answer": "sand veil",
+      "source": "2026-06-01-3.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747339",
+      "count": 53
+    },
+    {
+      "key": "seoclimasandstormestiverativoavelocidadedestepokemondobrada",
+      "question": "Se o clima Sandstorm estiver ativo, a velocidade deste pokemon dobrada.",
+      "answer": "sand rush",
+      "source": "2026-06-07-2.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747340",
+      "count": 24
+    },
+    {
+      "key": "seoclimasunnydayestiverativooataqueespecialdopokemonmultiplicadopor15eeleperde18deseuhpmximonofinaldecadaturno",
+      "question": "Se o clima Sunny Day estiver ativo, o Ataque Especial do pokemon multiplicado por 1.5 e ele perde 1/8 de seu HP mximo no final de cada turno.",
+      "answer": "solar power",
+      "source": "2026-05-24-1.log.gz",
+      "learnedAt": "1781631692",
+      "lastSeenAt": "1781747339",
+      "count": 24
+    },
+    {
+      "key": "seopokemonforatingidoporumacertocrticoexcetoemsubstituteseuataqueseraumentadoem12estgios",
+      "question": "Se o pokemon for atingido por um acerto crtico, exceto em Substitute, seu Ataque ser aumentado em 12 estgios.",
+      "answer": "anger point",
+      "source": "2026-06-15-1.log.gz",
+      "learnedAt": "1781631692",
+      "lastSeenAt": "1781747340",
+      "count": 24
+    },
+    {
+      "key": "seopokemonforatingidoporumataqueh30dechancedequeomovimentosejadesabilitado",
+      "question": "Se o pokemon for atingido por um ataque, h 30% de chance de que o movimento seja desabilitado.",
+      "answer": "cursed body",
+      "source": "2026-06-16-3.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747341",
+      "count": 39
+    },
+    {
+      "key": "seopokemonforqueimadoparalisadoouenvenenadopelooponenteeletambmrecebeacondio",
+      "question": "Se o pokemon for queimado, paralisado ou envenenado pelo oponente, ele tambm recebe a condio.",
+      "answer": "synchronize",
+      "source": "2026-06-06-2.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747340",
+      "count": 58
+    },
+    {
+      "key": "seopokemonforumarceusseutipomudaparacombinarcomaplateouzcrystalequipado",
+      "question": "Se o pokemon for um Arceus, seu tipo muda para combinar com a Plate ou Z-Crystal equipado.",
+      "answer": "multitype",
+      "source": "latest.log",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747341",
+      "count": 78
+    },
+    {
+      "key": "seopokemonforumdarmanitanmudaparaomodozensetiver12oumenosdeseuhpmximonofinaldeumturno",
+      "question": "Se o pokemon for um Darmanitan, muda para o Modo Zen se tiver 1/2 ou menos de seu HP mximo no final de um turno.",
+      "answer": "zen mode",
+      "source": "2026-06-01-4.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747339",
+      "count": 24
+    },
+    {
+      "key": "seopokemonforumgreninjaelesetransformaremashgreninjadepoisdenocautearumpokemon",
+      "question": "Se o pokemon for um Greninja, ele se transformar em Ash-Greninja depois de nocautear um pokemon.",
+      "answer": "Battle Bond",
+      "source": "2026-05-24-2.log.gz",
+      "learnedAt": "1781631692",
+      "lastSeenAt": "1781631692",
+      "count": 1
+    },
+    {
+      "key": "seopokemontiverumstatusaumentadoeleserreduzidoeviceversa",
+      "question": "Se o pokemon tiver um status aumentado, ele ser reduzido e vice-versa.",
+      "answer": "field",
+      "source": "2026-06-13-3.log.gz",
+      "learnedAt": "1781631692",
+      "lastSeenAt": "1781747340",
+      "count": 93
+    },
+    {
+      "key": "seopokmonestivercomhpcheioodanorecebidodosataquesreduzidopelametade",
+      "question": "Se o pokmon estiver com HP cheio, o dano recebido dos ataques reduzido pela metade.",
+      "answer": "multiscale",
+      "source": "2026-06-07-2.log.gz",
+      "learnedAt": "1781631692",
+      "lastSeenAt": "1781747340",
+      "count": 70
+    },
+    {
+      "key": "seppokemonestivercomhpcheioseusmovimentosdotipoflyingganhamprioridade",
+      "question": "Se p pokemon estiver com HP cheio, seus movimentos do tipo Flying ganham prioridade.",
+      "answer": "gale wings",
+      "source": "2026-05-31-1.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747339",
+      "count": 24
+    },
+    {
+      "key": "sepensaqueestepokemomtenhachegadoaextinoporquesuaconchaemespiralcresceudemais",
+      "question": "Se pensa que este pokemom tenha chegado a extino porque sua concha em espiral cresceu demais.",
+      "answer": "Omastar",
+      "source": "2026-06-15-3.log.gz",
+      "learnedAt": "1781631694",
+      "lastSeenAt": "1781747340",
+      "count": 14
+    },
+    {
+      "key": "sepensaquehabitavapraiash300milhesdeanoseleprotegidoporumaconchaextremamentergida",
+      "question": "Se pensa que habitava praias h 300 milhes de anos. Ele protegido por uma concha extremamente rgida.",
+      "answer": "Kabuto",
+      "source": "2026-06-04-2.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781631693",
+      "count": 1
+    },
+    {
+      "key": "sesentiraluzdosolforteabresuasptalasdobradasparaabsorverosraiosdosolcomtodooseucorpo",
+      "question": "Se sentir a luz do sol forte, abre suas ptalas dobradas para absorver os raios do sol com todo o seu corpo.",
+      "answer": "cherrim",
+      "source": "2026-06-03-5.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 26
+    },
+    {
+      "key": "seseucorpoassumeumaauraoclimamudainstantaneamentedizsequeviveemmareselagos",
+      "question": "Se seu corpo assume uma aura, o clima muda instantaneamente. Diz-se que vive em mares e lagos.",
+      "answer": "dragonair",
+      "source": "2026-06-16-1.log.gz",
+      "learnedAt": "1781619804",
+      "lastSeenAt": "1781747340",
+      "count": 26
+    },
+    {
+      "key": "seseutreinadorficafelizeletransbordadeenergiadanandoalegrementeenquantogira",
+      "question": "Se seu treinador fica feliz, ele transborda de energia, danando alegremente enquanto gira.",
+      "answer": "kirlia",
+      "source": "2026-06-17-1.log.gz",
+      "learnedAt": "1781670238",
+      "lastSeenAt": "1781747341",
+      "count": 12
+    },
+    {
+      "key": "seuchorosoacomoumencantamentodizsequeochororaramentepodeserimbudodepoderquedfelicidade",
+      "question": "Seu choro soa como um encantamento. Diz-se que o choro raramente pode ser imbudo de poder que d felicidade.",
+      "answer": "mismagius",
+      "source": "2026-06-14-4.log.gz",
+      "learnedAt": "1781619804",
+      "lastSeenAt": "1781747340",
+      "count": 26
+    },
+    {
+      "key": "seucorpoaerodinmicotembaixaresistnciaepodenadaremoceanosgeladosvelocidade15kmhporhora",
+      "question": "Seu corpo aerodinmico tem baixa resistncia e pode nadar em oceanos gelados velocidade 15km/h por hora.",
+      "answer": "dewgong",
+      "source": "2026-06-01-4.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 29
+    },
+    {
+      "key": "seucorpoeltricopodeentraremalgunstiposdemquinaseassumirocontroleparacausardanos",
+      "question": "Seu corpo eltrico pode entrar em alguns tipos de mquinas e assumir o controle para causar danos.",
+      "answer": "rotom",
+      "source": "2026-06-01-3.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 26
+    },
+    {
+      "key": "seucorpofeitodemagmasenocontinuarsemovendoseucorpoesfriareendurecer",
+      "question": "Seu corpo feito de magma. Se no continuar se movendo, seu corpo esfriar e endurecer.",
+      "answer": "slugma",
+      "source": "2026-06-14-4.log.gz",
+      "learnedAt": "1781619804",
+      "lastSeenAt": "1781747340",
+      "count": 39
+    },
+    {
+      "key": "seucorpointeirofeitoderochasequalquerpartesesepararembatalhaeleanexapedrasparasereparar",
+      "question": "Seu corpo inteiro feito de rocha. Se qualquer parte se separar em batalha, ele anexa pedras para se reparar.",
+      "answer": "regirock",
+      "source": "2026-05-31-2.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 26
+    },
+    {
+      "key": "seucorpotemumaromalevementeadocicadoesuaveesuaveseelepulaumaveznopodeparar",
+      "question": "Seu corpo tem um aroma levemente adocicado e suave e suave. Se ele pula uma vez, no pode parar.",
+      "answer": "igglybuff",
+      "source": "2026-06-01-3.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 40
+    },
+    {
+      "key": "seucorpoviscosodifcildeentenderemumaregiodizsequenasceudalamaendurecida",
+      "question": "Seu corpo viscoso difcil de entender. Em uma regio, diz-se que nasceu da lama endurecida.",
+      "answer": "arboach",
+      "source": "2026-06-03-1.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 43
+    },
+    {
+      "key": "seupelofofotemcomposiosemelhantedasplantasestepokmonlavaorostocomfrequnciaparaevitarqueresseque",
+      "question": "Seu pelo fofo tem composio semelhante das plantas. Este Pokmon lava o rosto com frequncia para evitar que resseque.",
+      "answer": "sprigatito",
+      "source": "2026-06-10-2.log.gz",
+      "learnedAt": "1781619804",
+      "lastSeenAt": "1781747340",
+      "count": 39
+    },
+    {
+      "key": "seusbraoscurtosesticamquandoelejogasocossuatcnicaigualdosboxeadoresprofissionais",
+      "question": "Seus braos curtos esticam quando ele joga socos. Sua tcnica igual dos boxeadores profissionais.",
+      "answer": "reloom",
+      "source": "2026-05-24-1.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 26
+    },
+    {
+      "key": "seuscrniosextremamenteespessosprevinemqueelesdesmaiemsedoisdelesestiverembrigangocomcabeadas",
+      "question": "Seus crnios extremamente espessos previnem que eles desmaiem se dois deles estiverem brigango com cabeadas.",
+      "answer": "Rampardos",
+      "source": "2026-05-26-2.log.gz",
+      "learnedAt": "1781631692",
+      "lastSeenAt": "1781631692",
+      "count": 1
+    },
+    {
+      "key": "seusespinhosemformadelanaeseutemperamentoselvagemlherenderamoapelidodedemniodomaringerevenenoparasenutrir",
+      "question": "Seus espinhos em forma de lana e seu temperamento selvagem lhe renderam o apelido de \"demnio do mar\". Ingere veneno para se nutrir.",
+      "answer": "overqwil",
+      "source": "2026-06-11-6.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747340",
+      "count": 69
+    },
+    {
+      "key": "seusgritosecoamdentrodeseucorpoocoparaemergircomonotasbonitasparaassustarerepelirinimigos",
+      "question": "Seus gritos ecoam dentro de seu corpo oco para emergir como notas bonitas para assustar e repelir inimigos.",
+      "answer": "chimecho",
+      "source": "2026-06-16-3.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747341",
+      "count": 53
+    },
+    {
+      "key": "seusolhossoespecialmentedesenvolvidosparapermitirqueelevejaclaramentemesmonaescuridoenaluzmnima",
+      "question": "Seus olhos so especialmente desenvolvidos para permitir que ele veja claramente, mesmo na escurido e na luz mnima.",
+      "answer": "noctowl",
+      "source": "2026-06-08-1.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747340",
+      "count": 39
+    },
+    {
+      "key": "seusouvidossosensveisosuficienteparaouvirumalfinetecairamaisdeumquilmetrodedistnciaentoelessonormalmenteencontradosemlugarescalmos",
+      "question": "Seus ouvidos so sensveis o suficiente para ouvir um alfinete cair a mais de um quilmetro de distncia, ento eles so normalmente encontrados em lugares calmos.",
+      "answer": "clefable",
+      "source": "2026-06-10-1.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747340",
+      "count": 39
+    },
+    {
+      "key": "seusquatrobraosmusculosossechocamcompoderosossocosegolpesemvelocidadeofuscante",
+      "question": "Seus quatro braos musculosos se chocam com poderosos socos e golpes em velocidade ofuscante.",
+      "answer": "electric surge",
+      "source": "2026-06-14-4.log.gz",
+      "learnedAt": "1781619804",
+      "lastSeenAt": "1781630201",
+      "count": 3
+    },
+    {
+      "key": "seusuivospodemserouvidosamaisdedezquilmetrosdedistnciaemitetodosostiposderudosdosportosemseucorpo",
+      "question": "Seus uivos podem ser ouvidos a mais de dez quilmetros de distncia. Emite todos os tipos de rudos dos portos em seu corpo.",
+      "answer": "exploud",
+      "source": "2026-06-02-1.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 26
+    },
+    {
+      "key": "sobreviveaohkocompelomenos1hp",
+      "question": "Sobrevive a OHKO com pelo menos 1 HP.",
+      "answer": "Sturdy",
+      "source": "2026-06-12-2.log.gz",
+      "learnedAt": "1781631694",
+      "lastSeenAt": "1781631694",
+      "count": 1
+    },
+    {
+      "key": "somenteosfarfetchdquesobreviveramamuitasbatalhaspodematingirestaevoluoquandooalhopordestepokmonmurchareleseaposentardocombate",
+      "question": "Somente os Farfetch'd que sobreviveram a muitas batalhas podem atingir esta evoluo. Quando o alho-por deste Pokmon murchar, ele se aposentar do combate.",
+      "answer": "sirfetch'd",
+      "source": "2026-06-15-1.log.gz",
+      "learnedAt": "1781619804",
+      "lastSeenAt": "1781747340",
+      "count": 39
+    },
+    {
+      "key": "suacoloraomudadeacordocomasestaesdoanoepodeserlevementeafetadapelatemperaturaeumidadetambm",
+      "question": "Sua colorao muda de acordo com as estaes do ano e pode ser levemente afetada pela temperatura e umidade tambm.",
+      "answer": "Deerling",
+      "source": "2026-06-02-1.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747339",
+      "count": 18
+    },
+    {
+      "key": "suaprogramaofoimodificadaparapermitirotrabalhoemdimensesaliengenasnofuncionoucomoplanejado",
+      "question": "Sua programao foi modificada para permitir o trabalho em dimenses aliengenas. No funcionou como planejado.",
+      "answer": "porygon-z",
+      "source": "2026-06-11-6.log.gz",
+      "learnedAt": "1781619804",
+      "lastSeenAt": "1781747340",
+      "count": 43
+    },
+    {
+      "key": "suarespiraotemacapacidadefantsticadereviverplantasefloresmortas",
+      "question": "Sua respirao tem a capacidade fantstica de reviver plantas e flores mortas.",
+      "answer": "meganium",
+      "source": "latest.log",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747341",
+      "count": 73
+    },
+    {
+      "key": "suasantenastmpadresdeolhonelassuasquatroasaspermitempairarevoaremqualquerdireo",
+      "question": "Suas antenas tm padres de olho nelas. Suas quatro asas permitem pairar e voar em qualquer direo.",
+      "answer": "masquerain",
+      "source": "2026-06-15-2.log.gz",
+      "learnedAt": "1781619804",
+      "lastSeenAt": "1781747340",
+      "count": 39
+    },
+    {
+      "key": "suasgarrasdurassoadequadastantoparaataquequantoparadefesaasbrigasentredoissocomolutasdeboxe",
+      "question": "Suas garras duras so adequadas tanto para ataque quanto para defesa. As brigas entre dois _____ so como lutas de boxe.",
+      "answer": "crabrawler",
+      "source": "2026-06-10-2.log.gz",
+      "learnedAt": "1781619804",
+      "lastSeenAt": "1781747340",
+      "count": 39
+    },
+    {
+      "key": "suaspenasestoemsetecoresdizemquequemvprometidofelicidadeeterna",
+      "question": "Suas penas esto em sete cores. Dizem que quem v prometido felicidade eterna.",
+      "answer": "Ho-Oh",
+      "source": "latest.log",
+      "learnedAt": "1781646511",
+      "lastSeenAt": "1781747341",
+      "count": 18
+    },
+    {
+      "key": "suaspresasrasgamafolhadeferroelenadaa75mpheconhecidocomoovalentodomar",
+      "question": "Suas presas rasgam a folha de ferro. Ele nada a 75 mph e conhecido como \"O valento do mar\".",
+      "answer": "sharpedo",
+      "source": "2026-06-15-2.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747340",
+      "count": 69
+    },
+    {
+      "key": "suaspresassoincrivelmentedestrutivaselespodemfacilmentecortarumacolunadeaoespessaeresistenteotempotodo",
+      "question": "Suas presas so incrivelmente destrutivas. Eles podem facilmente cortar uma coluna de ao espessa e resistente o tempo todo.",
+      "answer": "haxorus",
+      "source": "2026-06-15-2.log.gz",
+      "learnedAt": "1781619804",
+      "lastSeenAt": "1781747340",
+      "count": 39
+    },
+    {
+      "key": "talvezporsesentiremmaisvontadeemumgrupoelesseapegamaoutrosqueencontramelesacabamparecendoumanuvem",
+      "question": "Talvez por se sentirem mais vontade em um grupo, eles se apegam a outros que encontram. Eles acabam parecendo uma nuvem.",
+      "answer": "cottonee",
+      "source": "2026-06-08-5.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747340",
+      "count": 52
+    },
+    {
+      "key": "temopoderdeviajaratravsdotempomasdizsequeapareceapenasemtemposdepaz",
+      "question": "Tem o poder de viajar atravs do tempo, mas diz-se que aparece apenas em tempos de paz.",
+      "answer": "celebi",
+      "source": "2026-06-06-1.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747340",
+      "count": 26
+    },
+    {
+      "key": "temumcorpoaltamentedesenvolvidoeseusmsculosnuncaficamcansadostofortequeelepodenadartodoooceanopacficosemmuitoesforo",
+      "question": "Tem um corpo altamente desenvolvido e seus msculos nunca ficam cansados. to forte que ele pode nadar todo o Oceano Pacfico sem muito esforo.",
+      "answer": "Poliwrath",
+      "source": "2026-06-15-2.log.gz",
+      "learnedAt": "1781631694",
+      "lastSeenAt": "1781747340",
+      "count": 14
+    },
+    {
+      "key": "temumespritocorajosoquefazbravamenteenfrentarinimigosdifceiselevoaembuscadeclimasquentes",
+      "question": "Tem um esprito corajoso que faz bravamente enfrentar inimigos difceis. Ele voa em busca de climas quentes.",
+      "answer": "taillow",
+      "source": "2026-06-10-2.log.gz",
+      "learnedAt": "1781619804",
+      "lastSeenAt": "1781747340",
+      "count": 26
+    },
+    {
+      "key": "temumatendnciaaquererestaremburacoseleprefererochedosoupoteseborrifatintadelesantesdeatacar",
+      "question": "Tem uma tendncia a querer estar em buracos. Ele prefere rochedos ou potes e borrifa tinta deles antes de atacar.",
+      "answer": "octillery",
+      "source": "2026-06-06-2.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747340",
+      "count": 52
+    },
+    {
+      "key": "temperaturaeclimaafetamsuaestruturacelularentoestepokmonmudadeacordocomoclima",
+      "question": "Temperatura e clima afetam sua estrutura celular, ento este Pokmon muda de acordo com o clima.",
+      "answer": "Castform",
+      "source": "2026-06-11-6.log.gz",
+      "learnedAt": "1781631694",
+      "lastSeenAt": "1781747340",
+      "count": 14
+    },
+    {
+      "key": "teoricamenteestepokmonformouseapartirdepingentesdegelobanhadosemenergiadosoldamanhsuarespiraode58grausf",
+      "question": "Teoricamente, este Pokmon formou-se a partir de pingentes de gelo banhados em energia do sol da manh. Sua respirao de -58 graus F.",
+      "answer": "vanillite",
+      "source": "2026-06-05-2.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 39
+    },
+    {
+      "key": "todomovimentousadosempreacertar",
+      "question": "Todo movimento usado sempre acertar.",
+      "answer": "no guard",
+      "source": "2026-06-13-1.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747340",
+      "count": 47
+    },
+    {
+      "key": "transformaabondadeeaalegriadosoutrosemfelicidadequearmazenadaemsuaconcha",
+      "question": "Transforma a bondade e a alegria dos outros em felicidade, que armazenada em sua concha.",
+      "answer": "togepi",
+      "source": "2026-06-10-1.log.gz",
+      "learnedAt": "1781619804",
+      "lastSeenAt": "1781747340",
+      "count": 26
+    },
+    {
+      "key": "umpokmoncriadopelarecombinaodosgenesdemewdizemquetemocoraomaisselvagementreospokmon",
+      "question": "Um Pokmon criado pela recombinao dos genes de Mew. Dizem que tem o corao mais selvagem entre os Pokmon.",
+      "answer": "Mewtwo",
+      "source": "2026-06-10-2.log.gz",
+      "learnedAt": "1781631694",
+      "lastSeenAt": "1781747340",
+      "count": 18
+    },
+    {
+      "key": "umpokmondepssarolendriopodecriarnevascascongelandoaumidadenoar",
+      "question": "Um Pokmon de pssaro lendrio. Pode criar nevascas congelando a umidade no ar.",
+      "answer": "gorilla tactics",
+      "source": "2026-06-06-1.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781630201",
+      "count": 3
+    },
+    {
+      "key": "umpokmonqueassustaaspessoasnomeiodanoiterecolheomedocomosuaenergia",
+      "question": "Um Pokmon que assusta as pessoas no meio da noite. Recolhe o medo como sua energia.",
+      "answer": "Misdreavus",
+      "source": "2026-06-08-3.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781631693",
+      "count": 1
+    },
+    {
+      "key": "umpokmonrarodescobertoduranteumaexploraonofundodomarnomudouemmaisde100milhesdeanos",
+      "question": "Um Pokmon raro descoberto durante uma explorao no fundo do mar. No mudou em mais de 100 milhes de anos.",
+      "answer": "field",
+      "source": "2026-06-13-3.log.gz",
+      "learnedAt": "1781619804",
+      "lastSeenAt": "1781747340",
+      "count": 16
+    },
+    {
+      "key": "umbalanodasuapoderosacaudapodederrubarumpostecomosefosseumfsforo",
+      "question": "Um balano da sua poderosa cauda pode derrubar um poste como se fosse um fsforo.",
+      "answer": "nidoking",
+      "source": "2026-06-10-2.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747340",
+      "count": 69
+    },
+    {
+      "key": "umcaminhantepobremuitasvezescainoentantooseuforteorgulhofazcomqueeleinchaseupeitosemumcuidado",
+      "question": "Um caminhante pobre, muitas vezes cai. No entanto, o seu forte orgulho faz com que ele incha seu peito sem um cuidado.",
+      "answer": "piplup",
+      "source": "2026-06-12-2.log.gz",
+      "learnedAt": "1781619804",
+      "lastSeenAt": "1781747340",
+      "count": 26
+    },
+    {
+      "key": "umfogoqueimadentroporissomuitocalorosoabraarelelanabolasdefogode1800grausf",
+      "question": "Um fogo queima dentro, por isso muito caloroso abraar. Ele lana bolas de fogo de 1.800 graus F.",
+      "answer": "torchic",
+      "source": "2026-06-03-2.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 39
+    },
+    {
+      "key": "umlendriopokmondesinnohdizemqueotempofluiquandoocoraodebate",
+      "question": "Um lendrio Pokmon de Sinnoh. Dizem que o tempo flui quando o corao de _____ bate.",
+      "answer": "Dialga",
+      "source": "2026-06-03-4.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747339",
+      "count": 14
+    },
+    {
+      "key": "umolharparaseusolhosredondosebonitosfazcomqueelecomeceacantarumamsicatoagradvelquequemescutaacabacaindonosono",
+      "question": "Um olhar para seus olhos redondos e bonitos faz com que ele comece a cantar uma msica to agradvel que quem escuta acaba caindo no sono.",
+      "answer": "Jigglypuff",
+      "source": "2026-06-04-2.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747339",
+      "count": 14
+    },
+    {
+      "key": "umpokemonancestraltrazidovidaapartirdeumfssilelevivianomarecaavacomasgarras",
+      "question": "Um pokemon ancestral trazido vida a partir de um fssil. Ele vivia no mar e caava com as garras.",
+      "answer": "hydration",
+      "source": "2026-06-15-2.log.gz",
+      "learnedAt": "1781619804",
+      "lastSeenAt": "1781630201",
+      "count": 3
+    },
+    {
+      "key": "umpokemonfabricadopelohomemusandomeioscientficosavanadoselepodesemoverlivrementepelociberespao",
+      "question": "Um pokemon fabricado pelo homem usando meios cientficos avanados. Ele pode se mover livremente pelo ciberespao.",
+      "answer": "porygon",
+      "source": "2026-06-05-1.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 39
+    },
+    {
+      "key": "umpokemonquevagavapeloscusnapocadosdinossaurosseusdentessocomolminasdeserra",
+      "question": "Um pokemon que vagava pelos cus na poca dos dinossauros. Seus dentes so como lminas de serra.",
+      "answer": "aerodactyl",
+      "source": "2026-06-11-3.log.gz",
+      "learnedAt": "1781619804",
+      "lastSeenAt": "1781747340",
+      "count": 39
+    },
+    {
+      "key": "umpokemontrazidovidaapartirdeumfssilnocapazdevoarvivianostoposdasrvoresesaltavadeumgalhopraoutro",
+      "question": "Um pokemon trazido vida a partir de um fssil. No capaz de voar, vivia nos topos das rvores e saltava de um galho pra outro.",
+      "answer": "archen",
+      "source": "2026-06-07-3.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747340",
+      "count": 39
+    },
+    {
+      "key": "umshelldebugdescartadoqueveiovidaperscrutarafendanascostasditopararoubaroespritodealgum",
+      "question": "Um shell de bug descartado que veio vida. Perscrutar a fenda nas costas dito para roubar o esprito de algum.",
+      "answer": "shedinja",
+      "source": "2026-06-14-4.log.gz",
+      "learnedAt": "1781619804",
+      "lastSeenAt": "1781747340",
+      "count": 39
+    },
+    {
+      "key": "umvrusaliengenaquecaiunaterraemummeteorosofreuumamutaodednaparasetornarestepokmon",
+      "question": "Um vrus aliengena que caiu na Terra em um meteoro sofreu uma mutao de DNA para se tornar este Pokmon.",
+      "answer": "Deoxys",
+      "source": "2026-06-04-2.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747339",
+      "count": 14
+    },
+    {
+      "key": "umaarmapokmondesenvolvidaparaumamissoespecficaficouforadecontroleduranteumexperimentoefoicriopreservada",
+      "question": "Uma arma Pokmon desenvolvida para uma misso especfica, ficou fora de controle durante um experimento e foi criopreservada.",
+      "answer": "type: null",
+      "source": "2026-06-10-2.log.gz",
+      "learnedAt": "1781619804",
+      "lastSeenAt": "1781747340",
+      "count": 39
+    },
+    {
+      "key": "umacomparaorevelouqueosdentesdafrentedecrescemnamesmavelocidadequeosderattata",
+      "question": "Uma comparao revelou que os dentes da frente de _____ crescem na mesma velocidade que os de Rattata.",
+      "answer": "Bidoof",
+      "source": "2026-06-09-4.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747340",
+      "count": 14
+    },
+    {
+      "key": "umavezquemordenovaisoltaratperdersuaspresasnovaspresascrescemrapidamentenolugar",
+      "question": "Uma vez que morde, no vai soltar at perder suas presas. Novas presas crescem rapidamente no lugar.",
+      "answer": "croconaw",
+      "source": "2026-06-15-1.log.gz",
+      "learnedAt": "1781619804",
+      "lastSeenAt": "1781747340",
+      "count": 39
+    },
+    {
+      "key": "umavezquenopodegerarsuaprpriaeletricidadeeleadereapokmondegrandeporteeabsorveaeletricidadeesttica",
+      "question": "Uma vez que no pode gerar sua prpria eletricidade, ele adere a Pokmon de grande porte e absorve a eletricidade esttica.",
+      "answer": "joltik",
+      "source": "2026-06-07-1.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747340",
+      "count": 39
+    },
+    {
+      "key": "usaprolasnegrasparaamplificarseupoderpsquicofazumadanaestranhaparacontrolarasmentesdosinimigos",
+      "question": "Usa prolas negras para amplificar seu poder psquico. Faz uma dana estranha para controlar as mentes dos inimigos.",
+      "answer": "Grumpig",
+      "source": "2026-05-25-1.log.gz",
+      "learnedAt": "1781631692",
+      "lastSeenAt": "1781747339",
+      "count": 14
+    },
+    {
+      "key": "usandoasantenasnacabeaenacaudaelecaptavibraesnoarparadeterminaralocalizaoeoestadodesuapresa",
+      "question": "Usando as antenas na cabea e na cauda, ??ele capta vibraes no ar para determinar a localizao e o estado de sua presa.",
+      "answer": "Whiscash",
+      "source": "2026-06-11-3.log.gz",
+      "learnedAt": "1781631694",
+      "lastSeenAt": "1781747340",
+      "count": 14
+    },
+    {
+      "key": "usandoasantenasnosouvidospodedizercomoalgumestsesentindoouquandoumovopodechocar",
+      "question": "Usando as antenas nos ouvidos, pode dizer como algum est se sentindo ou quando um ovo pode chocar.",
+      "answer": "audino",
+      "source": "2026-06-07-3.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747340",
+      "count": 43
+    },
+    {
+      "key": "usandoeletricidadearmazenadaemsuapeleestimulaseusmsculosaaumentarsuavelocidadedereao",
+      "question": "Usando eletricidade armazenada em sua pele, estimula seus msculos a aumentar sua velocidade de reao.",
+      "answer": "electrike",
+      "source": "2026-06-06-1.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747340",
+      "count": 69
+    },
+    {
+      "key": "usandomatrialuminescentefazseusolhosecorpobrilharemeatordoaratacandoosoponentes",
+      "question": "Usando matria luminescente, faz seus olhos e corpo brilharem e atordoar atacando os oponentes.",
+      "answer": "watchog",
+      "source": "2026-05-31-2.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 26
+    },
+    {
+      "key": "usarseupoderpsquicoumapressotograndeemseucrebroqueprecisadormir18horaspordia",
+      "question": "Usar seu poder psquico uma presso to grande em seu crebro que precisa dormir 18 horas por dia.",
+      "answer": "abra",
+      "source": "2026-06-04-1.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 69
+    },
+    {
+      "key": "viveemselvasdensasaoseaproximardesuapresaelasaltadegalhoemgalho",
+      "question": "Vive em selvas densas. Ao se aproximar de sua presa, ela salta de galho em galho.",
+      "answer": "grovyle",
+      "source": "2026-06-09-4.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747340",
+      "count": 26
+    },
+    {
+      "key": "viveemvulcesecomeenxofreeoutrosmineraisosmateriaisdoalimentoqueconsomeformamabasedesuaconchaexplosiva",
+      "question": "Vive em vulces e come enxofre e outros minerais. Os materiais do alimento que consome formam a base de sua concha explosiva.",
+      "answer": "turtonator",
+      "source": "2026-06-11-3.log.gz",
+      "learnedAt": "1781619804",
+      "lastSeenAt": "1781747340",
+      "count": 26
+    },
+    {
+      "key": "viveescondidodentrodassombrasdobosquequandoospredadoresatacamelarapidamenteeriaapelequecobreseucorpoemumesforoparaamealos",
+      "question": "Vive escondido dentro das sombras do bosque. Quando os predadores atacam, ela rapidamente eria a pele que cobre seu corpo em um esforo para amea-los.",
+      "answer": "spewpa",
+      "source": "2026-06-08-3.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747340",
+      "count": 39
+    },
+    {
+      "key": "vivenofundodomarcomumacaudaemformadeumpeixepequenoatraipresasdesavisadas",
+      "question": "Vive no fundo do mar. Com uma cauda em forma de um peixe pequeno, atrai presas desavisadas.",
+      "answer": "Huntail",
+      "source": "2026-06-04-2.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781631693",
+      "count": 1
+    },
+    {
+      "key": "voasobreseuvastoterritrioembuscadepresasderrubandoocomsuasgarrasaltamentedesenvolvidas",
+      "question": "Voa sobre seu vasto territrio em busca de presas, derrubando-o com suas garras altamente desenvolvidas.",
+      "answer": "pidgeotto",
+      "source": "2026-06-01-5.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 26
+    },
+    {
+      "key": "foicriadoparaprotegerpessoasepokmonelescorrememumaenergiamisteriosa",
+      "question": "_____ foi criado para proteger pessoas e Pokmon. Eles correm em uma energia misteriosa.",
+      "answer": "golurk",
+      "source": "2026-05-24-2.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 26
+    },
+    {
+      "key": "buracodeformahexagonaloseuouvidotemumatendnciaaandarnadireoemqueosomestvindo",
+      "question": "buraco de forma hexagonal o seu ouvido. Tem uma tendncia a andar na direo em que o som est vindo.",
+      "answer": "Roggenrola",
+      "source": "manual",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747340",
+      "count": 14
+    },
+    {
+      "key": "cabeanacaudacontmumpequenocrebropodelutarinstintivamentemesmoenquantoestvoltadoparatrs",
+      "question": "cabea na cauda contm um pequeno crebro. Pode lutar instintivamente mesmo enquanto est voltado para trs.",
+      "answer": "girafarig",
+      "source": "2026-06-01-1.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 39
+    },
+    {
+      "key": "capazdevoaramaisde190kmhbatalhaaoladodedreepyecuidadelesatqueevoluamcomsucesso",
+      "question": "capaz de voar a mais de 190 km/h. Batalha ao lado de Dreepy e cuida deles at que evoluam com sucesso.",
+      "answer": "Drakloak",
+      "source": "2026-06-13-2.log.gz",
+      "learnedAt": "1781631694",
+      "lastSeenAt": "1781656402",
+      "count": 2
+    },
+    {
+      "key": "cinciaantigacriouestepokmonapartirdobarroestativohmilharesdeanos",
+      "question": "cincia antiga criou este Pokmon a partir do barro. Est ativo h milhares de anos.",
+      "answer": "golett",
+      "source": "2026-06-12-2.log.gz",
+      "learnedAt": "1781619804",
+      "lastSeenAt": "1781747340",
+      "count": 26
+    },
+    {
+      "key": "cordasalivavenenosadependedoqueopokmoncomecobreseusdedoscomsalivaedesenhapadresemrvoresnasflorestas",
+      "question": "cor da saliva venenosa depende do que o Pokmon come. _____ cobre seus dedos com saliva e desenha padres em rvores nas florestas.",
+      "answer": "Grafaiai",
+      "source": "2026-05-30-2.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781656400",
+      "count": 2
+    },
+    {
+      "key": "corpoderevestidocomumleoespecialqueajudaadesviarataquescomosocos",
+      "question": "corpo de _____ revestido com um leo especial que ajuda a desviar ataques, como socos.",
+      "answer": "cinccino",
+      "source": "2026-06-14-4.log.gz",
+      "learnedAt": "1781619804",
+      "lastSeenAt": "1781747340",
+      "count": 26
+    },
+    {
+      "key": "corpodeabborahabitadoporumespritopresonestemundoquandoosolsepetornaseinquietoeativo",
+      "question": "corpo de abbora habitado por um esprito preso neste mundo. Quando o sol se pe, torna-se inquieto e ativo.",
+      "answer": "Pumpkaboo",
+      "source": "manual",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747339",
+      "count": 14
+    },
+    {
+      "key": "corpoquesustentaabolamalsemoveporissoacreditasequeoverdadeirocorpodestepokmonestejadentrodabola",
+      "question": "corpo que sustenta a bola mal se move. Por isso, acredita-se que o verdadeiro corpo deste Pokmon esteja dentro da bola.",
+      "answer": "rabsca",
+      "source": "2026-05-25-1.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 26
+    },
+    {
+      "key": "eagitasuacaudaparagerareletricidadesepercebeperigofazsuacabeapiscarparaalertarseusaliados",
+      "question": "e_____ agita sua cauda para gerar eletricidade. Se percebe perigo, faz sua cabea piscar para alertar seus aliados.",
+      "answer": "tadbulb",
+      "source": "2026-06-15-2.log.gz",
+      "learnedAt": "1781619804",
+      "lastSeenAt": "1781747340",
+      "count": 39
+    },
+    {
+      "key": "eevoluiucomousodeumaarmaduraquepertenceuaumguerreiroilustreestepokmonincrivelmenteleal",
+      "question": "e_____ evoluiu com o uso de uma armadura que pertenceu a um guerreiro ilustre. Este Pokmon incrivelmente leal.",
+      "answer": "armarouge",
+      "source": "2026-06-08-1.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747340",
+      "count": 39
+    },
+    {
+      "key": "elutaporterritrioequandoseuscorposdeaocolidemfascasvoam",
+      "question": "e_____ luta por territrio, e quando seus corpos de ao colidem, fascas voam.",
+      "answer": "lairon",
+      "source": "2026-05-27-6.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 39
+    },
+    {
+      "key": "esvezesomagnetismoemitidopormuitofortefazendocomqueelesseatraiamparaquenopossamsemover",
+      "question": "es vezes o magnetismo emitido por _____ muito forte, fazendo com que eles se atraiam para que no possam se mover.",
+      "answer": "magnezone",
+      "source": "2026-06-12-2.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747340",
+      "count": 69
+    },
+    {
+      "key": "famosaporsuansiadelutaresemprenutreferimentosaodesafiarinimigosmaiores",
+      "question": "famosa por sua nsia de lutar e sempre nutre ferimentos ao desafiar inimigos maiores.",
+      "answer": "Rufflet",
+      "source": "2026-06-05-2.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781656401",
+      "count": 2
+    },
+    {
+      "key": "fasedaluaaparentementetemalgumefeitoemseupoderestativonanoitedaluacheia",
+      "question": "fase da lua aparentemente tem algum efeito em seu poder. Est ativo na noite da lua cheia.",
+      "answer": "lunatone",
+      "source": "2026-06-01-4.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 26
+    },
+    {
+      "key": "ferroqueingeriucomosoloqueengoliutransformouseucorpoetornoumaisdifcilqueosdiamantes",
+      "question": "ferro que ingeriu com o solo que engoliu transformou seu corpo e tornou mais difcil que os diamantes.",
+      "answer": "steelix",
+      "source": "2026-06-05-1.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 26
+    },
+    {
+      "key": "forteapesardeseutamanhocompactoelepodefacilmentepegarecarregarumhumanoadultonascostas",
+      "question": "forte apesar de seu tamanho compacto. Ele pode facilmente pegar e carregar um humano adulto nas costas.",
+      "answer": "Mudbray",
+      "source": "2026-06-12-1.log.gz",
+      "learnedAt": "1781631694",
+      "lastSeenAt": "1781656402",
+      "count": 2
+    },
+    {
+      "key": "galitos14desapareceu",
+      "question": "galitos14 desapareceu.",
+      "answer": "gecqua",
+      "source": "2026-06-15-2.log.gz",
+      "learnedAt": "1781619804",
+      "lastSeenAt": "1781747340",
+      "count": 26
+    },
+    {
+      "key": "guaqueeleslanamdesuasbocaspodebaternaspresasemmovimentoamaisde90metrosdedistncia",
+      "question": "gua que eles lanam de suas bocas pode bater nas presas em movimento a mais de 90 metros de distncia.",
+      "answer": "remoraid",
+      "source": "2026-06-03-4.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 26
+    },
+    {
+      "key": "inteligenteosuficienteparacaarempacoteseleusaumavariedadedegritosparasecomunicarcomosoutros",
+      "question": "inteligente o suficiente para caar em pacotes. Ele usa uma variedade de gritos para se comunicar com os outros.",
+      "answer": "houndour",
+      "source": "2026-06-04-2.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 52
+    },
+    {
+      "key": "itemdestepokemontemseuefeitoanulado",
+      "question": "item deste pokemon tem seu efeito anulado.",
+      "answer": "klutz",
+      "source": "2026-06-08-3.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747340",
+      "count": 70
+    },
+    {
+      "key": "machocomamaiorjubadefogoolderdoorgulho",
+      "question": "macho com a maior juba de fogo o lder do orgulho.",
+      "answer": "Pyroar",
+      "source": "2026-05-31-2.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781631693",
+      "count": 1
+    },
+    {
+      "key": "muitocuriosomasseumododeinvestigarascoisastentarsoclascomseustentculosabuscaporcomidaoqueolevaterrafirme",
+      "question": "muito curioso, mas seu modo de investigar as coisas tentar soc-las com seus tentculos. A busca por comida o que o leva terra firme.",
+      "answer": "clobbopus",
+      "source": "2026-06-14-4.log.gz",
+      "learnedAt": "1781619804",
+      "lastSeenAt": "1781747340",
+      "count": 26
+    },
+    {
+      "key": "ncleoemseupeitoabsorveaenergiaqueemanadasterrasdaregiodegalaressaenergiaoquepermiteapermanecerativo",
+      "question": "ncleo em seu peito absorve a energia que emana das terras da regio de Galar. Essa energia o que permite a _____ permanecer ativo.",
+      "answer": "eternatus",
+      "source": "2026-06-05-2.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 39
+    },
+    {
+      "key": "padrodaespiralemsuabarrigagirasutilmenteolharparaelepodetedeixardesdesonolentoatnomximohipnotizado",
+      "question": "padro da espiral em sua barriga gira sutilmente. Olhar para ele pode te deixar desde sonolento at, no mximo, hipnotizado.",
+      "answer": "poliwhirl",
+      "source": "2026-05-30-2.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 39
+    },
+    {
+      "key": "padroemsuabarrigaparaintimidaointimidaosinimigosquandoestocongeladosdemedo",
+      "question": "padro em sua barriga para intimidao. Intimida os inimigos quando esto congelados de medo.",
+      "answer": "Arbok",
+      "source": "2026-06-03-4.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747339",
+      "count": 18
+    },
+    {
+      "key": "pinagrandedessepokemontemaforade10000cavalosdeforaentretantotopesadaquedifcilmanusela",
+      "question": "pina grande desse pokemon tem a fora de 10.000 cavalos de fora. Entretanto, to pesada que difcil manuse-la.",
+      "answer": "immunity",
+      "source": "2026-06-02-2.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 69
+    },
+    {
+      "key": "poderdomovimentodopokemonmultiplicadopor13seforoltimoasemoveremumturno",
+      "question": "poder do movimento do pokemon multiplicado por 1.3 se for o ltimo a se mover em um turno.",
+      "answer": "analytic",
+      "source": "2026-06-13-1.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747340",
+      "count": 24
+    },
+    {
+      "key": "pokemoneseusaliadosnopodemserafetadosporattractdisableencorehealblocktauntoutorment",
+      "question": "pokemon e seus aliados no podem ser afetados por Attract, Disable, Encore, Heal Block, Taunt ou Torment.",
+      "answer": "aroma veil",
+      "source": "2026-05-25-1.log.gz",
+      "learnedAt": "1781631692",
+      "lastSeenAt": "1781747339",
+      "count": 61
+    },
+    {
+      "key": "pokemonimuneavenenoenopodeserenvenenado",
+      "question": "pokemon imune a veneno e no pode ser envenenado.",
+      "answer": "Immunity",
+      "source": "2026-06-01-2.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747339",
+      "count": 34
+    },
+    {
+      "key": "pokemonrecebe12dedanodemovimentosquefazemcontatoeo2xdedanodemovimentosdefogo",
+      "question": "pokemon recebe 1/2 de dano de movimentos que fazem contato e o 2x de dano de movimentos de fogo.",
+      "answer": "Fluffy",
+      "source": "2026-05-23-2.log.gz",
+      "learnedAt": "1781631692",
+      "lastSeenAt": "1781631692",
+      "count": 1
+    },
+    {
+      "key": "pokemonspodeserdanificadoporataquesdiretos",
+      "question": "pokemon s pode ser danificado por ataques diretos, .",
+      "answer": "magic guard",
+      "source": "2026-05-31-1.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747339",
+      "count": 24
+    },
+    {
+      "key": "pokemontem30dechancedecuraracondiodestatusdeumaliadoaofinaldecadaturno",
+      "question": "pokemon tem 30% de chance de curar a condio de status de um aliado ao final de cada turno.",
+      "answer": "Healer",
+      "source": "2026-06-05-2.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747339",
+      "count": 31
+    },
+    {
+      "key": "pokemontem30dechancequeimaroatacantecasosofraataquesfsicos",
+      "question": "pokemon tem 30% de chance queimar o atacante caso sofra ataques fsicos.",
+      "answer": "Flame Body",
+      "source": "2026-06-15-1.log.gz",
+      "learnedAt": "1781631694",
+      "lastSeenAt": "1781631694",
+      "count": 1
+    },
+    {
+      "key": "polimentoconstantefazcomqueabordadalminafiqueextremamenteafiadaoarquirivaldezangoose",
+      "question": "polimento constante faz com que a borda da lmina fique extremamente afiada. o arqui-rival de Zangoose.",
+      "answer": "inner focus",
+      "source": "2026-05-31-2.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 26
+    },
+    {
+      "key": "razopelaqualnotemumninhoqueelesimplesmenteprocuraumlugarlimpoeconfortveledormeali",
+      "question": "razo pela qual no tem um ninho que ele simplesmente procura um lugar limpo e confortvel e dorme ali.",
+      "answer": "Skitty",
+      "source": "2026-06-05-2.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747340",
+      "count": 14
+    },
+    {
+      "key": "rgoqueemiteseuintensopoderpsquicoprotegidoporseusouvidosparaevitarqueopodervaze",
+      "question": "rgo que emite seu intenso poder psquico protegido por seus ouvidos para evitar que o poder vaze.",
+      "answer": "espurr",
+      "source": "2026-06-09-4.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747340",
+      "count": 39
+    },
+    {
+      "key": "scalchopemseuestmagonousadoapenasparaabatalhaelepodeserusadoparaquebrarbagasdurasabertastambm",
+      "question": "scalchop em seu estmago no usado apenas para a batalha - ele pode ser usado para quebrar bagas duras abertas tambm.",
+      "answer": "oshawott",
+      "source": "2026-06-04-2.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 39
+    },
+    {
+      "key": "surpreendentementerpidoparairritarelemantmabocaabertacomoumademonstraodesuafora",
+      "question": "surpreendentemente rpido para irritar. Ele mantm a boca aberta como uma demonstrao de sua fora.",
+      "answer": "hippowdon",
+      "source": "2026-06-14-2.log.gz",
+      "learnedAt": "1781619804",
+      "lastSeenAt": "1781747340",
+      "count": 39
+    },
+    {
+      "key": "tipodopokemonmudaparacorresponderaotipodemovimentoqueestprestesausar",
+      "question": "tipo do pokemon muda para corresponder ao tipo de movimento que est prestes a usar.",
+      "answer": "libero",
+      "source": "2026-05-30-2.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747339",
+      "count": 47
+    },
+    {
+      "key": "umpokmonsurradoefeionoentantomuitoresistenteepodesobrevivercompoucagua",
+      "question": "um Pokmon surrado e feio. No entanto, muito resistente e pode sobreviver com pouca gua.",
+      "answer": "feebas",
+      "source": "2026-05-23-2.log.gz",
+      "learnedAt": "1781619803",
+      "lastSeenAt": "1781747339",
+      "count": 26
+    },
+    {
+      "key": "umpokmonbemdescontradoeledescuidadoemuitasvezesbateacabeaembarcoserochasenquantonadapormnoseimportamuitocomisso",
+      "question": "um pokmon bem descontrado. Ele descuidado e muitas vezes bate a cabea em barcos e rochas enquanto nada, porm no se importa muito com isso.",
+      "answer": "Quagsire",
+      "source": "2026-06-11-6.log.gz",
+      "learnedAt": "1781631694",
+      "lastSeenAt": "1781747340",
+      "count": 14
+    },
+    {
+      "key": "velocidadedopokemonaumenta1estgionofinaldecadaturnoemqueeleestiveremcampo",
+      "question": "velocidade do pokemon aumenta 1 estgio no final de cada turno em que ele estiver em campo.",
+      "answer": "speed boost",
+      "source": "2026-05-27-3.log.gz",
+      "learnedAt": "1781631693",
+      "lastSeenAt": "1781747339",
+      "count": 24
+    }
+  ]
+}

@@ -18,6 +18,15 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     const LOG_MONITOR_MINIMIZED_KEY = "pokemon-checklist-log-monitor-minimized";
     const COLLAPSED_SECTIONS_KEY = "pokemon-checklist-collapsed-sections-v1";
     const PLAYER_NAME_STORAGE_KEY = "pokemon-checklist-player-name-v1";
+    const INVASION_WINDOWS_NOTIFICATION_KEY = "pokemon-checklist-invasion-windows-notification-v1";
+    const QUIZ_ALERTS_KEY = "pokemon-checklist-quiz-alerts-v1";
+    const QUIZ_AUTO_COPY_KEY = "pokemon-checklist-quiz-auto-copy-v1";
+    const GTS_ALERTS_KEY = "pokemon-checklist-gts-alerts-v1";
+    const GTS_WATCHLIST_KEY = "pokemon-checklist-gts-watchlist-v1";
+    const LOG_CAPTURE_DEFAULT_POLL_MS = 10000;
+    const LOG_CAPTURE_QUIZ_POLL_MS = 1000;
+    const QUIZ_AUTO_COPY_COOLDOWN_MS = 4000;
+    const QUIZ_HISTORY_MATCH_MIN_PERCENT = 70;
     const APP_META = window.POKELIST_APP_META || {
       name: "Pixelmon - Pokelist",
       version: "1.0.8",
@@ -28,6 +37,50 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     const getTauriInvoke = () => window.__TAURI__?.core?.invoke;
     const isTauriApp = () => Boolean(getTauriInvoke());
     const invokeTauri = (command, args = {}) => getTauriInvoke()(command, args);
+
+    function showFrontendFailure(error) {
+      const message = error?.stack || error?.message || String(error || "Erro desconhecido");
+      console.error(error);
+      const renderOverlay = () => {
+        let overlay = document.querySelector("#frontend-error-overlay");
+        if (!overlay) {
+          overlay = document.createElement("section");
+          overlay.id = "frontend-error-overlay";
+          overlay.setAttribute("role", "alert");
+          overlay.style.cssText = "position:fixed;inset:16px;z-index:99999;overflow:auto;padding:18px;border:1px solid #ef9a9a;border-radius:8px;background:#fff5f5;color:#301010;font:14px/1.45 system-ui,Segoe UI,sans-serif;box-shadow:0 12px 30px rgba(0,0,0,.18);";
+          overlay.innerHTML = "<strong>Erro no frontend</strong><p>O app encontrou um erro ao renderizar. Esta tela evita o branco total e mostra o detalhe para debug.</p><pre style=\"white-space:pre-wrap;word-break:break-word;background:#fff;border:1px solid #f0caca;border-radius:6px;padding:10px;\"></pre>";
+          document.body.append(overlay);
+        }
+        overlay.querySelector("pre").textContent = message;
+      };
+      if (document.body) {
+        renderOverlay();
+      } else {
+        window.addEventListener("DOMContentLoaded", renderOverlay, { once: true });
+      }
+    }
+
+    window.addEventListener("error", event => {
+      showFrontendFailure(event.error || event.message);
+    });
+    window.addEventListener("unhandledrejection", event => {
+      showFrontendFailure(event.reason || "Promise rejeitada sem tratamento");
+    });
+
+    function scheduleAppRender() {
+      if (appRenderQueued) return;
+      appRenderQueued = true;
+      const run = () => {
+        appRenderQueued = false;
+        render();
+      };
+      if (typeof requestAnimationFrame === "function") {
+        requestAnimationFrame(run);
+      } else {
+        window.setTimeout(run, 0);
+      }
+    }
+
     const capturedState = new Map();
     const collectionTrackingState = new Map();
     const filterState = { status: "", methods: new Set(), types: new Set(), sort: "number" };
@@ -137,6 +190,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       lastSignal: null,
       lastCapture: null,
       rewardEvents: [],
+      quizHistory: [],
       playerName: "",
       lastIgnored: null,
       lastScanAt: "",
@@ -155,9 +209,27 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       lastError: "",
       poller: null
     };
+    let hasPrimedLogActivityAlerts = false;
+    let activityAlertAudioContext = null;
+    let activityAlertToastTimer = null;
     let activeTheme = localStorage.getItem(THEME_KEY) === "dark" ? "dark" : "light";
     let isCompactMode = localStorage.getItem(DENSITY_KEY) === "compact";
     let configuredPlayerName = localStorage.getItem(PLAYER_NAME_STORAGE_KEY) || "";
+    let invasionWindowsNotificationsEnabled = localStorage.getItem(INVASION_WINDOWS_NOTIFICATION_KEY) === "true";
+    let quizAlertsEnabled = localStorage.getItem(QUIZ_ALERTS_KEY) === "true";
+    let quizAutoCopyEnabled = localStorage.getItem(QUIZ_AUTO_COPY_KEY) === "true";
+    let quizHistoryImportStatus = "";
+    let quizFlowSearch = "";
+    let quizFlowMode = "pending";
+    let quizFlowStatus = "";
+    let gtsAlertsEnabled = localStorage.getItem(GTS_ALERTS_KEY) === "true";
+    let gtsWatchlist = [];
+    let gtsFlowSearch = "";
+    let gtsFlowMode = "matches";
+    let gtsFlowStatus = "";
+    let lastQuizClipboardKey = "";
+    let lastQuizClipboardAt = 0;
+    let appRenderQueued = false;
     let isLogSidebarCollapsed = localStorage.getItem(LOG_SIDEBAR_COLLAPSED_KEY) === "true";
     let isLogMonitorMinimized = localStorage.getItem(LOG_MONITOR_MINIMIZED_KEY) === "true";
     let collapsedSections = new Set();
@@ -189,6 +261,41 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       .replace(/['’]/g, "")
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-|-$/g, "");
+
+    function loadGtsWatchlist() {
+      try {
+        const parsed = JSON.parse(localStorage.getItem(GTS_WATCHLIST_KEY) || "[]");
+        if (!Array.isArray(parsed)) return [];
+        return [...new Map(parsed
+          .map(value => String(value || "").trim())
+          .filter(Boolean)
+          .map(value => [canonicalKey(value), value])
+        ).values()];
+      } catch {
+        return [];
+      }
+    }
+
+    function saveGtsWatchlist() {
+      localStorage.setItem(GTS_WATCHLIST_KEY, JSON.stringify(gtsWatchlist));
+    }
+
+    function addGtsWatchTerm(value) {
+      const term = String(value || "").trim();
+      const key = canonicalKey(term);
+      if (!key || gtsWatchlist.some(item => canonicalKey(item) === key)) return false;
+      gtsWatchlist = [...gtsWatchlist, term].sort((a, b) => a.localeCompare(b, "pt-BR"));
+      saveGtsWatchlist();
+      return true;
+    }
+
+    function removeGtsWatchTerm(value) {
+      const key = canonicalKey(value);
+      gtsWatchlist = gtsWatchlist.filter(item => canonicalKey(item) !== key);
+      saveGtsWatchlist();
+    }
+
+    gtsWatchlist = loadGtsWatchlist();
 
     function parseSource(source) {
       const groups = [];
@@ -926,6 +1033,54 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     const catalogById = new Map(allEntries.map(entry => [entry.id, entry]));
     const parsedDetailBiomesByKey = new Map();
 
+    function getQuizPokemonKeyCandidates(value) {
+      const rawKey = canonicalKey(value || "");
+      if (!rawKey) return [];
+      const candidates = [rawKey];
+      const addCandidate = key => {
+        if (key && key.length > 1 && !candidates.includes(key)) candidates.push(key);
+      };
+      const regionalPrefixes = ["alolan", "alola", "galarian", "galar", "hisuian", "hisui", "paldean", "paldea"];
+      regionalPrefixes.forEach(prefix => {
+        if (rawKey.startsWith(prefix)) addCandidate(rawKey.slice(prefix.length));
+        if (rawKey.endsWith(prefix)) addCandidate(rawKey.slice(0, -prefix.length));
+      });
+      const formPrefixes = ["mega", "gmax", "gigantamax", "primal"];
+      formPrefixes.forEach(prefix => {
+        if (rawKey.startsWith(prefix)) addCandidate(rawKey.slice(prefix.length));
+      });
+      const formSuffixes = [
+        "mega", "gmax", "gigantamax", "primal", "origin", "originforme", "altered", "alteredforme",
+        "therian", "incarnate", "sky", "land", "wash", "heat", "frost", "fan", "mow",
+        "dawn", "dusk", "midday", "midnight", "school", "solo", "amped", "lowkey"
+      ];
+      formSuffixes.forEach(suffix => {
+        if (rawKey.endsWith(suffix)) addCandidate(rawKey.slice(0, -suffix.length));
+      });
+      return candidates;
+    }
+
+    function getQuizPokemonEntry(event) {
+      const candidates = getQuizPokemonKeyCandidates(event?.detail || "");
+      for (const key of candidates) {
+        const catalogEntry = catalogByKey.get(key);
+        const typeInfo = typesByKey.get(key);
+        const abilityInfo = abilitiesByKey.get(key);
+        const breedingInfo = breedingByKey.get(key);
+        if (!catalogEntry && !typeInfo && !abilityInfo && !breedingInfo) continue;
+        return {
+          ...(catalogEntry || {}),
+          id: catalogEntry?.id || typeInfo?.id || abilityInfo?.id || breedingInfo?.id || null,
+          name: catalogEntry?.name || typeInfo?.name || abilityInfo?.name || breedingInfo?.name || event?.detail || "",
+          types: catalogEntry?.types?.length ? catalogEntry.types : typeInfo?.types || [],
+          abilities: catalogEntry?.abilities?.length ? catalogEntry.abilities : abilityInfo?.abilities || [],
+          hiddenAbilities: catalogEntry?.hiddenAbilities?.length ? catalogEntry.hiddenAbilities : abilityInfo?.hiddenAbilities || [],
+          breeding: catalogEntry?.breeding || breedingInfo || null
+        };
+      }
+      return null;
+    }
+
     function getCaptureBiomeData(entry) {
       return captureBiomesByKey.get(canonicalKey(entry.name)) || null;
     }
@@ -1153,6 +1308,20 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
         name: entry.name,
         capturedAt
       });
+    }
+
+    function toggleCaptured(entry, options = {}) {
+      const scrollSnapshot = getRenderScrollSnapshot();
+      const key = canonicalKey(entry.name);
+      if (isOwned(entry)) {
+        capturedState.delete(key);
+      } else {
+        markCaptured(entry);
+      }
+      saveState();
+      render();
+      if (options.refreshModal) renderPokemonModal();
+      scheduleRenderScrollRestore(scrollSnapshot);
     }
 
     function normalizeHaCollectionCategory(value) {
@@ -1801,6 +1970,8 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     const teamsTab = document.querySelector("#flow-teams");
     const buildsTab = document.querySelector("#flow-builds");
     const collectionTab = document.querySelector("#flow-collection");
+    const quizTab = document.querySelector("#flow-quiz");
+    const gtsTab = document.querySelector("#flow-gts");
     const settingsTab = document.querySelector("#flow-settings");
     const checklistNavSections = document.querySelector("#checklist-nav-sections");
     const checklistFlowCount = document.querySelector("#flow-checklist-count");
@@ -1810,6 +1981,8 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     const teamsFlowCount = document.querySelector("#flow-teams-count");
     const buildsFlowCount = document.querySelector("#flow-builds-count");
     const collectionFlowCount = document.querySelector("#flow-collection-count");
+    const quizFlowCount = document.querySelector("#flow-quiz-count");
+    const gtsFlowCount = document.querySelector("#flow-gts-count");
     const settingsFlowCount = document.querySelector("#flow-settings-count");
     const themeToggleButton = document.querySelector("#theme-toggle");
     const densityToggleButton = document.querySelector("#density-toggle");
@@ -2599,6 +2772,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
           }
 
           document.querySelector("#storage-info").textContent = "App local ativo: suas marcações ficam salvas no arquivo local do aplicativo.";
+          await loadQuizHistory();
           render();
           refreshLogCaptureStatus();
           return;
@@ -2690,16 +2864,13 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
           button.textContent = "\u2713 Adquirido";
         });
       }
+      button.addEventListener("mousedown", event => {
+        event.preventDefault();
+      });
       button.addEventListener("click", event => {
         event.stopPropagation();
-        const key = canonicalKey(entry.name);
-        if (isOwned(entry)) {
-          capturedState.delete(key);
-        } else {
-          markCaptured(entry);
-        }
-        saveState();
-        render();
+        event.preventDefault();
+        toggleCaptured(entry);
       });
 
       card.addEventListener("click", () => openPokemonModal(entry));
@@ -2827,16 +2998,12 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       captureButton.className = `modal-capture-button${done ? " is-owned" : ""}`;
       captureButton.type = "button";
       captureButton.textContent = done ? "Adquirido - desmarcar" : "Marcar como capturado";
-      captureButton.addEventListener("click", () => {
-        const key = canonicalKey(entry.name);
-        if (isOwned(entry)) {
-          capturedState.delete(key);
-        } else {
-          markCaptured(entry);
-        }
-        saveState();
-        render();
-        renderPokemonModal();
+      captureButton.addEventListener("mousedown", event => {
+        event.preventDefault();
+      });
+      captureButton.addEventListener("click", event => {
+        event.preventDefault();
+        toggleCaptured(entry, { refreshModal: true });
       });
       heroText.querySelector(".modal-actions").append(captureButton);
       if (entry.wiki) {
@@ -3250,7 +3417,615 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       };
     }
 
+    function getLogRewardEventKey(event) {
+      if (!event) return "";
+      return String(event.id || `${event.type || ""}|${event.logTime || ""}|${event.source || ""}|${event.title || ""}`);
+    }
+
+    function getNewInvasionEvents(nextEvents) {
+      if (!hasPrimedLogActivityAlerts) return [];
+      const previousKeys = new Set((logCaptureState.rewardEvents || []).map(getLogRewardEventKey));
+      return nextEvents.filter(event => event?.type === "invasion" && !previousKeys.has(getLogRewardEventKey(event)));
+    }
+
+    function getNewQuizEvents(nextEvents) {
+      if ((!quizAlertsEnabled && !quizAutoCopyEnabled) || !hasPrimedLogActivityAlerts) return [];
+      const previousKeys = new Set((logCaptureState.rewardEvents || []).map(getLogRewardEventKey));
+      return nextEvents.filter(event => event?.type === "quiz" && !previousKeys.has(getLogRewardEventKey(event)));
+    }
+
+    function getGtsEvents() {
+      return (logCaptureState.rewardEvents || [])
+        .filter(event => event?.type === "gts" || event?.type === "gts_sale")
+        .slice()
+        .reverse();
+    }
+
+    function getGtsListings() {
+      return getGtsEvents().filter(event => event.type === "gts");
+    }
+
+    function getGtsSales() {
+      return getGtsEvents().filter(event => event.type === "gts_sale");
+    }
+
+    function getGtsEventInfo(event) {
+      const parts = String(event?.detail || "").split("|").map(part => part.trim());
+      if (event?.type === "gts_sale") {
+        return {
+          item: parts[0] || event?.title || "Venda",
+          buyer: parts[1] || "",
+          price: "",
+          seller: "",
+          listingType: "Venda concluida"
+        };
+      }
+      return {
+        item: parts[0] || event?.title || "Item",
+        price: parts[1] || "",
+        seller: parts[2] || "",
+        listingType: parts[3] || "Venda"
+      };
+    }
+
+    function getGtsWatchMatchTerm(event) {
+      if (event?.type === "gts_sale") return true;
+      if (!gtsWatchlist.length) return false;
+      const info = getGtsEventInfo(event);
+      const haystack = canonicalKey(`${info.item} ${event?.title || ""} ${event?.detail || ""}`);
+      return gtsWatchlist.find(term => {
+        const termKey = canonicalKey(term);
+        return termKey && haystack.includes(termKey);
+      }) || "";
+    }
+
+    function gtsEventMatchesWatchlist(event) {
+      if (event?.type === "gts_sale") return true;
+      return Boolean(getGtsWatchMatchTerm(event));
+    }
+
+    function getGtsMatchedListings() {
+      return getGtsListings().filter(gtsEventMatchesWatchlist);
+    }
+
+    function getNewGtsEvents(nextEvents) {
+      if (!gtsAlertsEnabled || !hasPrimedLogActivityAlerts) return [];
+      const previousKeys = new Set((logCaptureState.rewardEvents || []).map(getLogRewardEventKey));
+      return nextEvents.filter(event =>
+        (event?.type === "gts" || event?.type === "gts_sale")
+          && !previousKeys.has(getLogRewardEventKey(event))
+          && gtsEventMatchesWatchlist(event)
+      );
+    }
+
+    function getQuizKind(event) {
+      const title = canonicalKey(event?.title || "");
+      if (title.includes("qualeessahabilidade")) return "abilityDescription";
+      if (title.includes("qualeessepokemon")) return "whoIsPokemon";
+      if (title.includes("tipoelemental")) return "type";
+      if (title.includes("egggroup")) return "eggGroup";
+      if (title.includes("habilidade")) return "ability";
+      return "";
+    }
+
+    function formatQuizClipboardAnswer(value) {
+      return String(value || "")
+        .trim()
+        .replace(/([a-z])([A-Z])/g, "$1 $2")
+        .replace(/\s+/g, " ");
+    }
+
+    function getQuizAnswer(event) {
+      const kind = getQuizKind(event);
+      if (kind === "whoIsPokemon") {
+        const answer = getKnownWhoIsPokemonAnswer(event?.detail || event?.text || "");
+        if (!answer) return null;
+        const entry = catalogByKey.get(canonicalKey(answer));
+        return {
+          entry: entry || { name: answer },
+          kind,
+          answer,
+          clipboardText: formatQuizClipboardAnswer(answer),
+          confidence: "historico"
+        };
+      }
+
+      if (kind === "abilityDescription") {
+        const answer = getKnownWhoIsPokemonAnswer(event?.detail || event?.text || "");
+        if (!answer) return null;
+        return {
+          entry: { name: "Habilidade" },
+          kind,
+          answer: formatQuizClipboardAnswer(answer),
+          clipboardText: formatQuizClipboardAnswer(answer),
+          confidence: "historico"
+        };
+      }
+
+      const entry = getQuizPokemonEntry(event);
+      if (!entry) return null;
+
+      if (kind === "type") {
+        const english = (entry.types || []).map(type => type[0].toUpperCase() + type.slice(1));
+        const localized = (entry.types || []).map(formatPokemonType);
+        const answer = english.join(" / ");
+        const alias = localized.join(" / ");
+        return {
+          entry,
+          kind,
+          answer: alias && alias !== answer ? `${answer} (${alias})` : answer,
+          clipboardText: formatQuizClipboardAnswer(english[0] || localized[0] || answer)
+        };
+      }
+
+      if (kind === "eggGroup") {
+        const groups = getEggGroups(entry).filter(group => group !== "no-eggs");
+        const formattedGroups = groups.map(formatEggGroup);
+        return {
+          entry,
+          kind,
+          answer: formattedGroups.length ? formattedGroups.join(" / ") : "Undiscovered",
+          clipboardText: formatQuizClipboardAnswer(formattedGroups[0] || "Undiscovered")
+        };
+      }
+
+      if (kind === "ability") {
+        const names = [...new Set((entry.abilities || []).map(ability => formatQuizClipboardAnswer(ability?.name)).filter(Boolean))];
+        return {
+          entry,
+          kind,
+          answer: names.length ? names.join(" / ") : "Nao informado",
+          clipboardText: names[0] || ""
+        };
+      }
+
+      return null;
+    }
+
+    function boundedQuizKeyDistance(left, right, maxDistance) {
+      const leftChars = [...String(left || "")];
+      const rightChars = [...String(right || "")];
+      let previous = Array.from({ length: rightChars.length + 1 }, (_, index) => index);
+      for (let leftIndex = 0; leftIndex < leftChars.length; leftIndex += 1) {
+        const current = Array.from({ length: rightChars.length + 1 }, () => leftIndex + 1);
+        let rowMin = current[0];
+        for (let rightIndex = 0; rightIndex < rightChars.length; rightIndex += 1) {
+          const substitutionCost = leftChars[leftIndex] === rightChars[rightIndex] ? 0 : 1;
+          const value = Math.min(
+            previous[rightIndex + 1] + 1,
+            current[rightIndex] + 1,
+            previous[rightIndex] + substitutionCost
+          );
+          current[rightIndex + 1] = value;
+          rowMin = Math.min(rowMin, value);
+        }
+        if (rowMin > maxDistance) return maxDistance + 1;
+        previous = current;
+      }
+      return previous[rightChars.length];
+    }
+
+    function getQuizHistoryKeyMatchPercent(left, right) {
+      if (!left || !right) return 0;
+      if (left === right) return 100;
+      const leftLength = left.length;
+      const rightLength = right.length;
+      if (leftLength < 35 || rightLength < 35) {
+        return 0;
+      }
+      const maxLength = Math.max(leftLength, rightLength);
+      const maxDistance = Math.floor(maxLength * ((100 - QUIZ_HISTORY_MATCH_MIN_PERCENT) / 100));
+      if (Math.abs(leftLength - rightLength) > maxDistance) {
+        return 0;
+      }
+      const distance = boundedQuizKeyDistance(left, right, maxDistance);
+      if (distance > maxDistance) return 0;
+      return Math.round((1 - distance / maxLength) * 100);
+    }
+
+    function getKnownWhoIsPokemonAnswer(clue) {
+      const key = canonicalKey(clue || "");
+      if (!key) return "";
+      const entries = (logCaptureState.quizHistory || []).filter(entry => entry?.answer);
+      const exactMatch = entries.find(entry => entry?.key === key || canonicalKey(entry?.question || "") === key);
+      if (exactMatch) return exactMatch.answer || "";
+
+      let bestMatch = null;
+      let bestPercent = 0;
+      entries.forEach(entry => {
+        const entryKeys = [entry?.key, canonicalKey(entry?.question || "")].filter(Boolean);
+        entryKeys.forEach(entryKey => {
+          const percent = getQuizHistoryKeyMatchPercent(key, entryKey);
+          if (percent > bestPercent) {
+            bestPercent = percent;
+            bestMatch = entry;
+          }
+        });
+      });
+      return bestPercent >= QUIZ_HISTORY_MATCH_MIN_PERCENT ? bestMatch?.answer || "" : "";
+    }
+
+    function getQuizHistoryEntries() {
+      return (logCaptureState.quizHistory || [])
+        .filter(entry => entry?.question)
+        .map(entry => ({
+          ...entry,
+          key: entry.key || canonicalKey(entry.question || ""),
+          question: String(entry.question || "").trim(),
+          answer: String(entry.answer || "").trim(),
+          source: String(entry.source || "").trim(),
+          count: Number(entry.count) || 0
+        }))
+        .sort((a, b) => {
+          const pendingOrder = Number(Boolean(b.answer)) - Number(Boolean(a.answer));
+          return pendingOrder || a.question.localeCompare(b.question, "pt-BR");
+        });
+    }
+
+    function getQuizPendingEntries() {
+      return getQuizHistoryEntries().filter(entry => !entry.answer);
+    }
+
+    async function saveQuizHistoryAnswer(question, answer) {
+      const cleanQuestion = String(question || "").trim();
+      const cleanAnswer = formatQuizClipboardAnswer(answer);
+      if (!cleanQuestion || !cleanAnswer) {
+        quizFlowStatus = "Informe a pergunta e a resposta.";
+        render();
+        return null;
+      }
+      if (!isTauriApp()) {
+        quizFlowStatus = "Abra pelo app desktop para salvar respostas no historico.";
+        render();
+        return null;
+      }
+      try {
+        const history = await invokeTauri("save_quiz_history_answer", {
+          question: cleanQuestion,
+          answer: cleanAnswer
+        });
+        logCaptureState.quizHistory = Array.isArray(history?.entries) ? history.entries : [];
+        quizFlowStatus = `Resposta salva: ${cleanAnswer}`;
+        render();
+        return history;
+      } catch {
+        quizFlowStatus = "Nao foi possivel salvar essa resposta.";
+        render();
+        return null;
+      }
+    }
+
+    function createQuizAlertEvent(event) {
+      const quiz = getQuizAnswer(event);
+      if (!quiz?.answer) return null;
+      return {
+        ...event,
+        title: event?.title || "Curiosidade",
+        toastDetail: `${quiz.entry.name}: ${quiz.answer}`,
+        detail: `${quiz.entry.name}: ${quiz.answer}`,
+        clipboardText: quiz.clipboardText || quiz.answer
+      };
+    }
+
+    async function loadQuizHistory() {
+      if (!isTauriApp()) return;
+      try {
+        const history = await invokeTauri("get_quiz_history");
+        logCaptureState.quizHistory = Array.isArray(history?.entries) ? history.entries : [];
+      } catch {
+        logCaptureState.quizHistory = [];
+      }
+    }
+
+    async function refreshQuizHistory(button = null) {
+      const originalLabel = button?.textContent || "";
+      try {
+        if (button) {
+          button.disabled = true;
+          button.textContent = "Atualizando...";
+        }
+        await loadQuizHistory();
+        const pending = getQuizPendingEntries().length;
+        const total = getQuizHistoryEntries().length;
+        quizFlowStatus = `Historico atualizado. ${pending} pendente${pending === 1 ? "" : "s"} de ${total}.`;
+      } finally {
+        if (button) {
+          button.disabled = false;
+          button.textContent = originalLabel;
+        }
+      }
+    }
+
+    async function importQuizHistoryFromLogs(button = null) {
+      if (!isTauriApp()) return null;
+      const originalLabel = button?.textContent || "";
+      try {
+        if (button) {
+          button.disabled = true;
+          button.textContent = "Importando...";
+        }
+        const result = await invokeTauri("import_quiz_history_from_logs");
+        await loadQuizHistory();
+        const scanned = Number(result.scannedFiles || 0);
+        const imported = Number(result.imported ?? result.changed ?? 0);
+        const total = Number(result.total || 0);
+        quizHistoryImportStatus = `${scanned} arquivo${scanned === 1 ? "" : "s"} lido${scanned === 1 ? "" : "s"}. ${imported} ${imported === 1 ? "item novo" : "itens novos"} no historico. Total: ${total}.`;
+        return result;
+      } catch (error) {
+        quizHistoryImportStatus = `Nao foi possivel importar respostas dos logs${error ? `: ${String(error)}` : "."}`;
+        return null;
+      } finally {
+        if (button) {
+          button.disabled = false;
+          button.textContent = originalLabel;
+        }
+      }
+    }
+
+    async function setQuizAlertsEnabled(enabled) {
+      quizAlertsEnabled = Boolean(enabled);
+      localStorage.setItem(QUIZ_ALERTS_KEY, String(quizAlertsEnabled));
+      if (quizAlertsEnabled && useFileDatabase) {
+        await importQuizHistoryFromLogs();
+      }
+      scheduleLogCapturePolling();
+      return quizAlertsEnabled;
+    }
+
+    function setQuizAutoCopyEnabled(enabled) {
+      quizAutoCopyEnabled = Boolean(enabled);
+      localStorage.setItem(QUIZ_AUTO_COPY_KEY, String(quizAutoCopyEnabled));
+      scheduleLogCapturePolling();
+      return quizAutoCopyEnabled;
+    }
+
+    function setGtsAlertsEnabled(enabled) {
+      gtsAlertsEnabled = Boolean(enabled);
+      localStorage.setItem(GTS_ALERTS_KEY, String(gtsAlertsEnabled));
+      scheduleLogCapturePolling();
+      return gtsAlertsEnabled;
+    }
+
+    function getQuizAlertStatusText() {
+      if (!quizAlertsEnabled) return "Desligado. Nenhuma resposta de quiz sera avisada.";
+      if (!useFileDatabase) return "Abra pelo app desktop para ler os logs do chat.";
+      const suffix = quizHistoryImportStatus ? ` ${quizHistoryImportStatus}` : "";
+      return `Ligado. Curiosidade e descricoes conhecidas serao avisadas com resposta local.${suffix}`;
+    }
+
+    function getQuizAutoCopyStatusText() {
+      if (!quizAutoCopyEnabled) return "Desligado. A resposta nao altera sua area de transferencia.";
+      if (!useFileDatabase) return "Abra pelo app desktop para ler o chat e copiar respostas.";
+      return "Ligado. Ao detectar resposta conhecida, o app copia a primeira opcao para voce colar no chat.";
+    }
+
+    function getGtsAlertStatusText() {
+      if (!gtsAlertsEnabled) return "Desligado. Anuncios do GTS ficam apenas na aba GTS.";
+      if (!useFileDatabase) return "Abra pelo app desktop para ler anuncios do chat.";
+      if (!gtsWatchlist.length) return "Ligado, mas sem desejados cadastrados. Adicione itens ou Pokemon na aba GTS.";
+      return `Ligado. Avisando anuncios que batem com ${gtsWatchlist.length} desejado${gtsWatchlist.length === 1 ? "" : "s"} e suas vendas detectadas.`;
+    }
+
+    async function setInvasionWindowsNotificationsEnabled(enabled) {
+      if (!enabled) {
+        invasionWindowsNotificationsEnabled = false;
+        localStorage.setItem(INVASION_WINDOWS_NOTIFICATION_KEY, "false");
+        return false;
+      }
+
+      invasionWindowsNotificationsEnabled = isTauriApp();
+      localStorage.setItem(INVASION_WINDOWS_NOTIFICATION_KEY, String(invasionWindowsNotificationsEnabled));
+      if (!invasionWindowsNotificationsEnabled) {
+        showActivityAlertToast({
+          title: "Notificacao indisponivel",
+          toastDetail: "Abra pelo app desktop instalado para usar o aviso nativo do Windows."
+        });
+      }
+      return invasionWindowsNotificationsEnabled;
+    }
+
+    function getInvasionNotificationStatusText() {
+      if (invasionWindowsNotificationsEnabled && isTauriApp()) {
+        return "Ligado. O aviso usa notificacao nativa do Windows pelo app instalado.";
+      }
+      if (invasionWindowsNotificationsEnabled) {
+        return "Abra pelo app desktop para usar notificacao nativa.";
+      }
+      return "Desligado. O app ainda mostra o aviso interno e toca o som.";
+    }
+
+    async function showWindowsInvasionNotification(event, options = {}) {
+      if (!options.force && !invasionWindowsNotificationsEnabled) return false;
+      if (!isTauriApp()) return false;
+      try {
+        await invokeTauri("show_native_notification", {
+          title: event?.title || "Invasao iniciada",
+          body: event?.toastDetail || event?.detail || "Use /warp navio para entrar."
+        });
+      } catch {
+        return false;
+      }
+      return true;
+    }
+
+    function primeActivityAlertSound() {
+      const AudioContextConstructor = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextConstructor) return null;
+      if (!activityAlertAudioContext) {
+        activityAlertAudioContext = new AudioContextConstructor();
+      }
+      if (activityAlertAudioContext.state === "suspended") {
+        activityAlertAudioContext.resume().catch(() => {});
+      }
+      return activityAlertAudioContext;
+    }
+
+    function playActivityAlertSound() {
+      const context = primeActivityAlertSound();
+      if (!context) return;
+      const play = () => {
+        const now = context.currentTime;
+        [
+          { frequency: 740, start: 0, duration: 0.14 },
+          { frequency: 980, start: 0.18, duration: 0.18 }
+        ].forEach(note => {
+          const oscillator = context.createOscillator();
+          const gain = context.createGain();
+          oscillator.type = "sine";
+          oscillator.frequency.setValueAtTime(note.frequency, now + note.start);
+          gain.gain.setValueAtTime(0.0001, now + note.start);
+          gain.gain.exponentialRampToValueAtTime(0.18, now + note.start + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + note.start + note.duration);
+          oscillator.connect(gain);
+          gain.connect(context.destination);
+          oscillator.start(now + note.start);
+          oscillator.stop(now + note.start + note.duration + 0.04);
+        });
+      };
+      if (context.state === "suspended") {
+        context.resume().then(play).catch(() => {});
+      } else {
+        play();
+      }
+    }
+
+    function showActivityAlertToast(event) {
+      let toast = document.querySelector(".download-toast");
+      if (!toast) {
+        toast = document.createElement("div");
+        toast.className = "download-toast";
+        toast.setAttribute("role", "status");
+        toast.setAttribute("aria-live", "polite");
+        toast.innerHTML = `
+          <strong></strong>
+          <span></span>
+        `;
+        document.body.append(toast);
+      }
+      window.clearTimeout(activityAlertToastTimer);
+      window.clearTimeout(showDownloadToast.timer);
+      toast.querySelector("strong").textContent = event?.title || "Invasao iniciada";
+      toast.querySelector("span").textContent = event?.toastDetail || "Use /warp navio para entrar.";
+      toast.classList.add("is-visible", "is-alert");
+      activityAlertToastTimer = window.setTimeout(() => {
+        toast.classList.remove("is-visible", "is-alert");
+      }, 7000);
+    }
+
+    async function copyQuizAnswerToClipboard(event, options = {}) {
+      const text = String(event?.clipboardText || "").trim();
+      if (!options.forceCopy && (!quizAutoCopyEnabled || event?.type !== "quiz" || !text)) return false;
+      const now = Date.now();
+      const copyKey = `${getLogRewardEventKey(event)}|${text}`;
+      if (copyKey === lastQuizClipboardKey) return false;
+      if (now - lastQuizClipboardAt < QUIZ_AUTO_COPY_COOLDOWN_MS) return false;
+      try {
+        await copyTextToClipboard(text);
+        lastQuizClipboardKey = copyKey;
+        lastQuizClipboardAt = now;
+        return true;
+      } catch {
+        setQuizAutoCopyEnabled(false);
+        quizFlowStatus = "Copia automatica desligada: o Windows bloqueou a area de transferencia.";
+        return false;
+      }
+    }
+
+    async function notifyLogActivity(event, options = {}) {
+      if (!["invasion", "quiz", "gts", "gts_sale"].includes(event?.type)) return;
+      const copiedQuizAnswer = options.skipCopy ? false : await copyQuizAnswerToClipboard(event, options);
+      if (event.type === "quiz" && !quizAlertsEnabled && !options.forceAlert) return;
+      if ((event.type === "gts" || event.type === "gts_sale") && !gtsAlertsEnabled && !options.forceAlert) return;
+      const toastEvent = copiedQuizAnswer
+        ? {
+            ...event,
+            toastDetail: `${event.toastDetail || event.detail || ""} | Copiado: ${event.clipboardText}`
+          }
+        : event;
+      playActivityAlertSound();
+      showActivityAlertToast(toastEvent);
+      if (event.type === "invasion") {
+        showWindowsInvasionNotification(event).catch(() => {});
+      } else if (quizAlertsEnabled) {
+        showWindowsInvasionNotification(toastEvent, { force: true }).catch(() => {});
+      } else if ((event.type === "gts" || event.type === "gts_sale") && (gtsAlertsEnabled || options.forceAlert)) {
+        showWindowsInvasionNotification(toastEvent, { force: true }).catch(() => {});
+      }
+    }
+
+    async function testInvasionAlert(button = null) {
+      if (button) button.disabled = true;
+      try {
+        const testEvent = {
+          type: "invasion",
+          title: "Teste de invasao",
+          detail: "Use /warp navio para entrar."
+        };
+        playActivityAlertSound();
+        showActivityAlertToast(testEvent);
+        if (invasionWindowsNotificationsEnabled) {
+          await showWindowsInvasionNotification(testEvent, { test: true, requestPermission: true });
+        }
+        if (button) {
+          showDownloadButtonFeedback(button, "Teste enviado");
+        }
+      } finally {
+        if (button) button.disabled = false;
+      }
+    }
+
+    async function testQuizAlert(button = null) {
+      if (button) button.disabled = true;
+      try {
+        const testEvent = createQuizAlertEvent({
+          type: "quiz",
+          title: "Curiosidade: Tipo Elemental",
+          detail: "Sealeo",
+          text: "Qual e o Tipo Elemental do Sealeo?"
+        }) || {
+          type: "quiz",
+          title: "Curiosidade: Tipo Elemental",
+          toastDetail: "Sealeo: Ice / Water"
+        };
+        await notifyLogActivity(testEvent, { forceAlert: true, skipCopy: true });
+        if (button) {
+          showDownloadButtonFeedback(button, "Teste enviado");
+        }
+      } finally {
+        if (button) button.disabled = false;
+      }
+    }
+
+    async function testGtsAlert(button = null) {
+      if (button) button.disabled = true;
+      try {
+        const testEvent = {
+          type: "gts",
+          title: "GTS Global: Riolu",
+          detail: "Riolu | $ 1,000,000.00 PokeCoins | Teste | Venda",
+          toastDetail: "Riolu por $ 1,000,000.00 PokeCoins"
+        };
+        await notifyLogActivity(testEvent, { forceAlert: true });
+        if (button) {
+          showDownloadButtonFeedback(button, "Teste enviado");
+        }
+      } finally {
+        if (button) button.disabled = false;
+      }
+    }
+
     function applyLogCaptureState(data = {}) {
+      const nextRewardEvents = Array.isArray(data.rewardEvents) ? data.rewardEvents : [];
+      const previousRewardKeys = new Set((logCaptureState.rewardEvents || []).map(getLogRewardEventKey));
+      const hasNewGtsDisplayEvents = nextRewardEvents.some(event =>
+        (event?.type === "gts" || event?.type === "gts_sale")
+          && !previousRewardKeys.has(getLogRewardEventKey(event))
+      );
+      const newInvasionEvents = getNewInvasionEvents(nextRewardEvents);
+      const newQuizEvents = getNewQuizEvents(nextRewardEvents)
+        .map(createQuizAlertEvent)
+        .filter(Boolean);
+      const newGtsEvents = getNewGtsEvents(nextRewardEvents);
       logCaptureState.enabled = Boolean(data.enabled);
       logCaptureState.configuredLogPath = data.configuredLogPath || "";
       logCaptureState.defaultLogPath = data.defaultLogPath || "";
@@ -3258,7 +4033,10 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       logCaptureState.activeFile = data.activeFile || "";
       logCaptureState.activePath = data.activePath || "";
       logCaptureState.candidates = Array.isArray(data.candidates) ? data.candidates : [];
-      logCaptureState.rewardEvents = Array.isArray(data.rewardEvents) ? data.rewardEvents : [];
+      logCaptureState.rewardEvents = nextRewardEvents;
+      if (Array.isArray(data.quizHistory)) {
+        logCaptureState.quizHistory = data.quizHistory;
+      }
       logCaptureState.playerName = data.playerName || "";
       if (logCaptureState.playerName && logCaptureState.playerName !== configuredPlayerName) {
         configuredPlayerName = logCaptureState.playerName;
@@ -3285,6 +4063,27 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       }
       scheduleLogCapturePolling();
       renderLogCapturePanel();
+      if (activeView === "gts" && hasNewGtsDisplayEvents) {
+        scheduleAppRender();
+      }
+      hasPrimedLogActivityAlerts = true;
+      if (newInvasionEvents.length) {
+        notifyLogActivity(newInvasionEvents[0]).catch(() => {});
+      }
+      if (newQuizEvents.length) {
+        notifyLogActivity(newQuizEvents[0]).catch(() => {});
+      }
+      if (newGtsEvents.length) {
+        const event = newGtsEvents[0];
+        const info = getGtsEventInfo(event);
+        const matchTerm = getGtsWatchMatchTerm(event);
+        notifyLogActivity({
+          ...event,
+          toastDetail: event.type === "gts_sale"
+            ? `${info.buyer} comprou ${info.item}`
+            : `${info.item} por ${info.price}${matchTerm ? ` | Desejado: ${matchTerm}` : ""}`
+        }).catch(() => {});
+      }
     }
 
     async function postLogCapture(path, body = {}) {
@@ -3324,7 +4123,8 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
         logCaptureState.poller = null;
       }
       if (useFileDatabase && logCaptureState.enabled) {
-        logCaptureState.poller = setInterval(refreshLogCaptureStatus, 10000);
+        const interval = quizAlertsEnabled || quizAutoCopyEnabled || gtsAlertsEnabled ? LOG_CAPTURE_QUIZ_POLL_MS : LOG_CAPTURE_DEFAULT_POLL_MS;
+        logCaptureState.poller = setInterval(refreshLogCaptureStatus, interval);
       }
     }
 
@@ -5420,19 +6220,35 @@ IVs: HP 31 / Atk 31 / Def 19 / SpA 31 / SpD 31 / Spe 31"></textarea>
     }
 
     async function copyTextToClipboard(text) {
+      const clipboardText = String(text || "");
+      if (isTauriApp()) {
+        try {
+          await invokeTauri("set_clipboard_text", { text: clipboardText });
+          return;
+        } catch {
+          // Keep the browser fallback for legacy/dev mode if the native bridge fails.
+        }
+      }
       if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(text);
-        return;
+        try {
+          await navigator.clipboard.writeText(clipboardText);
+          return;
+        } catch {
+          // WebView can block async clipboard writes outside a direct click; fall back below.
+        }
       }
       const textarea = document.createElement("textarea");
-      textarea.value = text;
+      textarea.value = clipboardText;
       textarea.setAttribute("readonly", "");
       textarea.style.position = "fixed";
       textarea.style.opacity = "0";
       document.body.append(textarea);
       textarea.select();
-      document.execCommand("copy");
+      const copied = document.execCommand("copy");
       textarea.remove();
+      if (!copied) {
+        throw new Error("Nao foi possivel copiar para a area de transferencia.");
+      }
     }
 
     function openTeamPokemonModal(record) {
@@ -8166,6 +8982,8 @@ Obs: pronto para boss"></textarea>
       const teamsActive = activeView === "teams";
       const buildsActive = activeView === "builds";
       const collectionActive = activeView === "collection";
+      const quizActive = activeView === "quiz";
+      const gtsActive = activeView === "gts";
       const settingsActive = activeView === "settings";
       checklistTab.classList.toggle("active", checklistActive);
       captureTab.classList.toggle("active", captureActive);
@@ -8174,6 +8992,8 @@ Obs: pronto para boss"></textarea>
       teamsTab.classList.toggle("active", teamsActive);
       buildsTab.classList.toggle("active", buildsActive);
       collectionTab.classList.toggle("active", collectionActive);
+      quizTab.classList.toggle("active", quizActive);
+      gtsTab?.classList.toggle("active", gtsActive);
       settingsTab.classList.toggle("active", settingsActive);
       checklistTab.setAttribute("aria-pressed", checklistActive ? "true" : "false");
       captureTab.setAttribute("aria-pressed", captureActive ? "true" : "false");
@@ -8182,8 +9002,10 @@ Obs: pronto para boss"></textarea>
       teamsTab.setAttribute("aria-pressed", teamsActive ? "true" : "false");
       buildsTab.setAttribute("aria-pressed", buildsActive ? "true" : "false");
       collectionTab.setAttribute("aria-pressed", collectionActive ? "true" : "false");
+      quizTab.setAttribute("aria-pressed", quizActive ? "true" : "false");
+      gtsTab?.setAttribute("aria-pressed", gtsActive ? "true" : "false");
       settingsTab.setAttribute("aria-pressed", settingsActive ? "true" : "false");
-      document.body.classList.toggle("flow-without-kpis", captureActive || breedingActive || teamsActive || buildsActive || collectionActive || settingsActive);
+      document.body.classList.toggle("flow-without-kpis", captureActive || breedingActive || teamsActive || buildsActive || collectionActive || quizActive || gtsActive || settingsActive);
       checklistNavSections.hidden = !checklistActive;
       toolbar.hidden = !checklistActive;
       const owned = allEntries.filter(isOwned).length;
@@ -8197,6 +9019,10 @@ Obs: pronto para boss"></textarea>
       teamsFlowCount.textContent = teamBuiltPokemon.length;
       buildsFlowCount.textContent = typeFilters.length;
       collectionFlowCount.textContent = collectionTrackingState.size;
+      quizFlowCount.textContent = getQuizPendingEntries().length;
+      if (gtsFlowCount) {
+        gtsFlowCount.textContent = getGtsMatchedListings().length || getGtsSales().length;
+      }
       settingsFlowCount.textContent = isTauriApp() ? "Desk" : "Web";
     }
 
@@ -8357,6 +9183,10 @@ Obs: pronto para boss"></textarea>
     }
 
     function getRewardTypeLabel(type) {
+      if (type === "invasion") return "Invasao";
+      if (type === "quiz") return "Quiz";
+      if (type === "gts") return "GTS";
+      if (type === "gts_sale") return "Venda GTS";
       if (type === "gacha") return "Gacha";
       if (type === "money") return "Dinheiro";
       if (type === "reward") return "Recompensa";
@@ -8399,7 +9229,10 @@ Obs: pronto para boss"></textarea>
       const recentList = section.querySelector(".capture-recent-list");
       activityRows.forEach(activity => {
         const item = document.createElement(activity.kind === "capture" ? "button" : "div");
-        item.className = `capture-recent-item${activity.kind === "reward" ? " is-reward" : ""}`;
+          const rewardClass = activity.kind === "reward"
+          ? ` is-reward${activity.event?.type === "invasion" ? " is-invasion" : ""}${activity.event?.type === "quiz" ? " is-quiz" : ""}${activity.event?.type === "gts" || activity.event?.type === "gts_sale" ? " is-gts" : ""}`
+          : "";
+        item.className = `capture-recent-item${rewardClass}`;
         if (activity.kind === "capture") item.type = "button";
         item.innerHTML = `
           <span class="capture-recent-image"></span>
@@ -8420,9 +9253,15 @@ Obs: pronto para boss"></textarea>
           const event = activity.event || {};
           const icon = item.querySelector(".capture-recent-image");
           icon.className = "capture-recent-icon";
-          icon.textContent = getRewardTypeLabel(event.type).slice(0, 2).toUpperCase();
+          icon.textContent = event.type === "invasion" ? "!" : getRewardTypeLabel(event.type).slice(0, 2).toUpperCase();
           item.querySelector("strong").textContent = event.title || getRewardTypeLabel(event.type);
-          item.querySelector(".capture-recent-main span").textContent = getRewardTypeLabel(event.type);
+          item.querySelector(".capture-recent-main span").textContent = event.type === "invasion"
+            ? "/warp navio"
+            : event.type === "quiz"
+              ? event.detail || "Curiosidade"
+              : event.type === "gts" || event.type === "gts_sale"
+                ? getGtsEventInfo(event).item
+              : getRewardTypeLabel(event.type);
           item.querySelector(".capture-recent-date").textContent = formatActivityDate(event.detectedAt, event.logTime);
           item.title = event.detail || event.text || "";
         }
@@ -8535,8 +9374,10 @@ Obs: pronto para boss"></textarea>
         document.body.append(toast);
       }
       window.clearTimeout(showDownloadToast.timer);
+      window.clearTimeout(activityAlertToastTimer);
       toast.querySelector("strong").textContent = "Arquivo enviado para Downloads";
       toast.querySelector("span").textContent = detail ? `${filename} - ${detail}` : filename;
+      toast.classList.remove("is-alert");
       toast.classList.add("is-visible");
       showDownloadToast.timer = window.setTimeout(() => {
         toast.classList.remove("is-visible");
@@ -8864,6 +9705,365 @@ Obs: pronto para boss"></textarea>
       list.append(status);
     }
 
+    function createQuizFlowSummaryItem(label, value) {
+      const item = document.createElement("div");
+      item.className = "quiz-summary-item";
+      item.innerHTML = `<strong></strong><span></span>`;
+      item.querySelector("strong").textContent = value;
+      item.querySelector("span").textContent = label;
+      return item;
+    }
+
+    function createQuizHistoryCard(entry) {
+      const card = document.createElement("article");
+      card.className = `quiz-card${entry.answer ? "" : " is-pending"}`;
+      const header = document.createElement("div");
+      header.className = "quiz-card-header";
+      const title = document.createElement("h3");
+      title.textContent = entry.answer ? "Resposta cadastrada" : "Precisa de resposta";
+      const badge = document.createElement("span");
+      badge.className = `quiz-status-badge${entry.answer ? " is-known" : " is-pending"}`;
+      badge.textContent = entry.answer ? "Conhecida" : "Pendente";
+      header.append(title, badge);
+
+      const question = document.createElement("p");
+      question.className = "quiz-question";
+      question.textContent = entry.question;
+
+      const row = document.createElement("div");
+      row.className = "quiz-answer-row";
+      const input = document.createElement("input");
+      input.type = "text";
+      input.value = entry.answer;
+      input.placeholder = "Resposta correta";
+      input.id = `quiz-answer-${entry.key}`;
+      const saveButton = document.createElement("button");
+      saveButton.className = entry.answer ? "muted-button" : "modal-capture-button";
+      saveButton.type = "button";
+      saveButton.textContent = entry.answer ? "Atualizar" : "Cadastrar";
+      saveButton.addEventListener("click", () => saveQuizHistoryAnswer(entry.question, input.value));
+      input.addEventListener("keydown", event => {
+        if (event.key !== "Enter") return;
+        event.preventDefault();
+        saveQuizHistoryAnswer(entry.question, input.value);
+      });
+      row.append(input, saveButton);
+
+      card.append(header, question);
+      if (entry.answer) {
+        const answer = document.createElement("p");
+        answer.className = "quiz-answer-preview";
+        answer.textContent = `Resposta atual: ${entry.answer}`;
+        card.append(answer);
+      }
+      card.append(row);
+
+      const metaParts = [
+        entry.source ? `Fonte: ${entry.source}` : "",
+        entry.count ? `${entry.count} ocorrencia${entry.count === 1 ? "" : "s"}` : ""
+      ].filter(Boolean);
+      if (metaParts.length) {
+        const meta = document.createElement("p");
+        meta.className = "settings-row-note";
+        meta.textContent = metaParts.join(" - ");
+        card.append(meta);
+      }
+
+      return card;
+    }
+
+    function renderQuizFlow(list) {
+      const entries = getQuizHistoryEntries();
+      const pending = entries.filter(entry => !entry.answer);
+      const known = entries.filter(entry => entry.answer);
+      activeTitle.textContent = "Quiz";
+      visibleCount.textContent = `${pending.length} pendente${pending.length === 1 ? "" : "s"}`;
+
+      const panel = document.createElement("section");
+      panel.className = "quiz-flow-panel";
+
+      const tools = document.createElement("div");
+      tools.className = "quiz-tools";
+      const summary = document.createElement("div");
+      summary.className = "quiz-summary";
+      summary.append(
+        createQuizFlowSummaryItem("Pendentes", String(pending.length)),
+        createQuizFlowSummaryItem("Respondidas", String(known.length)),
+        createQuizFlowSummaryItem("Total", String(entries.length))
+      );
+      const actions = document.createElement("div");
+      actions.className = "settings-action-row";
+      const importButton = document.createElement("button");
+      importButton.className = "modal-capture-button";
+      importButton.type = "button";
+      importButton.textContent = "Importar perguntas dos logs";
+      importButton.disabled = !useFileDatabase;
+      importButton.addEventListener("click", event => {
+        importQuizHistoryFromLogs(event.currentTarget).then(() => {
+          quizFlowStatus = quizHistoryImportStatus;
+          render();
+        });
+      });
+      const refreshButton = document.createElement("button");
+      refreshButton.className = "muted-button";
+      refreshButton.type = "button";
+      refreshButton.textContent = "Atualizar historico";
+      refreshButton.disabled = !useFileDatabase;
+      refreshButton.addEventListener("click", event => {
+        refreshQuizHistory(event.currentTarget).then(render);
+      });
+      const testButton = document.createElement("button");
+      testButton.className = "muted-button";
+      testButton.type = "button";
+      testButton.textContent = "Testar alerta de quiz";
+      testButton.addEventListener("click", event => testQuizAlert(event.currentTarget).then(render));
+      actions.append(importButton, refreshButton, testButton);
+      tools.append(summary, actions);
+
+      const manual = document.createElement("form");
+      manual.className = "quiz-manual-form";
+      manual.innerHTML = `
+        <div>
+          <label for="quiz-manual-question">Pergunta ou descricao</label>
+          <textarea id="quiz-manual-question" rows="3" placeholder="Cole a descricao da pergunta complexa"></textarea>
+        </div>
+        <div>
+          <label for="quiz-manual-answer">Resposta correta</label>
+          <input id="quiz-manual-answer" type="text" placeholder="Ex: Morelull ou Sand Veil">
+        </div>
+        <button class="modal-capture-button" type="submit">Salvar resposta</button>
+      `;
+      manual.addEventListener("submit", event => {
+        event.preventDefault();
+        saveQuizHistoryAnswer(
+          manual.querySelector("#quiz-manual-question").value,
+          manual.querySelector("#quiz-manual-answer").value
+        );
+      });
+
+      const filter = document.createElement("div");
+      filter.className = "quiz-filter-row";
+      const search = document.createElement("input");
+      search.type = "search";
+      search.id = "quiz-flow-search";
+      search.placeholder = "Buscar pergunta ou resposta";
+      search.value = quizFlowSearch;
+      search.addEventListener("input", event => {
+        quizFlowSearch = event.target.value;
+        render();
+      });
+      const modeButtons = [
+        { value: "pending", label: "Pendentes" },
+        { value: "known", label: "Respondidas" },
+        { value: "all", label: "Todas" }
+      ].map(mode => createFilterChip({
+        label: mode.label,
+        active: quizFlowMode === mode.value,
+        onClick: () => {
+          quizFlowMode = mode.value;
+          render();
+        }
+      }));
+      filter.append(search, ...modeButtons);
+
+      const status = document.createElement("p");
+      status.className = "settings-row-note";
+      status.textContent = quizFlowStatus || (useFileDatabase
+        ? "Perguntas complexas novas entram aqui quando aparecem nos logs ou quando voce importa o historico."
+        : "Abra pelo app desktop para ler logs e salvar respostas.");
+
+      const normalizedSearch = normalize(quizFlowSearch);
+      const visibleEntries = entries.filter(entry => {
+        if (quizFlowMode === "pending" && entry.answer) return false;
+        if (quizFlowMode === "known" && !entry.answer) return false;
+        if (!normalizedSearch) return true;
+        return normalize(`${entry.question} ${entry.answer}`).includes(normalizedSearch);
+      });
+      const grid = document.createElement("div");
+      grid.className = "quiz-grid";
+      if (visibleEntries.length) {
+        visibleEntries.forEach(entry => grid.append(createQuizHistoryCard(entry)));
+      } else {
+        renderSettingsStatus(
+          grid,
+          "Nenhuma pergunta aqui",
+          quizFlowMode === "pending" ? "Sem pendencias no historico atual." : "Importe os logs ou cadastre uma resposta manualmente."
+        );
+      }
+
+      panel.append(tools, manual, filter, status, grid);
+      list.append(panel);
+    }
+
+    function createGtsEventCard(event) {
+      const info = getGtsEventInfo(event);
+      const isSale = event.type === "gts_sale";
+      const matched = gtsEventMatchesWatchlist(event);
+      const card = document.createElement("article");
+      card.className = `gts-card${matched ? " is-match" : ""}${isSale ? " is-sale" : ""}`;
+
+      const header = document.createElement("div");
+      header.className = "gts-card-header";
+      const title = document.createElement("h3");
+      title.textContent = info.item;
+      const badge = document.createElement("span");
+      badge.className = `gts-status-badge${isSale ? " is-sale" : matched ? " is-match" : ""}`;
+      badge.textContent = isSale ? "Minha venda" : matched ? "Desejado" : "Anuncio";
+      header.append(title, badge);
+
+      const meta = document.createElement("div");
+      meta.className = "gts-card-meta";
+      if (isSale) {
+        meta.append(
+          createGtsMetaItem("Comprador", info.buyer || "Nao informado")
+        );
+      } else {
+        meta.append(
+          createGtsMetaItem("Preco", info.price || "Nao informado", "is-price"),
+          createGtsMetaItem("Vendedor", info.seller || "Nao informado")
+        );
+      }
+
+      card.append(header, meta);
+      return card;
+    }
+
+    function createGtsMetaItem(label, value, extraClass = "") {
+      const item = document.createElement("span");
+      item.className = `gts-meta-item${extraClass ? ` ${extraClass}` : ""}`;
+      item.innerHTML = `<strong></strong><b></b>`;
+      item.querySelector("strong").textContent = label;
+      item.querySelector("b").textContent = value;
+      return item;
+    }
+
+    function renderGtsFlow(list) {
+      const events = getGtsEvents();
+      const listings = getGtsListings();
+      const sales = getGtsSales();
+      const matches = getGtsMatchedListings();
+      activeTitle.textContent = "GTS";
+      visibleCount.textContent = `${matches.length} desejado${matches.length === 1 ? "" : "s"}`;
+
+      const panel = document.createElement("section");
+      panel.className = "gts-flow-panel";
+
+      const tools = document.createElement("div");
+      tools.className = "gts-tools";
+      const summary = document.createElement("div");
+      summary.className = "quiz-summary";
+      summary.append(
+        createQuizFlowSummaryItem("Desejados", String(gtsWatchlist.length)),
+        createQuizFlowSummaryItem("Anuncios", String(listings.length)),
+        createQuizFlowSummaryItem("Minhas vendas", String(sales.length))
+      );
+      const actions = document.createElement("div");
+      actions.className = "settings-action-row";
+      const testButton = document.createElement("button");
+      testButton.className = "muted-button";
+      testButton.type = "button";
+      testButton.textContent = "Testar alerta GTS";
+      testButton.addEventListener("click", event => testGtsAlert(event.currentTarget).then(render));
+      actions.append(testButton);
+      tools.append(summary, actions);
+
+      const form = document.createElement("form");
+      form.className = "gts-watch-form";
+      form.innerHTML = `
+        <label for="gts-watch-input">Adicionar desejado</label>
+        <div class="gts-watch-row">
+          <input id="gts-watch-input" type="text" placeholder="Ex: Riolu, Gift Card, Master Ball">
+          <button class="modal-capture-button" type="submit">Adicionar</button>
+        </div>
+      `;
+      form.addEventListener("submit", event => {
+        event.preventDefault();
+        const input = form.querySelector("#gts-watch-input");
+        if (addGtsWatchTerm(input.value)) {
+          gtsFlowStatus = `Desejado adicionado: ${input.value.trim()}`;
+          input.value = "";
+        } else {
+          gtsFlowStatus = "Informe um desejado novo.";
+        }
+        render();
+      });
+
+      const chips = document.createElement("div");
+      chips.className = "gts-watch-list";
+      if (gtsWatchlist.length) {
+        gtsWatchlist.forEach(term => {
+          const chip = document.createElement("button");
+          chip.className = "filter-chip active";
+          chip.type = "button";
+          chip.textContent = `${term} x`;
+          chip.addEventListener("click", () => {
+            removeGtsWatchTerm(term);
+            gtsFlowStatus = `Desejado removido: ${term}`;
+            render();
+          });
+          chips.append(chip);
+        });
+      } else {
+        const empty = document.createElement("p");
+        empty.className = "settings-row-note";
+        empty.textContent = "Cadastre Pokemon ou itens desejados para receber aviso quando aparecerem no GTS.";
+        chips.append(empty);
+      }
+
+      const filter = document.createElement("div");
+      filter.className = "quiz-filter-row";
+      const search = document.createElement("input");
+      search.type = "search";
+      search.id = "gts-flow-search";
+      search.placeholder = "Buscar item, Pokemon, vendedor ou preco";
+      search.value = gtsFlowSearch;
+      search.addEventListener("input", event => {
+        gtsFlowSearch = event.target.value;
+        render();
+      });
+      const modeButtons = [
+        { value: "matches", label: "Desejados" },
+        { value: "sales", label: "Minhas vendas" },
+        { value: "all", label: "Todos" }
+      ].map(mode => createFilterChip({
+        label: mode.label,
+        active: gtsFlowMode === mode.value,
+        onClick: () => {
+          gtsFlowMode = mode.value;
+          render();
+        }
+      }));
+      filter.append(search, ...modeButtons);
+
+      const status = document.createElement("p");
+      status.className = "settings-row-note";
+      status.textContent = gtsFlowStatus || getGtsAlertStatusText();
+
+      const normalizedSearch = normalize(gtsFlowSearch);
+      const visibleEvents = events.filter(event => {
+        if (gtsFlowMode === "matches" && !gtsEventMatchesWatchlist(event)) return false;
+        if (gtsFlowMode === "sales" && event.type !== "gts_sale") return false;
+        if (!normalizedSearch) return true;
+        const info = getGtsEventInfo(event);
+        return normalize(`${info.item} ${info.price} ${info.seller} ${info.buyer} ${event.title} ${event.detail}`).includes(normalizedSearch);
+      });
+
+      const grid = document.createElement("div");
+      grid.className = "gts-grid";
+      if (visibleEvents.length) {
+        visibleEvents.slice(0, 120).forEach(event => grid.append(createGtsEventCard(event)));
+      } else {
+        renderSettingsStatus(
+          grid,
+          "Nenhum evento GTS aqui",
+          useFileDatabase ? "Ligue o monitor de logs e cadastre desejados para acompanhar anuncios." : "Abra pelo app desktop para ler o chat do jogo."
+        );
+      }
+
+      panel.append(tools, form, chips, filter, status, grid);
+      list.append(panel);
+    }
+
     function renderSettingsFlow(list) {
       activeTitle.textContent = "Configuracoes";
       visibleCount.textContent = isTauriApp() ? "Modo desktop" : "Modo navegador";
@@ -8898,9 +10098,65 @@ Obs: pronto para boss"></textarea>
           </div>
           <p class="settings-row-note" id="settings-player-note"></p>
         </div>
+        <div class="settings-row">
+          <span class="settings-field-label">Alerta de invasao</span>
+          <div class="settings-switch-row">
+            <label class="switch-control" aria-label="Ativar notificacao do Windows para invasao">
+              <input id="settings-invasion-windows-notification" type="checkbox">
+              <span class="switch-track" aria-hidden="true"></span>
+            </label>
+            <div class="settings-switch-copy">
+              <strong>Notificacao do Windows</strong>
+              <p class="settings-row-note" id="settings-invasion-notification-note"></p>
+            </div>
+          </div>
+        </div>
+        <div class="settings-row">
+          <span class="settings-field-label">Alertas de quiz</span>
+          <div class="settings-switch-row">
+            <label class="switch-control" aria-label="Ativar alertas de quiz do chat">
+              <input id="settings-quiz-alerts" type="checkbox">
+              <span class="switch-track" aria-hidden="true"></span>
+            </label>
+            <div class="settings-switch-copy">
+              <strong>Curiosidade com resposta</strong>
+              <p class="settings-row-note" id="settings-quiz-alert-note"></p>
+            </div>
+          </div>
+        </div>
+        <div class="settings-row">
+          <span class="settings-field-label">Resposta do quiz</span>
+          <div class="settings-switch-row">
+            <label class="switch-control" aria-label="Copiar resposta de quiz automaticamente">
+              <input id="settings-quiz-auto-copy" type="checkbox">
+              <span class="switch-track" aria-hidden="true"></span>
+            </label>
+            <div class="settings-switch-copy">
+              <strong>Copiar para colar no chat</strong>
+              <p class="settings-row-note" id="settings-quiz-auto-copy-note"></p>
+            </div>
+          </div>
+        </div>
+        <div class="settings-row">
+          <span class="settings-field-label">Alertas de GTS</span>
+          <div class="settings-switch-row">
+            <label class="switch-control" aria-label="Ativar alertas de anuncios do GTS">
+              <input id="settings-gts-alerts" type="checkbox">
+              <span class="switch-track" aria-hidden="true"></span>
+            </label>
+            <div class="settings-switch-copy">
+              <strong>Anuncios desejados</strong>
+              <p class="settings-row-note" id="settings-gts-alert-note"></p>
+            </div>
+          </div>
+        </div>
         <div class="settings-action-row">
           <button class="muted-button" id="settings-toggle-log-capture" type="button"></button>
           <button class="muted-button" id="settings-refresh-log-capture" type="button">Atualizar logs</button>
+          <button class="muted-button" id="settings-test-invasion-alert" type="button">Testar aviso de invasao</button>
+          <button class="muted-button" id="settings-test-quiz-alert" type="button">Testar alerta de quiz</button>
+          <button class="muted-button" id="settings-test-gts-alert" type="button">Testar alerta GTS</button>
+          <button class="muted-button" id="settings-import-quiz-history" type="button">Importar respostas dos logs</button>
         </div>
       `;
       const settingsLogPath = logPanel.querySelector("#settings-log-path");
@@ -8911,6 +10167,18 @@ Obs: pronto para boss"></textarea>
       const settingsPlayerNote = logPanel.querySelector("#settings-player-note");
       const settingsToggleLogCapture = logPanel.querySelector("#settings-toggle-log-capture");
       const settingsRefreshLogCapture = logPanel.querySelector("#settings-refresh-log-capture");
+      const settingsInvasionWindowsNotification = logPanel.querySelector("#settings-invasion-windows-notification");
+      const settingsInvasionNotificationNote = logPanel.querySelector("#settings-invasion-notification-note");
+      const settingsTestInvasionAlert = logPanel.querySelector("#settings-test-invasion-alert");
+      const settingsQuizAlerts = logPanel.querySelector("#settings-quiz-alerts");
+      const settingsQuizAlertNote = logPanel.querySelector("#settings-quiz-alert-note");
+      const settingsQuizAutoCopy = logPanel.querySelector("#settings-quiz-auto-copy");
+      const settingsQuizAutoCopyNote = logPanel.querySelector("#settings-quiz-auto-copy-note");
+      const settingsGtsAlerts = logPanel.querySelector("#settings-gts-alerts");
+      const settingsGtsAlertNote = logPanel.querySelector("#settings-gts-alert-note");
+      const settingsTestQuizAlert = logPanel.querySelector("#settings-test-quiz-alert");
+      const settingsTestGtsAlert = logPanel.querySelector("#settings-test-gts-alert");
+      const settingsImportQuizHistory = logPanel.querySelector("#settings-import-quiz-history");
       settingsLogPath.value = logCaptureState.configuredLogPath || logCaptureState.defaultLogPath;
       settingsPlayerName.value = configuredPlayerName || logCaptureState.playerName || "";
       settingsLogPath.disabled = !useFileDatabase;
@@ -8918,6 +10186,19 @@ Obs: pronto para boss"></textarea>
       settingsSavePlayerName.disabled = false;
       settingsToggleLogCapture.disabled = !useFileDatabase;
       settingsRefreshLogCapture.disabled = !useFileDatabase;
+      settingsInvasionWindowsNotification.disabled = !isTauriApp();
+      settingsInvasionWindowsNotification.checked = invasionWindowsNotificationsEnabled;
+      settingsInvasionNotificationNote.textContent = getInvasionNotificationStatusText();
+      settingsQuizAlerts.disabled = !useFileDatabase;
+      settingsQuizAlerts.checked = quizAlertsEnabled;
+      settingsQuizAlertNote.textContent = getQuizAlertStatusText();
+      settingsQuizAutoCopy.disabled = !useFileDatabase;
+      settingsQuizAutoCopy.checked = quizAutoCopyEnabled;
+      settingsQuizAutoCopyNote.textContent = getQuizAutoCopyStatusText();
+      settingsGtsAlerts.disabled = !useFileDatabase;
+      settingsGtsAlerts.checked = gtsAlertsEnabled;
+      settingsGtsAlertNote.textContent = getGtsAlertStatusText();
+      settingsImportQuizHistory.disabled = !useFileDatabase;
       settingsToggleLogCapture.textContent = logCaptureState.enabled ? "Desligar monitor" : "Ligar monitor";
       settingsLogNote.textContent = useFileDatabase
         ? `Atual: ${maskLocalPath(logCaptureState.activePath || logCaptureState.configuredLogPath || logCaptureState.defaultLogPath || "nao configurado")}`
@@ -8948,6 +10229,32 @@ Obs: pronto para boss"></textarea>
         });
       });
       settingsRefreshLogCapture.addEventListener("click", () => refreshLogCaptureStatus().then(render));
+      settingsInvasionWindowsNotification.addEventListener("change", event => {
+        setInvasionWindowsNotificationsEnabled(event.target.checked).then(render);
+      });
+      settingsQuizAlerts.addEventListener("change", event => {
+        setQuizAlertsEnabled(event.target.checked).then(render);
+      });
+      settingsQuizAutoCopy.addEventListener("change", event => {
+        setQuizAutoCopyEnabled(event.target.checked);
+        render();
+      });
+      settingsGtsAlerts.addEventListener("change", event => {
+        setGtsAlertsEnabled(event.target.checked);
+        render();
+      });
+      settingsTestInvasionAlert.addEventListener("click", event => {
+        testInvasionAlert(event.currentTarget).then(render);
+      });
+      settingsTestQuizAlert.addEventListener("click", event => {
+        testQuizAlert(event.currentTarget).then(render);
+      });
+      settingsTestGtsAlert.addEventListener("click", event => {
+        testGtsAlert(event.currentTarget).then(render);
+      });
+      settingsImportQuizHistory.addEventListener("click", event => {
+        importQuizHistoryFromLogs(event.currentTarget).then(render);
+      });
 
       const viewPanel = document.createElement("article");
       viewPanel.className = "settings-panel";
@@ -9097,6 +10404,10 @@ Obs: pronto para boss"></textarea>
 
     function getScrollableSnapshots() {
       const selectors = [
+        ".sidebar",
+        ".main-area",
+        "#list",
+        ".capture-sidebar",
         ".breeding-saved-list",
         ".breeding-list",
         ".breeding-parent-suggestions",
@@ -9137,7 +10448,10 @@ Obs: pronto para boss"></textarea>
     function scheduleRenderScrollRestore(snapshot) {
       restoreRenderScroll(snapshot);
       if (typeof requestAnimationFrame === "function") {
-        requestAnimationFrame(() => restoreRenderScroll(snapshot));
+        requestAnimationFrame(() => {
+          restoreRenderScroll(snapshot);
+          requestAnimationFrame(() => restoreRenderScroll(snapshot));
+        });
       }
     }
 
@@ -9178,6 +10492,7 @@ Obs: pronto para boss"></textarea>
     }
 
     function render() {
+      try {
       const activeInputSnapshot = getActiveInputSnapshot();
       const scrollSnapshot = getRenderScrollSnapshot();
       if (activeView === "fragments") {
@@ -9237,6 +10552,18 @@ Obs: pronto para boss"></textarea>
 
       if (activeView === "collection") {
         renderCollectionFlow(list);
+        finishRender();
+        return;
+      }
+
+      if (activeView === "quiz") {
+        renderQuizFlow(list);
+        finishRender();
+        return;
+      }
+
+      if (activeView === "gts") {
+        renderGtsFlow(list);
         finishRender();
         return;
       }
@@ -9306,6 +10633,9 @@ Obs: pronto para boss"></textarea>
       activeTitle.textContent = activeNavigation.label;
       visibleCount.textContent = `${visible} Pok\u00e9mon`;
       finishRender();
+      } catch (error) {
+        showFrontendFailure(error);
+      }
     }
 
     function exportMissingPokemon(event) {
@@ -9343,6 +10673,8 @@ Obs: pronto para boss"></textarea>
       activeView = "checklist";
       render();
     });
+    document.addEventListener("pointerdown", primeActivityAlertSound, { once: true, passive: true });
+    document.addEventListener("keydown", primeActivityAlertSound, { once: true });
     captureTab.addEventListener("click", () => {
       activeView = "capture";
       render();
@@ -9365,6 +10697,17 @@ Obs: pronto para boss"></textarea>
     });
     collectionTab.addEventListener("click", () => {
       activeView = "collection";
+      render();
+    });
+    quizTab.addEventListener("click", async () => {
+      activeView = "quiz";
+      if (useFileDatabase) {
+        await refreshQuizHistory();
+      }
+      render();
+    });
+    gtsTab?.addEventListener("click", () => {
+      activeView = "gts";
       render();
     });
     settingsTab.addEventListener("click", () => {

@@ -42,27 +42,57 @@ export function getReleaseCommits(currentTag, cwd = process.cwd()) {
     .filter(commit => commit.subject);
 }
 
+function collectReleaseHighlights(commits) {
+  const text = commits
+    .flatMap(commit => [commit.subject, ...commit.body])
+    .join("\n")
+    .toLowerCase();
+  const highlights = [];
+
+  const add = (condition, line) => {
+    if (condition && !highlights.includes(line)) highlights.push(line);
+  };
+
+  add(
+    /\bcollection\b|\bcolecao\b|\bcoleção\b|\bha\b|\bshiny\b/.test(text),
+    "Nova area de colecao para acompanhar HA, Shiny e listas de Pokemon com mais praticidade."
+  );
+  add(
+    /\bbackup\b|\bmerge\b|\bmescl|\bsync\b|\bpc\b|\bpcs\b/.test(text),
+    "Novo fluxo para atualizar dados entre PCs sem substituir a base local."
+  );
+  add(
+    /\bteam\b|\btimes\b|\bcounter\b|\bshield\b|\bescudo\b|\bbuild\b/.test(text),
+    "Melhorias nos times, counters e consultas de cobertura para planejamento de batalhas."
+  );
+  add(
+    /\blog\b|\btelemetry\b|\btelemetria\b|\breward\b|\brecompensa\b|\bganho\b/.test(text),
+    "Monitoramento de logs mais completo para capturas, ganhos e recompensas do jogador."
+  );
+  add(
+    /\bdata:\b|\bdados\b|\bgenerated pokemon\b|\bmethod\b|\bmetodo\b|\bmétodo\b|\bbiome\b|\bbioma\b|\bevolution\b|\bevolucao\b|\bevolução\b/.test(text),
+    "Dados de Pokemon revisados com ajustes em metodos, biomas e evolucoes."
+  );
+
+  if (!highlights.length) {
+    highlights.push("Melhorias gerais de usabilidade, estabilidade e dados do app.");
+  }
+
+  return highlights;
+}
+
 export function formatReleaseNotes({ version, tagName = `v${version}`, cwd = process.cwd() }) {
   const commits = getReleaseCommits(tagName, cwd);
   const lines = [
     `Pixelmon - Pokelist ${tagName}`,
     "",
-    "Mudancas nesta versao:"
+    "Destaques desta versao:"
   ];
 
-  if (commits.length) {
-    commits.slice(0, 12).forEach(commit => {
-      lines.push(`- ${commit.subject}`);
-      commit.body.slice(0, 4).forEach(detail => lines.push(`  - ${detail}`));
-    });
-    if (commits.length > 12) lines.push(`- Mais ${commits.length - 12} mudanca(s) no historico da versao.`);
-  } else {
-    lines.push("- Ajustes e correcoes do app.");
-  }
+  collectReleaseHighlights(commits).forEach(highlight => lines.push(`- ${highlight}`));
 
-  lines.push("", "Validacao:");
-  lines.push("- Checks locais rodam antes da tag pelo script de release.");
-  lines.push("- O GitHub Actions gera o instalador, assinatura e latest.json.");
+  lines.push("", "Como atualizar:");
+  lines.push("- Use Buscar atualizacoes dentro do app ou baixe o instalador desta release.");
 
   return `${lines.join("\n")}\n`;
 }
