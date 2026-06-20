@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "1781747341",
+  "updatedAt": "1781789073",
   "entries": [
     {
       "key": "abrigasuacolniaemclulasemseucorpoeliberavriosferomniosparafazeressaslarvasfazeremseuspedidos",
@@ -1022,8 +1022,8 @@
     {
       "key": "elepuxaoarpelacaudatransformaoemfogoeousacomoumalnguaderretedurantecomeos",
       "question": "Ele puxa o ar pela cauda, ??transforma-o em fogo e o usa como uma lngua. Derrete Durant e come-os.",
-      "answer": "water 1",
-      "source": "latest.log",
+      "answer": "Salazzle",
+      "source": "manual",
       "learnedAt": "1781619797",
       "lastSeenAt": "1781630201",
       "count": 4
@@ -1949,8 +1949,8 @@
     {
       "key": "osataquesdestepokemoncomefeitossecundriostmseupodermultiplicadopor13masessesefeitossoanulados",
       "question": "Os ataques deste pokemon com efeitos secundrios tm seu poder multiplicado por 1.3, mas esses efeitos so anulados.",
-      "answer": "water 1",
-      "source": "2026-06-16-2.log.gz",
+      "answer": "Sheer Force",
+      "source": "manual",
       "learnedAt": "1781631452",
       "lastSeenAt": "1781747341",
       "count": 58
@@ -3817,6 +3817,24 @@
       "learnedAt": "1781631693",
       "lastSeenAt": "1781747339",
       "count": 24
+    },
+    {
+      "key": "comcorposfortalecidoseleshabilmenteempunhamvigasdeacoparaderrubaredificios",
+      "question": "Com corpos fortalecidos, eles habilmente empunham vigas de aço para derrubar edifícios.",
+      "answer": "gurdurr",
+      "source": "manual",
+      "learnedAt": "1781788593",
+      "lastSeenAt": "1781788593",
+      "count": 1
+    },
+    {
+      "key": "atacausandosuabocaenormeenquantoseusataquessaopoderosostambemsemachucaporfaltadejeito",
+      "question": "Ataca usando sua boca enorme. Enquanto seus ataques são poderosos, também se machuca por falta de jeito.",
+      "answer": "gible",
+      "source": "manual",
+      "learnedAt": "1781789073",
+      "lastSeenAt": "1781789073",
+      "count": 1
     }
   ]
 }

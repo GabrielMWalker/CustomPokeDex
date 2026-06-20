@@ -21,6 +21,7 @@ const answerRules = [
   ["30 de chance de curar a condio de status de um aliado", "Healer"],
   ["efeitos das condies climticas so desativados", "Cloud Nine"],
   ["efeitos secundrios dos movimentos do pokemon tm chance dobrada", "Serene Grace"],
+  ["ataques deste pokemon com efeitos secundrios tm seu poder multiplicado por 1 3 mas esses efeitos so anulados", "Sheer Force"],
   ["movimentos de status efeitos usados ganham prioridade", "Prankster"],
   ["vive em bules antigos", "Sinistea"],
   ["manchas de pele no condutivas", "Flaaffy"],
@@ -90,7 +91,9 @@ const answerRules = [
   ["impede o opontente de trocar", "Arena Trap"],
   ["multi hit deste pokemon", "Skill Link"],
   ["poderosa metade inferior", "Dracozolt"],
-  ["caudas de fogo brilham", "Charmeleon"]
+  ["caudas de fogo brilham", "Charmeleon"],
+  ["puxa o ar pela cauda transforma o em fogo e o usa como uma lngua derrete durant", "Salazzle"],
+  ["ataca usando sua boca enorme enquanto seus ataques", "Gible"],
 ].map(([pattern, answer]) => ({ pattern: canonical(pattern), answer }));
 
 function findAnswer(question) {
@@ -104,12 +107,14 @@ let changed = 0;
 const unresolved = [];
 
 for (const entry of entries) {
-  if (!entry || String(entry.answer || "").trim()) continue;
+  if (!entry) continue;
   const answer = findAnswer(entry.question);
   if (answer) {
-    entry.answer = answer;
-    changed += 1;
-  } else {
+    if (canonical(entry.answer) !== canonical(answer)) {
+      entry.answer = answer;
+      changed += 1;
+    }
+  } else if (!String(entry.answer || "").trim()) {
     unresolved.push(entry.question);
   }
 }
