@@ -175,6 +175,22 @@
   font-weight: 780;
 }
 
+.team-image-import {
+  display: grid;
+  gap: 6px;
+}
+
+.team-image-import label {
+  display: grid;
+  gap: 6px;
+}
+
+.team-image-import input[type="file"] {
+  min-height: auto;
+  padding: 8px;
+  font-size: 12px;
+}
+
 .team-import-panel textarea {
   width: 100%;
   min-height: 150px;

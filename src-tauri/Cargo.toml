@@ -19,3 +19,15 @@ flate2 = "1"
 tauri = { version = "2", features = [] }
 tauri-plugin-notification = "2"
 tauri-plugin-updater = "2"
+tauri-winrt-notification = "0.7.2"
+windows = { version = "0.61.3", features = [
+  "Foundation",
+  "Globalization",
+  "Graphics_Imaging",
+  "Media_Ocr",
+  "Win32_Foundation",
+  "Win32_Security",
+  "Win32_System_Registry",
+  "Win32_UI_Shell",
+  "Storage_Streams",
+] }

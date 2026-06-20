@@ -2576,6 +2576,8 @@ dependencies = [
  "tauri-build",
  "tauri-plugin-notification",
  "tauri-plugin-updater",
+ "tauri-winrt-notification",
+ "windows",
 ]
 
 [[package]]

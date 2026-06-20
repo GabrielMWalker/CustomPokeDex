@@ -190,6 +190,8 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       lastSignal: null,
       lastCapture: null,
       rewardEvents: [],
+      gtsSales: [],
+      gtsSaleDebugSamples: [],
       quizHistory: [],
       playerName: "",
       lastIgnored: null,
@@ -227,6 +229,8 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     let gtsFlowSearch = "";
     let gtsFlowMode = "matches";
     let gtsFlowStatus = "";
+    let gtsHistoryLoaded = false;
+    const gtsLiveDisplayKeys = new Set();
     let lastQuizClipboardKey = "";
     let lastQuizClipboardAt = 0;
     let appRenderQueued = false;
@@ -1061,7 +1065,10 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     }
 
     function getQuizPokemonEntry(event) {
-      const candidates = getQuizPokemonKeyCandidates(event?.detail || "");
+      const candidates = [
+        ...getQuizPokemonKeyCandidates(event?.detail || ""),
+        ...getQuizPokemonKeyCandidates(event?.text || "")
+      ];
       for (const key of candidates) {
         const catalogEntry = catalogByKey.get(key);
         const typeInfo = typesByKey.get(key);
@@ -2305,6 +2312,15 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       return eggGroupLabels[group] || group.replace(/-/g, " ");
     }
 
+    function formatKnownEggGroupAnswer(value) {
+      const key = canonicalKey(value);
+      if (!key) return "";
+      const match = Object.entries(eggGroupLabels).find(([group, label]) =>
+        canonicalKey(group) === key || canonicalKey(label) === key
+      );
+      return match ? match[1] : "";
+    }
+
     function formatPokemonType(type) {
       return typeLabels[type] || type;
     }
@@ -3434,11 +3450,25 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       return nextEvents.filter(event => event?.type === "quiz" && !previousKeys.has(getLogRewardEventKey(event)));
     }
 
+    function isGtsRewardEvent(event) {
+      return event?.type === "gts" || event?.type === "gts_sale";
+    }
+
     function getGtsEvents() {
-      return (logCaptureState.rewardEvents || [])
-        .filter(event => event?.type === "gts" || event?.type === "gts_sale")
-        .slice()
-        .reverse();
+      const events = (logCaptureState.rewardEvents || [])
+        .filter(isGtsRewardEvent)
+        .filter(event => gtsHistoryLoaded || gtsLiveDisplayKeys.has(getLogRewardEventKey(event)))
+        .slice();
+      (logCaptureState.gtsSales || [])
+        .filter(event => gtsHistoryLoaded || gtsLiveDisplayKeys.has(getLogRewardEventKey(event)))
+        .forEach(event => {
+          const key = getLogRewardEventKey(event);
+          if (!events.some(existing => getLogRewardEventKey(existing) === key)) {
+            events.push(event);
+          }
+        });
+      return events
+        .sort((left, right) => (Number(right.id) || 0) - (Number(left.id) || 0));
     }
 
     function getGtsListings() {
@@ -3446,7 +3476,10 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     }
 
     function getGtsSales() {
-      return getGtsEvents().filter(event => event.type === "gts_sale");
+      return (logCaptureState.gtsSales || [])
+        .filter(event => gtsHistoryLoaded || gtsLiveDisplayKeys.has(getLogRewardEventKey(event)))
+        .slice()
+        .sort((left, right) => (Number(right.id) || 0) - (Number(left.id) || 0));
     }
 
     function getGtsEventInfo(event) {
@@ -3455,7 +3488,9 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
         return {
           item: parts[0] || event?.title || "Venda",
           buyer: parts[1] || "",
-          price: "",
+          price: parts[2] || "",
+          fee: parts[3] || "",
+          received: parts[4] || "",
           seller: "",
           listingType: "Venda concluida"
         };
@@ -3463,6 +3498,8 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       return {
         item: parts[0] || event?.title || "Item",
         price: parts[1] || "",
+        fee: "",
+        received: "",
         seller: parts[2] || "",
         listingType: parts[3] || "Venda"
       };
@@ -3499,7 +3536,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     }
 
     function getQuizKind(event) {
-      const title = canonicalKey(event?.title || "");
+      const title = canonicalKey(`${event?.title || ""} ${event?.detail || ""} ${event?.text || ""}`);
       if (title.includes("qualeessahabilidade")) return "abilityDescription";
       if (title.includes("qualeessepokemon")) return "whoIsPokemon";
       if (title.includes("tipoelemental")) return "type";
@@ -3508,7 +3545,11 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       return "";
     }
 
-    function formatQuizClipboardAnswer(value) {
+    function formatQuizClipboardAnswer(value, options = {}) {
+      if (options.formatEggGroup !== false) {
+        const eggGroupAnswer = formatKnownEggGroupAnswer(value);
+        if (eggGroupAnswer) return eggGroupAnswer;
+      }
       return String(value || "")
         .trim()
         .replace(/([a-z])([A-Z])/g, "$1 $2")
@@ -3554,7 +3595,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
           entry,
           kind,
           answer: alias && alias !== answer ? `${answer} (${alias})` : answer,
-          clipboardText: formatQuizClipboardAnswer(english[0] || localized[0] || answer)
+          clipboardText: formatQuizClipboardAnswer(english[0] || localized[0] || answer, { formatEggGroup: false })
         };
       }
 
@@ -3762,6 +3803,37 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       }
     }
 
+    async function importGtsHistoryFromLogs(button = null) {
+      if (!isTauriApp()) return null;
+      const originalLabel = button?.textContent || "";
+      try {
+        if (button) {
+          button.disabled = true;
+          button.textContent = "Lendo logs...";
+        }
+        const result = await invokeTauri("import_gts_history_from_logs");
+        gtsHistoryLoaded = true;
+        applyLogCaptureState(await invokeTauri("get_log_capture"), { gtsHistoryImport: true });
+        const scanned = Number(result.scannedFiles || 0);
+        const imported = Number(result.imported || 0);
+        const importedSales = Number(result.importedSales || 0);
+        const found = Number(result.found || 0);
+        const foundSales = Number(result.foundSales || 0);
+        const total = Number(result.total || 0);
+        const totalSales = Number(result.totalSales || 0);
+        gtsFlowStatus = `${scanned} log${scanned === 1 ? "" : "s"} lido${scanned === 1 ? "" : "s"}. Encontrados: ${found} GTS, ${foundSales} venda${foundSales === 1 ? "" : "s"}. Novos: ${imported} GTS, ${importedSales} venda${importedSales === 1 ? "" : "s"}. Guardados: ${total} anuncios, ${totalSales} venda${totalSales === 1 ? "" : "s"}.`;
+        return result;
+      } catch (error) {
+        gtsFlowStatus = `Nao foi possivel importar historico GTS${error ? `: ${String(error)}` : "."}`;
+        return null;
+      } finally {
+        if (button) {
+          button.disabled = false;
+          button.textContent = originalLabel;
+        }
+      }
+    }
+
     async function setQuizAlertsEnabled(enabled) {
       quizAlertsEnabled = Boolean(enabled);
       localStorage.setItem(QUIZ_ALERTS_KEY, String(quizAlertsEnabled));
@@ -3834,13 +3906,14 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       return "Desligado. O app ainda mostra o aviso interno e toca o som.";
     }
 
-    async function showWindowsInvasionNotification(event, options = {}) {
+    async function showNativeActivityNotification(event, options = {}) {
       if (!options.force && !invasionWindowsNotificationsEnabled) return false;
       if (!isTauriApp()) return false;
       try {
         await invokeTauri("show_native_notification", {
           title: event?.title || "Invasao iniciada",
-          body: event?.toastDetail || event?.detail || "Use /warp navio para entrar."
+          body: event?.toastDetail || event?.detail || "Use /warp navio para entrar.",
+          sound: event?.type || "default"
         });
       } catch {
         return false;
@@ -3860,21 +3933,39 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       return activityAlertAudioContext;
     }
 
-    function playActivityAlertSound() {
+    function getActivityAlertNotes(type) {
+      if (type === "invasion") {
+        return [
+          { frequency: 520, start: 0, duration: 0.16, gain: 0.2, type: "triangle" },
+          { frequency: 520, start: 0.22, duration: 0.16, gain: 0.2, type: "triangle" },
+          { frequency: 780, start: 0.44, duration: 0.24, gain: 0.18, type: "triangle" }
+        ];
+      }
+      if (type === "gts" || type === "gts_sale") {
+        return [
+          { frequency: 660, start: 0, duration: 0.1, gain: 0.14, type: "square" },
+          { frequency: 880, start: 0.12, duration: 0.1, gain: 0.13, type: "square" },
+          { frequency: 1170, start: 0.24, duration: 0.14, gain: 0.12, type: "square" }
+        ];
+      }
+      return [
+        { frequency: 740, start: 0, duration: 0.14, gain: 0.18, type: "sine" },
+        { frequency: 980, start: 0.18, duration: 0.18, gain: 0.18, type: "sine" }
+      ];
+    }
+
+    function playActivityAlertSound(type = "quiz") {
       const context = primeActivityAlertSound();
       if (!context) return;
       const play = () => {
         const now = context.currentTime;
-        [
-          { frequency: 740, start: 0, duration: 0.14 },
-          { frequency: 980, start: 0.18, duration: 0.18 }
-        ].forEach(note => {
+        getActivityAlertNotes(type).forEach(note => {
           const oscillator = context.createOscillator();
           const gain = context.createGain();
-          oscillator.type = "sine";
+          oscillator.type = note.type;
           oscillator.frequency.setValueAtTime(note.frequency, now + note.start);
           gain.gain.setValueAtTime(0.0001, now + note.start);
-          gain.gain.exponentialRampToValueAtTime(0.18, now + note.start + 0.02);
+          gain.gain.exponentialRampToValueAtTime(note.gain, now + note.start + 0.02);
           gain.gain.exponentialRampToValueAtTime(0.0001, now + note.start + note.duration);
           oscillator.connect(gain);
           gain.connect(context.destination);
@@ -3942,14 +4033,14 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
             toastDetail: `${event.toastDetail || event.detail || ""} | Copiado: ${event.clipboardText}`
           }
         : event;
-      playActivityAlertSound();
+      playActivityAlertSound(event.type);
       showActivityAlertToast(toastEvent);
       if (event.type === "invasion") {
-        showWindowsInvasionNotification(event).catch(() => {});
+        showNativeActivityNotification(event).catch(() => {});
       } else if (quizAlertsEnabled) {
-        showWindowsInvasionNotification(toastEvent, { force: true }).catch(() => {});
+        showNativeActivityNotification(toastEvent, { force: true }).catch(() => {});
       } else if ((event.type === "gts" || event.type === "gts_sale") && (gtsAlertsEnabled || options.forceAlert)) {
-        showWindowsInvasionNotification(toastEvent, { force: true }).catch(() => {});
+        showNativeActivityNotification(toastEvent, { force: true }).catch(() => {});
       }
     }
 
@@ -3961,10 +4052,10 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
           title: "Teste de invasao",
           detail: "Use /warp navio para entrar."
         };
-        playActivityAlertSound();
+        playActivityAlertSound(testEvent.type);
         showActivityAlertToast(testEvent);
         if (invasionWindowsNotificationsEnabled) {
-          await showWindowsInvasionNotification(testEvent, { test: true, requestPermission: true });
+          await showNativeActivityNotification(testEvent, { test: true, requestPermission: true });
         }
         if (button) {
           showDownloadButtonFeedback(button, "Teste enviado");
@@ -4014,18 +4105,25 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       }
     }
 
-    function applyLogCaptureState(data = {}) {
+    function applyLogCaptureState(data = {}, options = {}) {
       const nextRewardEvents = Array.isArray(data.rewardEvents) ? data.rewardEvents : [];
       const previousRewardKeys = new Set((logCaptureState.rewardEvents || []).map(getLogRewardEventKey));
-      const hasNewGtsDisplayEvents = nextRewardEvents.some(event =>
-        (event?.type === "gts" || event?.type === "gts_sale")
+      const isManualGtsHistoryImport = Boolean(options.gtsHistoryImport);
+      const newGtsDisplayEvents = nextRewardEvents.filter(event =>
+        isGtsRewardEvent(event)
           && !previousRewardKeys.has(getLogRewardEventKey(event))
       );
+      if (!isManualGtsHistoryImport) {
+        newGtsDisplayEvents.forEach(event => {
+          gtsLiveDisplayKeys.add(getLogRewardEventKey(event));
+        });
+      }
+      const hasNewGtsDisplayEvents = !isManualGtsHistoryImport && newGtsDisplayEvents.length > 0;
       const newInvasionEvents = getNewInvasionEvents(nextRewardEvents);
       const newQuizEvents = getNewQuizEvents(nextRewardEvents)
         .map(createQuizAlertEvent)
         .filter(Boolean);
-      const newGtsEvents = getNewGtsEvents(nextRewardEvents);
+      const newGtsEvents = isManualGtsHistoryImport ? [] : getNewGtsEvents(nextRewardEvents);
       logCaptureState.enabled = Boolean(data.enabled);
       logCaptureState.configuredLogPath = data.configuredLogPath || "";
       logCaptureState.defaultLogPath = data.defaultLogPath || "";
@@ -4034,6 +4132,8 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       logCaptureState.activePath = data.activePath || "";
       logCaptureState.candidates = Array.isArray(data.candidates) ? data.candidates : [];
       logCaptureState.rewardEvents = nextRewardEvents;
+      logCaptureState.gtsSales = Array.isArray(data.gtsSales) ? data.gtsSales : [];
+      logCaptureState.gtsSaleDebugSamples = Array.isArray(data.gtsSaleDebugSamples) ? data.gtsSaleDebugSamples : [];
       if (Array.isArray(data.quizHistory)) {
         logCaptureState.quizHistory = data.quizHistory;
       }
@@ -4080,7 +4180,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
         notifyLogActivity({
           ...event,
           toastDetail: event.type === "gts_sale"
-            ? `${info.buyer} comprou ${info.item}`
+            ? `${info.buyer} comprou ${info.item}${info.received ? ` | Recebido: ${info.received}` : ""}`
             : `${info.item} por ${info.price}${matchTerm ? ` | Desejado: ${matchTerm}` : ""}`
         }).catch(() => {});
       }
@@ -6154,6 +6254,318 @@ IVs: HP 31 / Atk 31 / Def 19 / SpA 31 / SpD 31 / Spe 31"></textarea>
       return { record, teams };
     }
 
+    function findTeamEntryInFreeText(text = "") {
+      const normalizedText = normalize(text).replace(/[^a-z0-9]+/g, " ").trim();
+      if (!normalizedText) return null;
+      const direct = findTeamSearchEntry(text);
+      if (direct) return direct;
+      const words = new Set(normalizedText.split(/\s+/).filter(Boolean));
+      const exact = CATALOG
+        .filter(entry => {
+          const nameText = normalize(entry.name).replace(/[^a-z0-9]+/g, " ").trim();
+          const nameParts = nameText.split(/\s+/).filter(Boolean);
+          if (!nameParts.length) return false;
+          if (nameParts.length === 1) return words.has(nameParts[0]);
+          return normalizedText.includes(nameParts.join(" "));
+        })
+        .sort((a, b) => canonicalKey(b.name).length - canonicalKey(a.name).length)[0];
+      if (exact) return exact;
+      const tokens = [...words].filter(word => word.length >= 4);
+      return CATALOG
+        .map(entry => {
+          const key = canonicalKey(entry.name);
+          const token = tokens.find(value => Math.abs(value.length - key.length) <= 2);
+          if (!token) return null;
+          const distance = boundedQuizKeyDistance(token, key, 2);
+          return distance <= 2 ? { entry, distance } : null;
+        })
+        .filter(Boolean)
+        .sort((a, b) => a.distance - b.distance || canonicalKey(b.entry.name).length - canonicalKey(a.entry.name).length)[0]?.entry || null;
+    }
+
+    function cleanPixelmonPrintOcrText(text = "") {
+      return String(text || "")
+        .replace(/&[0-9a-fk-or]/gi, "")
+        .replace(/[★☆✪✫✬✭✮✯]/g, " ")
+        .replace(/[“”]/g, "\"")
+        .replace(/[‘’]/g, "'")
+        .replace(/[–—]/g, "-")
+        .replace(/\u00a0/g, " ");
+    }
+
+    function getPixelmonPrintLines(text = "") {
+      return cleanPixelmonPrintOcrText(text)
+        .split(/\r?\n/)
+        .map(line => line.replace(/\s+/g, " ").trim())
+        .filter(Boolean);
+    }
+
+    function splitPixelmonPrintLabel(line = "") {
+      const match = String(line || "").match(/^([^:;]+)[:;]\s*(.*)$/);
+      if (!match) return null;
+      return {
+        key: canonicalKey(match[1]),
+        value: match[2].trim()
+      };
+    }
+
+    function getPixelmonPrintValue(lines, labelKeys) {
+      const keys = labelKeys.map(canonicalKey);
+      for (const line of lines) {
+        const field = splitPixelmonPrintLabel(line);
+        if (!field) continue;
+        if (keys.some(key => field.key === key || field.key.includes(key))) return field.value;
+      }
+      return "";
+    }
+
+    const pixelmonPrintKnownLabels = new Set([
+      "habilidade",
+      "ability",
+      "natureza",
+      "nature",
+      "genero",
+      "gender",
+      "tamanho",
+      "size",
+      "hiddenpower",
+      "pokebola",
+      "pokeball",
+      "ot",
+      "textura",
+      "texture",
+      "forma",
+      "form",
+      "felicidade",
+      "happiness",
+      "niveldynamax",
+      "dynamaxlevel",
+      "gigantamax",
+      "trocavel",
+      "tradeable",
+      "castrado",
+      "ivs",
+      "evs",
+      "moves"
+    ]);
+
+    function isKnownPixelmonPrintLabelLine(line = "") {
+      const field = splitPixelmonPrintLabel(line);
+      return Boolean(field && pixelmonPrintKnownLabels.has(field.key));
+    }
+
+    function getPixelmonPrintEntry(lines) {
+      const levelPattern = /\b(?:lvl|lv|lol|lvi|lv1|level|n[iÃ­]vel)\b/i;
+      const header = lines.find(line => levelPattern.test(line)) || lines.find(line => !isKnownPixelmonPrintLabelLine(line)) || "";
+      const beforeLevel = header
+        .split(levelPattern)[0]
+        .replace(/\[[^\]]*\]/g, " ")
+        .replace(/[<>()[\]]/g, " ")
+        .replace(/[:|]+$/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+      return findTeamEntryInFreeText(beforeLevel || header);
+    }
+
+    function getPixelmonPrintLevel(lines) {
+      const levelLine = lines.find(line => /\b(?:lvl|lv|lol|lvi|lv1|level|n[iÃ­]vel)\b/i.test(line)) || "";
+      const match = levelLine.match(/\b(?:lvl|lv|lol|lvi|lv1|level|n[iÃ­]vel)\b\s*\.?\s*(\d{1,3})\b/i);
+      return Math.max(1, Math.min(100, Number.parseInt(match?.[1], 10) || 100));
+    }
+
+    function isPixelmonPrintShiny(lines) {
+      return /\b(?:shiny|5hiny|5hing|shing|c5hing)\b/i.test(lines.slice(0, 3).join(" "));
+    }
+
+    function parsePixelmonPrintStatValue(rawValue = "", maxValue = 31) {
+      const values = String(rawValue || "")
+        .match(/\d+/g)
+        ?.map(value => Number.parseInt(value, 10))
+        .filter(value => Number.isFinite(value)) || [];
+      if (!values.length) return 0;
+      return Math.max(0, Math.min(maxValue, values[values.length - 1]));
+    }
+
+    function getPixelmonPrintStatKey(value = "") {
+      const key = normalize(value).replace(/[^a-z0-9]/g, "");
+      if (!key) return "";
+      if (key.startsWith("hp") || key.startsWith("1p") || key.startsWith("117")) return "hp";
+      if (key.startsWith("atk") || key.includes("atk") || key.startsWith("pltk")) return "atk";
+      if (key.startsWith("def") || key.startsWith("der")) return "def";
+      if (key.startsWith("spa") || key.startsWith("apo")) return "spa";
+      if (key.startsWith("spd") || key.startsWith("sp0")) return "spd";
+      if (key.startsWith("spe") || key.startsWith("5pe")) return "spe";
+      return "";
+    }
+
+    function isPixelmonPrintStatLine(line = "") {
+      return /(?:^|[\/\s])(HP|Atk|Def|SpA|SpD|Spe|Pltk|Der|Apo|5pe|1[-\s]?17)[^/]{0,8}[:;]/i.test(line);
+    }
+
+    function isPixelmonPrintSpreadHeader(line = "", sectionKey = "ivs") {
+      const key = canonicalKey(line);
+      if (sectionKey === "ivs") {
+        return key.startsWith("ivs")
+          || key.startsWith("lvs")
+          || key.startsWith("11s")
+          || key.includes("138186");
+      }
+      return key.startsWith("evs")
+        || key.startsWith("els")
+        || key.includes("510510");
+    }
+
+    function isPixelmonPrintMovesHeader(line = "") {
+      return canonicalKey(line).startsWith("moves");
+    }
+
+    function parsePixelmonPrintStatLine(line = "", spread, maxValue) {
+      String(line || "").split("/").forEach(part => {
+        const match = part.match(/^\s*([^:;]+)\s*[:;]\s*(.+)$/);
+        if (!match) return;
+        const key = getPixelmonPrintStatKey(match[1]);
+        if (!key) return;
+        spread[key] = parsePixelmonPrintStatValue(match[2], maxValue);
+      });
+    }
+
+    function parsePixelmonPrintSpread(lines, sectionKey, maxValue) {
+      const spread = Object.fromEntries(breedingIvStats.map(stat => [stat.key, 0]));
+      const start = lines.findIndex(line => isPixelmonPrintSpreadHeader(line, sectionKey));
+      if (start >= 0) {
+        const nextSpread = lines.findIndex((line, index) =>
+          index > start && isPixelmonPrintSpreadHeader(line, sectionKey === "ivs" ? "evs" : "ivs")
+        );
+        const nextMoves = lines.findIndex((line, index) => index > start && isPixelmonPrintMovesHeader(line));
+        const endCandidates = [nextSpread, nextMoves].filter(index => index > start);
+        const end = endCandidates.length ? Math.min(...endCandidates) : start + 5;
+        lines.slice(start, end).forEach(line => parsePixelmonPrintStatLine(line, spread, maxValue));
+        return spread;
+      }
+      const statLines = lines.filter(isPixelmonPrintStatLine);
+      const splitIndex = Math.ceil(statLines.length / 2);
+      const fallbackLines = sectionKey === "ivs" ? statLines.slice(0, splitIndex) : statLines.slice(splitIndex);
+      fallbackLines.forEach(line => parsePixelmonPrintStatLine(line, spread, maxValue));
+      return spread;
+    }
+
+    function parsePixelmonPrintMoves(lines) {
+      const start = lines.findIndex(line => canonicalKey(line).startsWith("moves"));
+      if (start < 0) return [];
+      return lines
+        .slice(start + 1, start + 4)
+        .flatMap(line => line.split(/\s+-\s+| \/ |,/))
+        .map(move => move.trim())
+        .filter(Boolean)
+        .slice(0, 4);
+    }
+
+    function inferTeamPrintDamageLabel(evs, nature = "") {
+      const attack = Number.parseInt(evs?.atk, 10) || 0;
+      const special = Number.parseInt(evs?.spa, 10) || 0;
+      const natureKey = canonicalKey(nature);
+      if (attack > special) return "Dano fisico";
+      if (special > attack) return "Dano especial";
+      if (["adamant", "jolly", "impish", "careful"].some(value => natureKey.includes(value))) return "Dano fisico";
+      if (["modest", "timid", "bold", "calm"].some(value => natureKey.includes(value))) return "Dano especial";
+      return "Misto";
+    }
+
+    function formatPixelmonPrintNotes(lines) {
+      const parts = [
+        ["Hidden Power", getPixelmonPrintValue(lines, ["hiddenpower"])],
+        ["Pokebola", getPixelmonPrintValue(lines, ["pokebola", "pokeball"])],
+        ["OT", getPixelmonPrintValue(lines, ["ot"])],
+        ["Textura", getPixelmonPrintValue(lines, ["textura", "texture"])],
+        ["Forma", getPixelmonPrintValue(lines, ["forma", "form"])],
+        ["Trocavel", getPixelmonPrintValue(lines, ["trocavel", "tradeable"])]
+      ].filter(([, value]) => value);
+      return parts.map(([label, value]) => `${label}: ${value}`).join("; ");
+    }
+
+    function formatStatSpreadForTeamImport(spread) {
+      return breedingIvStats.map(stat => `${stat.label} ${spread?.[stat.key] ?? 0}`).join(" / ");
+    }
+
+    function parsePixelmonTeamPrintText(text = "") {
+      const lines = getPixelmonPrintLines(text);
+      const entry = getPixelmonPrintEntry(lines);
+      if (!entry) return { error: "Nao encontrei o Pokemon no print.", rawText: cleanPixelmonPrintOcrText(text) };
+      const nature = getPixelmonPrintValue(lines, ["natureza", "nature"]).replace(/\s*\(.*/, "").trim().split(/\s+/)[0] || "";
+      const ability = getPixelmonPrintValue(lines, ["habilidade", "ability"]);
+      const form = getPixelmonPrintValue(lines, ["forma", "form"]);
+      const ivs = parsePixelmonPrintSpread(lines, "ivs", 31);
+      const evs = parsePixelmonPrintSpread(lines, "evs", 252);
+      const moves = parsePixelmonPrintMoves(lines);
+      const importText = [
+        `Pokemon: ${entry.name}`,
+        `Nivel: ${getPixelmonPrintLevel(lines)}${isPixelmonPrintShiny(lines) ? " | Shiny" : ""}`,
+        `Build: Print Pixelmon${form ? ` - ${form}` : ""}`,
+        `Dano: ${inferTeamPrintDamageLabel(evs, nature)}`,
+        `Nature: ${nature}`,
+        `Ability: ${ability}`,
+        `Item: `,
+        `IVs: ${formatStatSpreadForTeamImport(ivs)}`,
+        `EVs: ${formatStatSpreadForTeamImport(evs)}`,
+        `Moves: ${moves.join(" / ")}`,
+        `Obs: ${formatPixelmonPrintNotes(lines)}`
+      ].join("\n");
+      return { text: importText, rawText: cleanPixelmonPrintOcrText(text), entry };
+    }
+
+    async function readImageFileBytes(file) {
+      const buffer = await file.arrayBuffer();
+      return Array.from(new Uint8Array(buffer));
+    }
+
+    async function importTeamPokemonFromImage(file, form, importText) {
+      const status = form.querySelector("#team-image-import-status");
+      const errorElement = form.querySelector(".team-form-error");
+      if (!file) return;
+      if (!isTauriApp()) {
+        throw new Error("OCR de imagem funciona apenas no app desktop.");
+      }
+      status.textContent = "Lendo imagem...";
+      const bytes = await readImageFileBytes(file);
+      const ocrText = await invokeTauri("ocr_image_text", { bytes });
+      const fromPrint = parsePixelmonTeamPrintText(ocrText);
+      importText.value = fromPrint.text || fromPrint.rawText || ocrText;
+      if (fromPrint.error) {
+        errorElement.hidden = false;
+        errorElement.textContent = fromPrint.error;
+        status.textContent = "OCR preenchido para revisao. Ajuste o texto e confirme manualmente.";
+        importText.focus({ preventScroll: true });
+        return;
+      }
+      const parsed = parseTeamBuildImport(fromPrint.text);
+      if (parsed.error) {
+        errorElement.hidden = false;
+        errorElement.textContent = parsed.error;
+        status.textContent = "OCR preenchido para revisao. Ajuste o texto e confirme manualmente.";
+        importText.focus({ preventScroll: true });
+        return;
+      }
+      fillTeamPokemonForm(form, parsed.record);
+      updateTeamAbilityHint(form, getTeamPokemonEntry(parsed.record));
+      errorElement.hidden = true;
+      status.textContent = "Campos preenchidos pelo print. Revise e clique em Salvar Pokemon ou Adicionar revisado.";
+      importText.focus({ preventScroll: true });
+    }
+
+    async function getClipboardImageFile() {
+      if (!navigator.clipboard?.read) {
+        throw new Error("Leitura de imagem da area de transferencia indisponivel. Use Ctrl+V no painel de importacao.");
+      }
+      const items = await navigator.clipboard.read();
+      for (const item of items) {
+        const imageType = item.types.find(type => type.startsWith("image/"));
+        if (!imageType) continue;
+        const blob = await item.getType(imageType);
+        return new File([blob], "clipboard-image.png", { type: imageType });
+      }
+      throw new Error("Nao encontrei imagem na area de transferencia.");
+    }
+
     function addImportedTeamRecord(record, teamNames = []) {
       teamBuiltPokemon.push(record);
       teamNames.forEach(name => {
@@ -6537,11 +6949,19 @@ IVs: HP 31 / Atk 31 / Def 19 / SpA 31 / SpD 31 / Spe 31"></textarea>
         <div class="team-form-actions">
           <button class="modal-capture-button" type="submit">${editingRecord ? "Salvar edicao" : "Salvar Pokemon"}</button>
           <button class="muted-button" id="team-collapse-form" type="button">Minimizar</button>
-          <button class="muted-button" id="team-toggle-import" type="button">Importar texto</button>
+          <button class="muted-button" id="team-toggle-import" type="button">Importar</button>
           <button class="muted-button" id="team-cancel-edit" type="button" ${editingRecord ? "" : "hidden"}>Cancelar</button>
         </div>
         <div class="team-import-panel" hidden>
-          <p class="team-import-note">Cole o texto gerado pelo botao Copiar build.</p>
+          <p class="team-import-note">Cole uma build ou escolha um print para preencher os campos antes de salvar.</p>
+          <div class="team-image-import">
+            <label for="team-import-image">
+              <span>Print</span>
+              <input id="team-import-image" type="file" accept="image/png,image/jpeg,image/webp,image/bmp">
+            </label>
+            <button class="muted-button" id="team-import-clipboard-image" type="button">Colar imagem</button>
+            <p class="team-import-note" id="team-image-import-status" aria-live="polite">OCR local do Windows. O print preenche os campos para revisao antes de adicionar.</p>
+          </div>
           <textarea id="team-import-text" rows="8" placeholder="Pokemon: Dragonite (Dnite F4)
 Nivel: 100 | Shiny
 Tipos: Dragao / Voador
@@ -6557,7 +6977,7 @@ Times: Principal
 Obs: pronto para boss"></textarea>
           <div class="team-form-actions">
             <button class="muted-button" id="team-example-import" type="button">Exemplo</button>
-            <button class="modal-capture-button" id="team-confirm-import" type="button">Importar Pokemon</button>
+            <button class="modal-capture-button" id="team-confirm-import" type="button">Adicionar revisado</button>
             <button class="muted-button" id="team-cancel-import" type="button">Fechar</button>
           </div>
         </div>
@@ -6571,6 +6991,9 @@ Obs: pronto para boss"></textarea>
       form.querySelector("#team-pokemon-ability").addEventListener("input", () => updateTeamAbilityHint(form, findTeamSearchEntry(nameInput.value)));
       const importPanel = form.querySelector(".team-import-panel");
       const importText = form.querySelector("#team-import-text");
+      const importImage = form.querySelector("#team-import-image");
+      const importClipboardImage = form.querySelector("#team-import-clipboard-image");
+      const imageImportStatus = form.querySelector("#team-image-import-status");
       form.querySelector("#team-collapse-form").addEventListener("click", () => {
         activeTeamEditId = "";
         isTeamBuilderFormExpanded = false;
@@ -6586,6 +7009,44 @@ Obs: pronto para boss"></textarea>
       form.querySelector("#team-example-import").addEventListener("click", () => {
         importText.value = getTeamImportExampleText();
         importText.focus({ preventScroll: true });
+      });
+      importImage.addEventListener("change", async () => {
+        const [file] = importImage.files || [];
+        try {
+          await importTeamPokemonFromImage(file, form, importText);
+        } catch (error) {
+          const errorElement = form.querySelector(".team-form-error");
+          errorElement.hidden = false;
+          errorElement.textContent = error?.message || "Nao foi possivel importar o print.";
+          imageImportStatus.textContent = "Nao consegui importar automaticamente. O texto lido ficou no campo para ajuste manual.";
+        } finally {
+          importImage.value = "";
+        }
+      });
+      importClipboardImage.addEventListener("click", async () => {
+        try {
+          imageImportStatus.textContent = "Lendo area de transferencia...";
+          const file = await getClipboardImageFile();
+          await importTeamPokemonFromImage(file, form, importText);
+        } catch (error) {
+          const errorElement = form.querySelector(".team-form-error");
+          errorElement.hidden = false;
+          errorElement.textContent = error?.message || "Nao foi possivel ler a imagem da area de transferencia.";
+          imageImportStatus.textContent = "Nao consegui ler a imagem pelo botao. Tente Ctrl+V no painel de importacao.";
+        }
+      });
+      importPanel.addEventListener("paste", async event => {
+        const item = [...(event.clipboardData?.items || [])].find(clipboardItem => clipboardItem.type.startsWith("image/"));
+        if (!item) return;
+        event.preventDefault();
+        try {
+          await importTeamPokemonFromImage(item.getAsFile(), form, importText);
+        } catch (error) {
+          const errorElement = form.querySelector(".team-form-error");
+          errorElement.hidden = false;
+          errorElement.textContent = error?.message || "Nao foi possivel importar o print.";
+          imageImportStatus.textContent = "Nao consegui importar automaticamente. O texto lido ficou no campo para ajuste manual.";
+        }
       });
       form.querySelector("#team-confirm-import").addEventListener("click", () => {
         const parsed = parseTeamBuildImport(importText.value);
@@ -9776,6 +10237,14 @@ Obs: pronto para boss"></textarea>
       const entries = getQuizHistoryEntries();
       const pending = entries.filter(entry => !entry.answer);
       const known = entries.filter(entry => entry.answer);
+      const hasItemsForQuizMode = mode => {
+        if (mode === "pending") return pending.length > 0;
+        if (mode === "known") return known.length > 0;
+        return entries.length > 0;
+      };
+      if (quizFlowMode !== "all" && !hasItemsForQuizMode(quizFlowMode)) {
+        quizFlowMode = "all";
+      }
       activeTitle.textContent = "Quiz";
       visibleCount.textContent = `${pending.length} pendente${pending.length === 1 ? "" : "s"}`;
 
@@ -9917,6 +10386,15 @@ Obs: pronto para boss"></textarea>
         meta.append(
           createGtsMetaItem("Comprador", info.buyer || "Nao informado")
         );
+        if (info.price) {
+          meta.append(createGtsMetaItem("Preco", info.price, "is-price"));
+        }
+        if (info.fee) {
+          meta.append(createGtsMetaItem("Taxa", info.fee));
+        }
+        if (info.received) {
+          meta.append(createGtsMetaItem("Recebido", info.received, "is-price"));
+        }
       } else {
         meta.append(
           createGtsMetaItem("Preco", info.price || "Nao informado", "is-price"),
@@ -9935,6 +10413,65 @@ Obs: pronto para boss"></textarea>
       item.querySelector("strong").textContent = label;
       item.querySelector("b").textContent = value;
       return item;
+    }
+
+    function getLatestLogEvent(events) {
+      return (events || [])
+        .filter(Boolean)
+        .slice()
+        .sort((left, right) => (Number(right.id) || 0) - (Number(left.id) || 0))[0] || null;
+    }
+
+    function createGtsDebugPanel(events, listings, sales) {
+      const panel = document.createElement("section");
+      panel.className = "settings-panel is-wide";
+      panel.setAttribute("aria-label", "Debug GTS");
+
+      const title = document.createElement("h2");
+      title.textContent = "Debug GTS";
+
+      const summary = document.createElement("div");
+      summary.className = "quiz-summary";
+      summary.append(
+        createQuizFlowSummaryItem("Monitor", logCaptureState.enabled ? "Ligado" : "Off"),
+        createQuizFlowSummaryItem("Eventos gerais", String((logCaptureState.rewardEvents || []).length)),
+        createQuizFlowSummaryItem("Anuncios visiveis", String(listings.length)),
+        createQuizFlowSummaryItem("Vendas guardadas", String((logCaptureState.gtsSales || []).length)),
+        createQuizFlowSummaryItem("Vendas visiveis", String(sales.length)),
+        createQuizFlowSummaryItem("Delta", formatBytesLabel(logCaptureState.lastDelta))
+      );
+
+      const latestGts = getLatestLogEvent(events);
+      const latestSale = getLatestLogEvent(logCaptureState.gtsSales || []);
+      const detail = document.createElement("p");
+      detail.className = "settings-row-note";
+      detail.textContent = [
+        `arquivo: ${maskLocalPath(logCaptureState.activeFile || logCaptureState.activePath || "nenhum")}`,
+        `scan: ${formatDateTimeLabel(logCaptureState.lastScanAt)}`,
+        `polls: ${logCaptureState.pollCount || 0}`,
+        `linhas chat: ${logCaptureState.chatLinesRead || 0}`,
+        `eventos lidos: ${logCaptureState.eventsRead || 0}`,
+        `offset: ${formatBytesLabel(logCaptureState.offset)}/${formatBytesLabel(logCaptureState.currentSize)}`
+      ].join(" | ");
+
+      const raw = document.createElement("p");
+      raw.className = "settings-row-note";
+      raw.textContent = [
+        `ultimo chat: ${compactText(logCaptureState.lastChat?.text || "nenhum", 180)}`,
+        `ultimo GTS: ${latestGts ? compactText(`${latestGts.type} ${latestGts.detail || latestGts.title}`, 180) : "nenhum"}`,
+        `ultima venda: ${latestSale ? compactText(latestSale.detail || latestSale.title, 180) : "nenhuma"}`,
+        logCaptureState.lastError ? `erro: ${compactText(logCaptureState.lastError, 120)}` : ""
+      ].filter(Boolean).join(" | ");
+
+      const saleSamples = document.createElement("p");
+      saleSamples.className = "settings-row-note";
+      const samples = (logCaptureState.gtsSaleDebugSamples || []).slice(-4);
+      saleSamples.textContent = samples.length
+        ? `amostras venda: ${samples.map(sample => compactText(sample, 150)).join(" || ")}`
+        : "amostras venda: nenhuma linha com cara de venda encontrada nos logs lidos";
+
+      panel.append(title, summary, detail, raw, saleSamples);
+      return panel;
     }
 
     function renderGtsFlow(list) {
@@ -9964,7 +10501,13 @@ Obs: pronto para boss"></textarea>
       testButton.type = "button";
       testButton.textContent = "Testar alerta GTS";
       testButton.addEventListener("click", event => testGtsAlert(event.currentTarget).then(render));
-      actions.append(testButton);
+      const importButton = document.createElement("button");
+      importButton.className = "muted-button";
+      importButton.type = "button";
+      importButton.textContent = "Pegar logs";
+      importButton.disabled = !useFileDatabase;
+      importButton.addEventListener("click", event => importGtsHistoryFromLogs(event.currentTarget).then(render));
+      actions.append(testButton, importButton);
       tools.append(summary, actions);
 
       const form = document.createElement("form");
@@ -10037,7 +10580,10 @@ Obs: pronto para boss"></textarea>
 
       const status = document.createElement("p");
       status.className = "settings-row-note";
-      status.textContent = gtsFlowStatus || getGtsAlertStatusText();
+      status.textContent = gtsFlowStatus || (gtsHistoryLoaded
+        ? getGtsAlertStatusText()
+        : "Clique em Pegar logs para carregar o historico. Sem isso, a aba mostra apenas eventos novos detectados pelo monitor ligado.");
+      const debugPanel = createGtsDebugPanel(events, listings, sales);
 
       const normalizedSearch = normalize(gtsFlowSearch);
       const visibleEvents = events.filter(event => {
@@ -10045,7 +10591,7 @@ Obs: pronto para boss"></textarea>
         if (gtsFlowMode === "sales" && event.type !== "gts_sale") return false;
         if (!normalizedSearch) return true;
         const info = getGtsEventInfo(event);
-        return normalize(`${info.item} ${info.price} ${info.seller} ${info.buyer} ${event.title} ${event.detail}`).includes(normalizedSearch);
+        return normalize(`${info.item} ${info.price} ${info.fee} ${info.received} ${info.seller} ${info.buyer} ${event.title} ${event.detail}`).includes(normalizedSearch);
       });
 
       const grid = document.createElement("div");
@@ -10056,11 +10602,13 @@ Obs: pronto para boss"></textarea>
         renderSettingsStatus(
           grid,
           "Nenhum evento GTS aqui",
-          useFileDatabase ? "Ligue o monitor de logs e cadastre desejados para acompanhar anuncios." : "Abra pelo app desktop para ler o chat do jogo."
+          useFileDatabase
+            ? "Use Pegar logs para ler todos os arquivos ou deixe o monitor ligado para eventos novos."
+            : "Abra pelo app desktop para ler o chat do jogo."
         );
       }
 
-      panel.append(tools, form, chips, filter, status, grid);
+      panel.append(tools, form, chips, filter, status, debugPanel, grid);
       list.append(panel);
     }
 
