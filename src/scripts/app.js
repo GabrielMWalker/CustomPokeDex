@@ -2967,11 +2967,11 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       const stats = entry?.stats || {};
       const statItems = [
         ["HP", stats.hp],
-        ["Atk", stats.atk],
-        ["Def", stats.def],
-        ["SpA", stats.spa],
-        ["SpD", stats.spd],
-        ["Spe", stats.spe]
+        ["Attack", stats.atk],
+        ["Defense", stats.def],
+        ["Sp. Atk", stats.spa],
+        ["Sp. Def", stats.spd],
+        ["Speed", stats.spe]
       ];
       const wrap = document.createElement("div");
       wrap.className = "modal-base-stats";
@@ -2988,12 +2988,14 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
         row.className = "modal-stat-row";
         row.innerHTML = `
           <span class="modal-stat-label"></span>
-          <span class="modal-stat-bar"><span></span></span>
           <strong></strong>
+          <span class="modal-stat-bar"><span></span></span>
         `;
         row.querySelector(".modal-stat-label").textContent = label;
-        row.querySelector(".modal-stat-bar span").style.width = `${Math.min(100, Math.round((numericValue / 255) * 100))}%`;
-        row.querySelector("strong").textContent = String(numericValue);
+        row.querySelector("strong").textContent = String(numericValue).padStart(3, " ");
+        const bar = row.querySelector(".modal-stat-bar span");
+        bar.style.width = `${Math.min(100, Math.round((numericValue / 180) * 100))}%`;
+        bar.style.background = getBaseStatBarColor(numericValue);
         wrap.append(row);
       });
       const total = document.createElement("div");
@@ -3002,6 +3004,14 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       total.querySelector("strong").textContent = String(entry.statTotal || statItems.reduce((sum, [, value]) => sum + (Number(value) || 0), 0));
       wrap.append(total);
       return wrap;
+    }
+
+    function getBaseStatBarColor(value) {
+      const stat = Number(value) || 0;
+      if (stat >= 120) return "#20f04f";
+      if (stat >= 90) return "#eff72d";
+      if (stat >= 60) return "#ff6f2e";
+      return "#ff3030";
     }
 
     function createPokemonCollectionControls(entry) {

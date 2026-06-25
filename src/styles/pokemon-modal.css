@@ -157,14 +157,14 @@
   margin: 0;
 }
 
-.modal-definition-list div {
+.modal-definition-list > div {
   display: grid;
   grid-template-columns: 116px minmax(0, 1fr);
   gap: 10px;
   font-size: 13px;
 }
 
-.modal-profile-list div {
+.modal-profile-list > div {
   grid-template-columns: 92px minmax(0, 1fr);
 }
 
@@ -196,15 +196,15 @@
 
 .modal-base-stats {
   display: grid;
-  gap: 6px;
-  min-width: min(260px, 100%);
+  gap: 5px;
+  width: min(310px, 100%);
 }
 
 .modal-stat-row {
   display: grid;
-  grid-template-columns: 32px minmax(80px, 1fr) 34px;
+  grid-template-columns: 64px 38px minmax(95px, 1fr);
   align-items: center;
-  gap: 8px;
+  gap: 7px;
   color: var(--ink);
   font-size: 12px;
 }
@@ -218,19 +218,19 @@
 .modal-stat-bar {
   height: 8px;
   overflow: hidden;
-  background: color-mix(in srgb, var(--line) 72%, var(--surface));
-  border-radius: 8px;
+  background: rgba(255, 255, 255, .08);
+  border-radius: 2px;
 }
 
 .modal-stat-bar span {
   display: block;
   height: 100%;
-  background: linear-gradient(90deg, var(--blue), var(--green));
   border-radius: inherit;
 }
 
 .modal-stat-row strong {
-  text-align: right;
+  text-align: left;
+  font-variant-numeric: tabular-nums;
 }
 
 .modal-stat-total {
