@@ -1,5 +1,7 @@
 use flate2::read::GzDecoder;
 use serde::{Deserialize, Deserializer, Serialize};
+#[cfg(target_os = "windows")]
+use std::os::windows::process::CommandExt;
 use std::{
     collections::{HashMap, HashSet},
     env,
@@ -10,8 +12,6 @@ use std::{
     sync::Mutex,
     time::{SystemTime, UNIX_EPOCH},
 };
-#[cfg(target_os = "windows")]
-use std::os::windows::process::CommandExt;
 use tauri::{AppHandle, Manager, State};
 #[cfg(not(target_os = "windows"))]
 use tauri_plugin_notification::NotificationExt;
@@ -304,6 +304,7 @@ fn show_app_notification(
 #[cfg(target_os = "windows")]
 fn windows_notification_sound(sound: Option<&str>) -> Option<tauri_winrt_notification::Sound> {
     match sound {
+        Some("silent") => None,
         Some("invasion") => Some(tauri_winrt_notification::Sound::Reminder),
         Some("gts") | Some("gts_sale") => Some(tauri_winrt_notification::Sound::SMS),
         Some("quiz") => Some(tauri_winrt_notification::Sound::IM),
@@ -377,7 +378,10 @@ fn set_windows_registry_string(
 ) -> Result<(), String> {
     use windows::{
         core::PCWSTR,
-        Win32::{Foundation::NO_ERROR, System::Registry::{RegSetValueExW, REG_SZ}},
+        Win32::{
+            Foundation::NO_ERROR,
+            System::Registry::{RegSetValueExW, REG_SZ},
+        },
     };
 
     let name = wide_null(name);
@@ -386,7 +390,10 @@ fn set_windows_registry_string(
     if status == NO_ERROR {
         Ok(())
     } else {
-        Err(format!("Falha ao registrar notificacao do app: {}", status.0))
+        Err(format!(
+            "Falha ao registrar notificacao do app: {}",
+            status.0
+        ))
     }
 }
 
@@ -426,43 +433,48 @@ fn utf16_registry_bytes(value: &str) -> Vec<u8> {
 
 #[tauri::command]
 fn set_clipboard_text(text: String) -> Result<(), String> {
-    let mut command = Command::new("powershell.exe");
     #[cfg(target_os = "windows")]
-    {
-        const CREATE_NO_WINDOW: u32 = 0x08000000;
-        command.creation_flags(CREATE_NO_WINDOW);
-    }
+    return set_windows_clipboard_text(&text);
+
+    #[cfg(not(target_os = "windows"))]
+    return Err("Copia nativa indisponivel nesta plataforma.".to_string());
+}
+
+#[cfg(target_os = "windows")]
+fn set_windows_clipboard_text(text: &str) -> Result<(), String> {
+    let clip_path = env::var_os("SystemRoot")
+        .map(PathBuf::from)
+        .map(|path| path.join("System32").join("clip.exe"))
+        .filter(|path| path.exists())
+        .unwrap_or_else(|| PathBuf::from("clip.exe"));
+    let mut command = Command::new(&clip_path);
+    const CREATE_NO_WINDOW: u32 = 0x08000000;
+    command.creation_flags(CREATE_NO_WINDOW);
 
     let mut child = command
-        .args([
-            "-NoProfile",
-            "-NonInteractive",
-            "-Command",
-            "$value = [Console]::In.ReadToEnd(); Set-Clipboard -Value $value",
-        ])
         .stdin(Stdio::piped())
         .stdout(Stdio::null())
         .stderr(Stdio::piped())
         .spawn()
-        .map_err(|error| error.to_string())?;
+        .map_err(|error| format!("Nao foi possivel abrir {}: {error}", clip_path.display()))?;
 
     let Some(mut stdin) = child.stdin.take() else {
         return Err("Area de transferencia indisponivel.".to_string());
     };
     stdin
         .write_all(text.as_bytes())
-        .map_err(|error| error.to_string())?;
+        .map_err(|error| format!("Nao foi possivel enviar texto ao clipboard: {error}"))?;
     drop(stdin);
 
     let output = child
         .wait_with_output()
-        .map_err(|error| error.to_string())?;
+        .map_err(|error| format!("Nao foi possivel finalizar copia: {error}"))?;
     if output.status.success() {
         Ok(())
     } else {
         let error = String::from_utf8_lossy(&output.stderr).trim().to_string();
         Err(if error.is_empty() {
-            "Nao foi possivel copiar para a area de transferencia.".to_string()
+            "clip.exe nao conseguiu copiar para a area de transferencia.".to_string()
         } else {
             error
         })
@@ -492,9 +504,7 @@ async fn ocr_image_text(bytes: Vec<u8>) -> Result<String, String> {
         .map_err(|error| error.to_string())?
         .get()
         .map_err(|error| error.to_string())?;
-    writer
-        .DetachStream()
-        .map_err(|error| error.to_string())?;
+    writer.DetachStream().map_err(|error| error.to_string())?;
     stream.Seek(0).map_err(|error| error.to_string())?;
 
     let decoder = BitmapDecoder::CreateAsync(&stream)
@@ -506,15 +516,18 @@ async fn ocr_image_text(bytes: Vec<u8>) -> Result<String, String> {
         .map_err(|error| error.to_string())?
         .get()
         .map_err(|error| error.to_string())?;
-    let engine = OcrEngine::TryCreateFromUserProfileLanguages()
-        .map_err(|error| error.to_string())?;
+    let engine =
+        OcrEngine::TryCreateFromUserProfileLanguages().map_err(|error| error.to_string())?;
     let result = engine
         .RecognizeAsync(&bitmap)
         .map_err(|error| error.to_string())?
         .get()
         .map_err(|error| error.to_string())?;
 
-    result.Text().map(|text| text.to_string()).map_err(|error| error.to_string())
+    result
+        .Text()
+        .map(|text| text.to_string())
+        .map_err(|error| error.to_string())
 }
 
 #[cfg(not(target_os = "windows"))]
@@ -585,7 +598,9 @@ fn import_quiz_history_from_logs(
 }
 
 #[tauri::command]
-fn import_gts_history_from_logs(state: State<'_, AppState>) -> Result<GtsHistoryImportResponse, String> {
+fn import_gts_history_from_logs(
+    state: State<'_, AppState>,
+) -> Result<GtsHistoryImportResponse, String> {
     import_gts_history_from_log_directory(&state)
 }
 
@@ -1402,7 +1417,7 @@ fn learn_quiz_history_from_text(
     let before_total = entries.len();
 
     for raw_line in text.lines() {
-        let Some((_, chat_text)) = parse_chat_line(raw_line) else {
+        let Some((_, chat_text, _raw_chat_text)) = parse_chat_line(raw_line) else {
             continue;
         };
 
@@ -1465,7 +1480,7 @@ fn collect_gts_events_from_text(path: &Path, text: &str) -> Vec<CollectedGtsEven
     let mut pending_sale: Option<PendingGtsSale> = None;
 
     for raw_line in text.lines() {
-        let Some((time, chat_text)) = parse_chat_line(raw_line) else {
+        let Some((time, chat_text, _raw_chat_text)) = parse_chat_line(raw_line) else {
             continue;
         };
 
@@ -1556,7 +1571,7 @@ fn collect_gts_sale_debug_samples_from_text(path: &Path, text: &str) -> Vec<Stri
         .unwrap_or("log");
     let mut samples = Vec::new();
     for raw_line in text.lines() {
-        let Some((_time, chat_text)) = parse_chat_line(raw_line) else {
+        let Some((_time, chat_text, _raw_chat_text)) = parse_chat_line(raw_line) else {
             continue;
         };
         if !looks_like_gts_sale_debug_line(&chat_text) {
@@ -1660,9 +1675,9 @@ fn scan_logs(log: &mut LogCaptureState, captured_keys: &HashSet<String>, quiz_hi
                     return;
                 }
             }
+        } else {
+            log.offset = 0;
         }
-
-        log.offset = 0;
     }
 
     match read_new_text(&active_file, log.offset, trim_partial_start) {
@@ -1766,7 +1781,302 @@ fn process_log_text(
 
     for raw_line in lines {
         log.lines_read += 1;
-        let Some((time, chat_text)) = parse_chat_line(&raw_line) else {
+        let Some((time, chat_text, raw_chat_text)) = parse_chat_line(&raw_line) else {
+            continue;
+        };
+
+        log.chat_lines_read += 1;
+        log.last_chat = Some(LogChat {
+            time: time.clone(),
+            text: chat_text.clone(),
+            file: file_name.clone(),
+        });
+
+        let is_server_chat_message = !is_likely_player_chat_message(&chat_text);
+        let has_quiz_header = has_formatted_quiz_header(&raw_chat_text);
+
+        if is_server_chat_message {
+            if has_quiz_header {
+                if let Some((quiz, answer)) = parse_complex_quiz_timeout_event(&chat_text) {
+                    quiz_history_changed |= remember_quiz_history_question(
+                        &mut log.quiz_history,
+                        &quiz.detail,
+                        &file_name,
+                    );
+                    quiz_history_changed |= learn_quiz_history_answer(
+                        &mut log.quiz_history,
+                        &quiz.detail,
+                        &answer,
+                        &file_name,
+                    );
+                    log.pending_who_is_quiz = None;
+                    push_quiz_event_if_new(log, quiz, &time, &file_name);
+                    continue;
+                }
+            }
+
+            if let Some(answer) = parse_quiz_timeout_answer(&chat_text) {
+                if let Some(pending) = log.pending_who_is_quiz.take() {
+                    quiz_history_changed |= learn_quiz_history_answer(
+                        &mut log.quiz_history,
+                        &pending.clue,
+                        &answer,
+                        &file_name,
+                    );
+                }
+                continue;
+            }
+        }
+
+        if let Some(player_name) = detect_local_player_name(&chat_text) {
+            log.local_players.insert(player_name);
+        }
+
+        if is_server_chat_message {
+            if let Some(prompt) = log.pending_who_is_prompt.take() {
+                if let Some(quiz) = parse_pending_complex_quiz_event(prompt, &chat_text) {
+                    quiz_history_changed |= remember_quiz_history_question(
+                        &mut log.quiz_history,
+                        &quiz.detail,
+                        &file_name,
+                    );
+                    log.pending_who_is_quiz = Some(PendingWhoIsQuiz {
+                        clue: quiz.detail.clone(),
+                    });
+                    push_quiz_event_if_new(log, quiz, &time, &file_name);
+                    continue;
+                }
+            }
+
+            if has_quiz_header {
+                if let Some(quiz) = parse_quiz_event(&raw_chat_text) {
+                    log.pending_quiz = None;
+                    push_quiz_event_if_new(log, quiz, &time, &file_name);
+                } else if let Some(quiz) = parse_who_is_pokemon_event(&chat_text) {
+                    quiz_history_changed |= remember_quiz_history_question(
+                        &mut log.quiz_history,
+                        &quiz.detail,
+                        &file_name,
+                    );
+                    log.pending_who_is_quiz = Some(PendingWhoIsQuiz {
+                        clue: quiz.detail.clone(),
+                    });
+                    push_quiz_event_if_new(log, quiz, &time, &file_name);
+                } else if let Some(quiz) = parse_ability_description_event(&chat_text) {
+                    quiz_history_changed |= remember_quiz_history_question(
+                        &mut log.quiz_history,
+                        &quiz.detail,
+                        &file_name,
+                    );
+                    log.pending_who_is_quiz = Some(PendingWhoIsQuiz {
+                        clue: quiz.detail.clone(),
+                    });
+                    push_quiz_event_if_new(log, quiz, &time, &file_name);
+                } else if let Some(prompt) = parse_who_is_pokemon_prompt(&chat_text)
+                    .or_else(|| parse_ability_description_prompt(&chat_text))
+                {
+                    log.pending_who_is_prompt = Some(prompt);
+                } else if let Some(pending_quiz) = parse_pending_quiz_prompt(&chat_text) {
+                    log.pending_quiz = Some(pending_quiz);
+                }
+            } else if let Some(quiz) =
+                parse_pending_quiz_event(log.pending_quiz.take(), &chat_text)
+            {
+                push_quiz_event_if_new(log, quiz, &time, &file_name);
+            }
+        } else {
+            log.pending_quiz = None;
+            log.pending_who_is_prompt = None;
+        }
+
+        if chat_text.contains("Captura Humanizada") {
+            log.last_signal = Some(LogSignal {
+                time: time.clone(),
+                text: "Captura Humanizada".to_string(),
+                file: file_name.clone(),
+            });
+        }
+
+        if let Some(invasion) = parse_invasion_event(&chat_text) {
+            let seen_key = format!("invasion|{}|{}", time, file_name);
+            if !log.seen.contains(&seen_key) {
+                log.seen.insert(seen_key);
+                push_log_reward_event(
+                    log,
+                    invasion.event_type,
+                    invasion.title,
+                    invasion.detail,
+                    time.clone(),
+                    file_name.clone(),
+                    chat_text.clone(),
+                );
+            }
+        }
+
+        if let Some(gts) = parse_gts_listing_event(&chat_text) {
+            let seen_key = gts_seen_key(&gts, &time, &file_name);
+            if !log.seen.contains(&seen_key) {
+                log.seen.insert(seen_key);
+                push_log_reward_event(
+                    log,
+                    gts.event_type,
+                    gts.title,
+                    gts.detail,
+                    time.clone(),
+                    file_name.clone(),
+                    chat_text.clone(),
+                );
+            }
+        } else if let Some(gts_sale) = parse_gts_sale_bundle_event(&chat_text) {
+            push_gts_sale_debug_sample(log, format!("OK pacote | {} | {}", file_name, chat_text));
+            push_gts_sale_event_if_new(log, gts_sale, &time, &file_name, &chat_text);
+        } else if let Some(gts_sale) = parse_gts_sale_event(&chat_text) {
+            push_gts_sale_debug_sample(log, format!("OK simples | {} | {}", file_name, chat_text));
+            push_gts_sale_event_if_new(log, gts_sale, &time, &file_name, &chat_text);
+        } else if let Some(sale_start) = parse_gts_sale_start_event(&chat_text) {
+            push_gts_sale_debug_sample(log, format!("OK inicio | {} | {}", file_name, chat_text));
+            log.pending_gts_sale = Some(PendingGtsSale {
+                buyer: sale_start.buyer,
+                item: sale_start.item,
+                price: String::new(),
+                fee: String::new(),
+                received: String::new(),
+                log_time: time.clone(),
+                source: file_name.clone(),
+                text: chat_text.clone(),
+            });
+            continue;
+        } else if let Some((field, amount)) = parse_gts_sale_amount_line(&chat_text) {
+            push_gts_sale_debug_sample(
+                log,
+                format!("OK valor {field}={amount} | {} | {}", file_name, chat_text),
+            );
+            if let Some(mut pending_sale) = log.pending_gts_sale.take() {
+                match field {
+                    "price" => pending_sale.price = amount,
+                    "fee" => pending_sale.fee = amount,
+                    "received" => pending_sale.received = amount,
+                    _ => {}
+                }
+                pending_sale.text.push('\n');
+                pending_sale.text.push_str(&chat_text);
+                if pending_sale.price.is_empty()
+                    || pending_sale.fee.is_empty()
+                    || pending_sale.received.is_empty()
+                {
+                    log.pending_gts_sale = Some(pending_sale);
+                } else {
+                    push_completed_gts_sale_event_if_new(log, pending_sale);
+                }
+            }
+            continue;
+        } else if looks_like_gts_sale_debug_line(&chat_text) {
+            push_gts_sale_debug_sample(log, format!("NAO parseou | {} | {}", file_name, chat_text));
+        }
+
+        if let Some(reward) = parse_reward_event(&chat_text, &log.player_name) {
+            let seen_key = format!(
+                "reward|{}|{}|{}",
+                time,
+                pokemon_key(&reward.title),
+                file_name
+            );
+            if !log.seen.contains(&seen_key) {
+                log.seen.insert(seen_key);
+                push_log_reward_event(
+                    log,
+                    reward.event_type,
+                    reward.title,
+                    reward.detail,
+                    time.clone(),
+                    file_name.clone(),
+                    chat_text.clone(),
+                );
+            }
+        }
+
+        let Some(event) = parse_capture_event(&chat_text) else {
+            continue;
+        };
+
+        if let Some(player_name) = &event.player_name {
+            let configured_player_matches = !log.player_name.trim().is_empty()
+                && log.player_name.eq_ignore_ascii_case(player_name);
+            let detected_player_matches = log
+                .local_players
+                .iter()
+                .any(|name| name.eq_ignore_ascii_case(player_name));
+            if !configured_player_matches
+                && !detected_player_matches
+                && !log.local_players.is_empty()
+            {
+                log.last_ignored = Some(format!("{} capturado por {}", event.pokemon, player_name));
+                continue;
+            }
+            if !configured_player_matches && log.local_players.is_empty() {
+                log.last_ignored = Some(format!(
+                    "{} ignorado: jogador local ainda desconhecido",
+                    event.pokemon
+                ));
+                continue;
+            }
+        }
+
+        log.events_read += 1;
+        let key = pokemon_key(&event.pokemon);
+        if captured_keys.contains(&key) {
+            log.last_ignored = Some(format!("{} jÃ¡ estava capturado", event.pokemon));
+            continue;
+        }
+
+        let seen_key = format!("{}|{}|{}", time, key, file_name);
+        if log.seen.contains(&seen_key) {
+            continue;
+        }
+        log.seen.insert(seen_key);
+
+        let candidate = LogCandidate {
+            id: log.next_id,
+            pokemon: event.pokemon,
+            event_type: event.event_type,
+            confidence: event.confidence,
+            log_time: time,
+            detected_at: now_string(),
+            source: file_name.clone(),
+        };
+        log.next_id += 1;
+        log.last_capture = Some(candidate.clone());
+        log.candidates.push(candidate);
+    }
+
+    quiz_history_changed
+}
+
+#[allow(dead_code)]
+fn process_log_text_duplicate_marker(
+    log: &mut LogCaptureState,
+    path: &Path,
+    text: &str,
+    captured_keys: &HashSet<String>,
+) -> bool {
+    let mut quiz_history_changed = false;
+    let file_name = path
+        .file_name()
+        .and_then(|value| value.to_str())
+        .unwrap_or("latest.log")
+        .to_string();
+
+    log.buffer.push_str(text);
+    let mut lines = log.buffer.lines().map(str::to_string).collect::<Vec<_>>();
+    if !log.buffer.ends_with('\n') && !log.buffer.ends_with('\r') {
+        log.buffer = lines.pop().unwrap_or_default();
+    } else {
+        log.buffer.clear();
+    }
+
+    for raw_line in lines {
+        log.lines_read += 1;
+        let Some((time, chat_text, raw_chat_text)) = parse_chat_line(&raw_line) else {
             continue;
         };
 
@@ -1827,9 +2137,10 @@ fn process_log_text(
                 }
             }
 
-            if let Some(quiz) = parse_pending_quiz_event(log.pending_quiz.take(), &chat_text) {
+            if let Some(quiz) = parse_quiz_event(&raw_chat_text) {
+                log.pending_quiz = None;
                 push_quiz_event_if_new(log, quiz, &time, &file_name);
-            } else if let Some(quiz) = parse_quiz_event(&chat_text) {
+            } else if let Some(quiz) = parse_pending_quiz_event(log.pending_quiz.take(), &chat_text) {
                 push_quiz_event_if_new(log, quiz, &time, &file_name);
             } else if let Some(quiz) = parse_who_is_pokemon_event(&chat_text) {
                 quiz_history_changed |=
@@ -1915,7 +2226,10 @@ fn process_log_text(
             });
             continue;
         } else if let Some((field, amount)) = parse_gts_sale_amount_line(&chat_text) {
-            push_gts_sale_debug_sample(log, format!("OK valor {field}={amount} | {} | {}", file_name, chat_text));
+            push_gts_sale_debug_sample(
+                log,
+                format!("OK valor {field}={amount} | {} | {}", file_name, chat_text),
+            );
             if let Some(mut pending_sale) = log.pending_gts_sale.take() {
                 match field {
                     "price" => pending_sale.price = amount,
@@ -1965,16 +2279,20 @@ fn process_log_text(
         };
 
         if let Some(player_name) = &event.player_name {
-            if !log.local_players.is_empty()
-                && !log
-                    .local_players
-                    .iter()
-                    .any(|name| name.eq_ignore_ascii_case(player_name))
+            let configured_player_matches = !log.player_name.trim().is_empty()
+                && log.player_name.eq_ignore_ascii_case(player_name);
+            let detected_player_matches = log
+                .local_players
+                .iter()
+                .any(|name| name.eq_ignore_ascii_case(player_name));
+            if !configured_player_matches
+                && !detected_player_matches
+                && !log.local_players.is_empty()
             {
                 log.last_ignored = Some(format!("{} capturado por {}", event.pokemon, player_name));
                 continue;
             }
-            if log.local_players.is_empty() {
+            if !configured_player_matches && log.local_players.is_empty() {
                 log.last_ignored = Some(format!(
                     "{} ignorado: jogador local ainda desconhecido",
                     event.pokemon
@@ -2175,7 +2493,12 @@ fn gts_seen_key(event: &ParsedRewardEvent, time: &str, file_name: &str) -> Strin
 }
 
 fn log_reward_seen_key(event: &LogRewardEvent) -> String {
-    gts_seen_key_parts(&event.event_type, &event.detail, &event.log_time, &event.source)
+    gts_seen_key_parts(
+        &event.event_type,
+        &event.detail,
+        &event.log_time,
+        &event.source,
+    )
 }
 
 fn gts_seen_key_parts(event_type: &str, detail: &str, time: &str, file_name: &str) -> String {
@@ -2184,13 +2507,7 @@ fn gts_seen_key_parts(event_type: &str, detail: &str, time: &str, file_name: &st
     } else {
         "gts"
     };
-    format!(
-        "{}|{}|{}|{}",
-        prefix,
-        time,
-        pokemon_key(detail),
-        file_name
-    )
+    format!("{}|{}|{}|{}", prefix, time, pokemon_key(detail), file_name)
 }
 
 fn push_quiz_event_if_new(
@@ -2276,12 +2593,13 @@ struct ParsedGtsSaleStart {
     item: String,
 }
 
-fn parse_chat_line(line: &str) -> Option<(String, String)> {
+fn parse_chat_line(line: &str) -> Option<(String, String, String)> {
     let marker = "[CHAT] ";
     let marker_index = line.find(marker)?;
     let time = line.get(1..9).unwrap_or("").to_string();
-    let text = clean_minecraft_text(&line[marker_index + marker.len()..]);
-    Some((time, text))
+    let raw_text = line[marker_index + marker.len()..].to_string();
+    let text = clean_minecraft_text(&raw_text);
+    Some((time, text, raw_text))
 }
 
 fn is_likely_player_chat_message(text: &str) -> bool {
@@ -2375,9 +2693,7 @@ fn summarize_invasion_title(text: &str) -> String {
 fn parse_gts_listing_event(text: &str) -> Option<ParsedRewardEvent> {
     let clean_text = clean_minecraft_text(text);
     let lower = clean_text.to_lowercase();
-    if !lower.contains("[gts")
-        || (!lower.contains(" added a ") && !lower.contains(" added an "))
-    {
+    if !lower.contains("[gts") || (!lower.contains(" added a ") && !lower.contains(" added an ")) {
         return None;
     }
 
@@ -2530,9 +2846,7 @@ fn parse_gts_sale_amount_line(text: &str) -> Option<(&'static str, String)> {
         ("sale fee:", "fee"),
         ("amount received:", "received"),
     ];
-    let (marker, field) = markers
-        .iter()
-        .find(|(marker, _)| lower.contains(*marker))?;
+    let (marker, field) = markers.iter().find(|(marker, _)| lower.contains(*marker))?;
     let index = lower.find(marker)? + marker.len();
     let amount = clean_text.get(index..)?.trim().trim_end_matches('!').trim();
     if amount.is_empty() {
@@ -2542,6 +2856,10 @@ fn parse_gts_sale_amount_line(text: &str) -> Option<(&'static str, String)> {
 }
 
 fn parse_quiz_event(text: &str) -> Option<ParsedQuizEvent> {
+    if !has_formatted_quiz_header(text) {
+        return None;
+    }
+
     let clean_text = clean_minecraft_text(text);
     let text_key = pokemon_key(&clean_text);
 
@@ -2616,6 +2934,45 @@ fn parse_quiz_event(text: &str) -> Option<ParsedQuizEvent> {
     }
 
     None
+}
+
+fn has_formatted_quiz_header(text: &str) -> bool {
+    let compact = text
+        .chars()
+        .filter(|character| !character.is_whitespace())
+        .collect::<String>()
+        .to_lowercase();
+    formatted_quiz_header_after(&compact, &["&b&l", "&6&l"], is_quiz_header_start)
+        || formatted_quiz_header_after(
+            &compact,
+            &[
+                "§b§l",
+                "§6§l",
+                "Â§bÂ§l",
+                "Â§6Â§l",
+                "\u{fffd}b\u{fffd}l",
+                "\u{fffd}6\u{fffd}l",
+            ],
+            is_quiz_header_start,
+        )
+}
+
+fn formatted_quiz_header_after(
+    compact_text: &str,
+    prefixes: &[&str],
+    is_header: fn(&str) -> bool,
+) -> bool {
+    prefixes.iter().any(|prefix| {
+        compact_text
+            .match_indices(prefix)
+            .any(|(index, prefix)| is_header(&compact_text[index + prefix.len()..]))
+    })
+}
+
+fn is_quiz_header_start(value: &str) -> bool {
+    value.starts_with("curiosidade")
+        || (value.starts_with("qual") && value.contains("essepok"))
+        || (value.starts_with("qual") && value.contains("essahabilidade"))
 }
 
 fn parse_pending_quiz_prompt(text: &str) -> Option<PendingQuiz> {
@@ -2874,18 +3231,6 @@ fn strip_quiz_timeout_color_prefix(value: &str) -> String {
     let trimmed = value.trim();
     if let Some(answer) = format_known_egg_group_answer(trimmed) {
         return answer;
-    }
-    let mut chars = trimmed.chars();
-    let Some(first) = chars.next() else {
-        return String::new();
-    };
-    let Some(second) = chars.next() else {
-        return trimmed.to_string();
-    };
-    if first == 'b' && second.is_ascii_lowercase() {
-        let mut output = chars.as_str().to_string();
-        output.insert(0, second);
-        return output;
     }
     trimmed.to_string()
 }
@@ -3445,12 +3790,18 @@ fn clean_minecraft_text(text: &str) -> String {
         if character == '\u{fffd}' {
             let mut lookahead = chars.clone();
             if let (Some(next), Some(after_next)) = (lookahead.next(), lookahead.next()) {
-                if is_minecraft_format_code(next)
-                    && (after_next.is_ascii_uppercase()
+                if is_minecraft_format_code(next) {
+                    let at_token_start = output
+                        .chars()
+                        .next_back()
+                        .is_none_or(|previous| previous.is_whitespace());
+                    if at_token_start
+                        || after_next.is_ascii_uppercase()
                         || after_next.is_whitespace()
-                        || after_next.is_ascii_punctuation())
-                {
-                    chars.next();
+                        || after_next.is_ascii_punctuation()
+                    {
+                        chars.next();
+                    }
                 }
             }
             continue;
@@ -3490,6 +3841,30 @@ fn pokemon_key(name: &str) -> String {
         ('õ', 'o'),
         ('ú', 'u'),
         ('ç', 'c'),
+        ('á', 'a'),
+        ('à', 'a'),
+        ('ã', 'a'),
+        ('â', 'a'),
+        ('ä', 'a'),
+        ('é', 'e'),
+        ('è', 'e'),
+        ('ê', 'e'),
+        ('ë', 'e'),
+        ('í', 'i'),
+        ('ì', 'i'),
+        ('î', 'i'),
+        ('ï', 'i'),
+        ('ó', 'o'),
+        ('ò', 'o'),
+        ('õ', 'o'),
+        ('ô', 'o'),
+        ('ö', 'o'),
+        ('ú', 'u'),
+        ('ù', 'u'),
+        ('û', 'u'),
+        ('ü', 'u'),
+        ('ç', 'c'),
+        ('ñ', 'n'),
     ]);
 
     name.to_lowercase()
@@ -3621,6 +3996,15 @@ mod tests {
     }
 
     #[test]
+    fn parses_configured_player_global_capture_with_hex_codes() {
+        let event = parse_capture_event("&a&lPX&r&e&lBR&r&e &r&8&l»&r&8 &r&#3DAC00U&r&#41B001m&r&#44B503 &r&#48B904L&r&#4BBD06e&r&#4FC207n&r&#52C609d&r&#56CB0Aá&r&#5ACF0Cr&r&#5DD30Di&r&#61D80Fo&r&#64DC10 &r&#68E012T&r&#6CE513a&r&#6FE915p&r&#73EE16u&r&#76F218K&r&#7AF619o&r&#7DFB1Bk&r&#81FF1Co&r&#81FF1C,&r&#7AF719 &r&#73EE16c&r&#6DE614o&r&#66DE11m&r&#5FD60E &r&#58CD0B7&r&#51C5088&r&#4BBD06.&r&#44B4034&r&#3DAC001&r&#3DAC00%&r&#42B202 &r&#46B704d&r&#4BBD06e&r&#4FC207 &r&#54C809I&r&#58CD0BV&r&#5DD30Ds&r&#61D80F,&r&#66DE11 &r&#6AE313f&r&#6FE915o&r&#73EE16i&r&#78F418 &r&#7CF91Ac&r&#81FF1Ca&r&#81FF1Cpturado por Jorgimgamiprays&r").unwrap();
+
+        assert_eq!(event.pokemon, "TapuKoko");
+        assert_eq!(event.player_name.as_deref(), Some("Jorgimgamiprays"));
+        assert_eq!(event.event_type, "capture");
+    }
+
+    #[test]
     fn initial_scan_reads_recent_existing_log_lines() {
         let dir = env::temp_dir().join(format!(
             "pixelmon-log-scan-{}",
@@ -3653,6 +4037,80 @@ mod tests {
         assert_eq!(log.candidates.len(), 1);
         assert_eq!(log.candidates[0].pokemon, "Squirtle");
         assert_eq!(log.offset, log.current_size);
+    }
+
+    #[test]
+    fn initial_scan_skips_old_lines_in_large_existing_log() {
+        let dir = env::temp_dir().join(format!(
+            "pixelmon-large-log-scan-{}",
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        fs::create_dir_all(&dir).unwrap();
+        let log_path = dir.join("latest.log");
+        let filler = "ignored line\n".repeat((INITIAL_LOG_HISTORY_BYTES as usize / 13) + 10);
+        fs::write(
+            &log_path,
+            format!(
+                "[12:00:00] [Client thread/INFO]: [CHAT] You captured &bBulbasaur&r!\n{}[12:01:00] [Client thread/INFO]: [CHAT] You captured &bSquirtle&r!\n",
+                filler
+            ),
+        )
+        .unwrap();
+
+        let mut log = LogCaptureState {
+            enabled: true,
+            log_directory: dir.to_string_lossy().to_string(),
+            ..Default::default()
+        };
+
+        let quiz_history_path = dir.join("quiz-history.json");
+        scan_logs(&mut log, &HashSet::new(), &quiz_history_path);
+
+        fs::remove_file(log_path).unwrap();
+        let _ = fs::remove_file(quiz_history_path);
+        fs::remove_dir(dir).unwrap();
+
+        assert_eq!(log.candidates.len(), 1);
+        assert_eq!(log.candidates[0].pokemon, "Squirtle");
+        assert_eq!(log.offset, log.current_size);
+    }
+
+    #[test]
+    fn scan_accepts_global_capture_for_configured_player_name() {
+        let dir = env::temp_dir().join(format!(
+            "pixelmon-global-capture-scan-{}",
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        fs::create_dir_all(&dir).unwrap();
+        let log_path = dir.join("latest.log");
+        fs::write(
+            &log_path,
+            "[12:00:00] [Client thread/INFO]: [CHAT] &a&lPX&r&e&lBR&r&e &r&8&l»&r&8 &r&#3DAC00U&r&#41B001m&r&#44B503 &r&#48B904L&r&#4BBD06e&r&#4FC207n&r&#52C609d&r&#56CB0Aá&r&#5ACF0Cr&r&#5DD30Di&r&#61D80Fo&r&#64DC10 &r&#68E012T&r&#6CE513a&r&#6FE915p&r&#73EE16u&r&#76F218K&r&#7AF619o&r&#7DFB1Bk&r&#81FF1Co&r&#81FF1C,&r&#7AF719 &r&#73EE16c&r&#6DE614o&r&#66DE11m&r&#5FD60E &r&#58CD0B7&r&#51C5088&r&#4BBD06.&r&#44B4034&r&#3DAC001&r&#3DAC00%&r&#42B202 &r&#46B704d&r&#4BBD06e&r&#4FC207 &r&#54C809I&r&#58CD0BV&r&#5DD30Ds&r&#61D80F,&r&#66DE11 &r&#6AE313f&r&#6FE915o&r&#73EE16i&r&#78F418 &r&#7CF91Ac&r&#81FF1Ca&r&#81FF1Cpturado por Jorgimgamiprays&r\n",
+        )
+        .unwrap();
+
+        let mut log = LogCaptureState {
+            enabled: true,
+            log_directory: dir.to_string_lossy().to_string(),
+            player_name: "Jorgimgamiprays".to_string(),
+            ..Default::default()
+        };
+        let quiz_history_path = dir.join("quiz-history.json");
+        scan_logs(&mut log, &HashSet::new(), &quiz_history_path);
+
+        fs::remove_file(log_path).unwrap();
+        let _ = fs::remove_file(quiz_history_path);
+        fs::remove_dir(dir).unwrap();
+
+        assert_eq!(log.candidates.len(), 1);
+        assert_eq!(log.candidates[0].pokemon, "TapuKoko");
+        assert!(log.last_ignored.is_none());
     }
 
     #[test]
@@ -3929,7 +4387,7 @@ mod tests {
 
     #[test]
     fn parses_curiosity_type_quiz() {
-        let event = parse_quiz_event("Qual e o Tipo Elemental do Sealeo?").unwrap();
+        let event = parse_quiz_event("&b&lCuriosidade\n&eQual e o Tipo Elemental do &bSealeo&e?").unwrap();
 
         assert_eq!(event.title, "Curiosidade: Tipo Elemental");
         assert_eq!(event.detail, "Sealeo");
@@ -3948,7 +4406,7 @@ mod tests {
 
     #[test]
     fn parses_curiosity_element_quiz() {
-        let event = parse_quiz_event("Qual e o elemento do Sandshrew?").unwrap();
+        let event = parse_quiz_event("&b&lCuriosidade\n&eQual e o elemento do &bSandshrew&e?").unwrap();
 
         assert_eq!(event.title, "Curiosidade: Tipo Elemental");
         assert_eq!(event.detail, "Sandshrew");
@@ -3956,7 +4414,7 @@ mod tests {
 
     #[test]
     fn parses_curiosity_egg_group_quiz() {
-        let event = parse_quiz_event("Qual e o EggGroup do Vanillish?").unwrap();
+        let event = parse_quiz_event("&b&lCuriosidade\n&eQual e o EggGroup do &bVanillish&e?").unwrap();
 
         assert_eq!(event.title, "Curiosidade: EggGroup");
         assert_eq!(event.detail, "Vanillish");
@@ -3971,6 +4429,17 @@ mod tests {
 
         assert_eq!(event.title, "Curiosidade: EggGroup");
         assert_eq!(event.detail, "Lumineon");
+    }
+
+    #[test]
+    fn parses_curiosity_egg_group_quiz_with_ampersand_codes_and_real_accent() {
+        let event = parse_quiz_event(
+            "\n            &b&lCuriosidade    \n &eQual é o EggGroup do &bIvysaur&e? \n &r",
+        )
+        .unwrap();
+
+        assert_eq!(event.title, "Curiosidade: EggGroup");
+        assert_eq!(event.detail, "Ivysaur");
     }
 
     #[test]
@@ -4012,6 +4481,51 @@ mod tests {
     }
 
     #[test]
+    fn new_egg_group_quiz_overrides_stale_ability_pending_quiz() {
+        let dir = env::temp_dir().join(format!(
+            "pixelmon-egg-quiz-overrides-pending-{}",
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        fs::create_dir_all(&dir).unwrap();
+        let log_path = dir.join("latest.log");
+        fs::write(
+            &log_path,
+            format!(
+                "{}\n",
+                [
+                "[14:57:52] [Client thread/INFO]: [CHAT] Cite uma das habilidades do pokemon",
+                "[14:57:53] [Client thread/INFO]: [CHAT] \\n            &b&lCuriosidade    \\n &eQual é o EggGroup do &bIvysaur&e? \\n &r",
+            ]
+                .join("\n")
+            ),
+        )
+        .unwrap();
+
+        let mut log = LogCaptureState {
+            enabled: true,
+            log_directory: dir.to_string_lossy().to_string(),
+            ..Default::default()
+        };
+        let quiz_history_path = dir.join("quiz-history.json");
+        scan_logs(&mut log, &HashSet::new(), &quiz_history_path);
+
+        fs::remove_file(log_path).unwrap();
+        let _ = fs::remove_file(quiz_history_path);
+        fs::remove_dir(dir).unwrap();
+
+        let event = log
+            .reward_events
+            .iter()
+            .find(|event| event.event_type == "quiz")
+            .unwrap();
+        assert_eq!(event.title, "Curiosidade: EggGroup");
+        assert_eq!(event.detail, "Ivysaur");
+    }
+
+    #[test]
     fn detects_ranked_player_chat_message() {
         let text = concat!(
             "&e[l] &r&7[RSK&7] &r&7[Nv 99] ",
@@ -4020,6 +4534,18 @@ mod tests {
         );
 
         assert!(is_likely_player_chat_message(text));
+    }
+
+    #[test]
+    fn ignores_player_chat_that_mentions_curiosity_quiz() {
+        let text = concat!(
+            "&e[l] &r&7[RSK&7] &r&7[Nv 51] ",
+            "&r&8&l[&r&2Elite&r&8&l] &rpaiolnorte&r &r&8&l\u{00bb} ",
+            "&r&cCuriosidade Qual Ã© o EggGroup do Teddiursa?&r"
+        );
+
+        assert!(is_likely_player_chat_message(text));
+        assert!(parse_quiz_event(text).is_none());
     }
 
     #[test]
@@ -4112,6 +4638,84 @@ mod tests {
     }
 
     #[test]
+    fn scans_formatted_who_is_pokemon_quiz_from_latest_log_line() {
+        let dir = env::temp_dir().join(format!(
+            "pixelmon-who-is-quiz-scan-{}",
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        fs::create_dir_all(&dir).unwrap();
+        let log_path = dir.join("latest.log");
+        fs::write(
+            &log_path,
+            "[14:57:53] [Client thread/INFO]: [CHAT] &6&lQual é esse Pokémon? &eQuando está saudável, seu núcleo se destaca. Sempre de frente para o mesmo caminho, ele se move rapidamente de frente para trás e da esquerda para a direita. &r\n",
+        )
+        .unwrap();
+
+        let mut log = LogCaptureState {
+            enabled: true,
+            log_directory: dir.to_string_lossy().to_string(),
+            ..Default::default()
+        };
+        let quiz_history_path = dir.join("quiz-history.json");
+        scan_logs(&mut log, &HashSet::new(), &quiz_history_path);
+
+        fs::remove_file(log_path).unwrap();
+        let _ = fs::remove_file(quiz_history_path);
+        fs::remove_dir(dir).unwrap();
+
+        let event = log
+            .reward_events
+            .iter()
+            .find(|event| event.event_type == "quiz")
+            .unwrap();
+        assert_eq!(event.title, "Qual e esse Pokemon?");
+        assert!(event.detail.contains("se destaca"));
+    }
+
+    #[test]
+    fn ignores_who_is_pokemon_quiz_written_by_player() {
+        let dir = env::temp_dir().join(format!(
+            "pixelmon-player-who-is-quiz-scan-{}",
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        fs::create_dir_all(&dir).unwrap();
+        let log_path = dir.join("latest.log");
+        fs::write(
+            &log_path,
+            concat!(
+                "[14:57:53] [Client thread/INFO]: [CHAT] ",
+                "&e[l] &r&7[RSK&7] &r&7[Nv 51] ",
+                "&r&8&l[&r&2Elite&r&8&l] &rpaiolnorte&r &r&8&l\u{00bb} ",
+                "&r&cQual é esse Pokémon? Quando está saudável, seu núcleo se destaca.&r\n",
+            ),
+        )
+        .unwrap();
+
+        let mut log = LogCaptureState {
+            enabled: true,
+            log_directory: dir.to_string_lossy().to_string(),
+            ..Default::default()
+        };
+        let quiz_history_path = dir.join("quiz-history.json");
+        scan_logs(&mut log, &HashSet::new(), &quiz_history_path);
+
+        fs::remove_file(log_path).unwrap();
+        let _ = fs::remove_file(quiz_history_path);
+        fs::remove_dir(dir).unwrap();
+
+        assert!(log
+            .reward_events
+            .iter()
+            .all(|event| event.event_type != "quiz"));
+    }
+
+    #[test]
     fn parses_curiosity_ability_quiz_split_over_lines() {
         let pending = parse_pending_quiz_prompt("Cite uma das habilidades do pokemon").unwrap();
         let event = parse_pending_quiz_event(Some(pending), "Cyclizar").unwrap();
@@ -4131,7 +4735,7 @@ mod tests {
 
     #[test]
     fn parses_degraded_curiosity_type_quiz_from_log() {
-        let event = parse_quiz_event("\\n Curiosidade \\n Qual \u{fffd} o Tipo Elemental\u{fffd}e do \u{fffd}aSealeo\u{fffd}e? \\n").unwrap();
+        let event = parse_quiz_event("\\n \u{fffd}b\u{fffd}lCuriosidade \\n Qual \u{fffd} o Tipo Elemental\u{fffd}e do \u{fffd}aSealeo\u{fffd}e? \\n").unwrap();
 
         assert_eq!(event.title, "Curiosidade: Tipo Elemental");
         assert_eq!(event.detail, "Sealeo");
@@ -4140,7 +4744,7 @@ mod tests {
     #[test]
     fn parses_degraded_curiosity_egg_group_quiz_from_log() {
         let event = parse_quiz_event(
-            "\\n Curiosidade \\n Qual \u{fffd} o EggGroup do \u{fffd}bVanillish\u{fffd}e? \\n",
+            "\\n \u{fffd}b\u{fffd}lCuriosidade \\n Qual \u{fffd} o EggGroup do \u{fffd}bVanillish\u{fffd}e? \\n",
         )
         .unwrap();
 
@@ -4150,7 +4754,7 @@ mod tests {
 
     #[test]
     fn parses_degraded_curiosity_ability_quiz_from_log() {
-        let event = parse_quiz_event("\\n Curiosidade \\n Cite uma das habilidades do pok\u{fffd}mon \\n \u{fffd}bCyclizar \\n").unwrap();
+        let event = parse_quiz_event("\\n \u{fffd}b\u{fffd}lCuriosidade \\n Cite uma das habilidades do pok\u{fffd}mon \\n \u{fffd}bCyclizar \\n").unwrap();
 
         assert_eq!(event.title, "Curiosidade: Habilidade");
         assert_eq!(event.detail, "Cyclizar");
@@ -4180,13 +4784,19 @@ mod tests {
         .unwrap();
 
         assert_eq!(answer, "gluttony");
-        assert_eq!(strip_quiz_timeout_color_prefix("bbagon"), "bagon");
+        assert_eq!(clean_quiz_timeout_answer("boldore").unwrap(), "boldore");
     }
 
     #[test]
     fn preserves_known_egg_group_answer_formatting() {
-        assert_eq!(clean_quiz_timeout_answer("humanlike").unwrap(), "Human-Like");
-        assert_eq!(clean_quiz_timeout_answer("human like").unwrap(), "Human-Like");
+        assert_eq!(
+            clean_quiz_timeout_answer("humanlike").unwrap(),
+            "Human-Like"
+        );
+        assert_eq!(
+            clean_quiz_timeout_answer("human like").unwrap(),
+            "Human-Like"
+        );
         assert_eq!(clean_quiz_timeout_answer("water1").unwrap(), "Water 1");
         assert_eq!(clean_quiz_timeout_answer("bug").unwrap(), "Bug");
     }

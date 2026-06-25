@@ -15,7 +15,6 @@
   <link rel="stylesheet" href="./styles/quiz.css">
   <link rel="stylesheet" href="./styles/gts.css">
   <link rel="stylesheet" href="./styles/pokemon-modal.css">
-  <link rel="stylesheet" href="./styles/capture-planner.css">
   <link rel="stylesheet" href="./styles/settings.css">
   <link rel="stylesheet" href="./styles/log-capture.css">
   <link rel="stylesheet" href="./styles/responsive.css">
@@ -38,10 +37,6 @@
             <button class="nav-button active" id="flow-checklist" type="button" aria-pressed="true">
               <span>Checklist</span>
               <span class="nav-count" id="flow-checklist-count">0</span>
-            </button>
-            <button class="nav-button" id="flow-capture" type="button" aria-pressed="false">
-              <span>Captura</span>
-              <span class="nav-count" id="flow-capture-count">0</span>
             </button>
             <button class="nav-button" id="flow-telemetry" type="button" aria-pressed="false">
               <span>Telemetria</span>
@@ -127,6 +122,10 @@
         <div class="chip-group" aria-label="Requisito ou m&eacute;todo">
           <span class="chip-label">M&eacute;todo</span>
           <div class="chip-list" id="method-chips"></div>
+        </div>
+        <div class="chip-group" aria-label="Classe do Pok&eacute;mon">
+          <span class="chip-label">Classe</span>
+          <div class="chip-list" id="species-chips"></div>
         </div>
         <div class="chip-group" aria-label="Tipo do Pok&eacute;mon">
           <span class="chip-label">Tipo</span>
@@ -226,6 +225,7 @@
   <script src="./pokemon-metodos-data.js"></script>
   <script src="./pokemon-biomas-data.js"></script>
   <script src="./pokemon-types-data.js"></script>
+  <script src="./pokemon-stats-data.js"></script>
   <script src="./pokemon-evolution-data.js"></script>
   <script src="./pokemon-breeding-data.js"></script>
   <script src="./pokemon-abilities-data.js"></script>

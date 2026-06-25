@@ -3,6 +3,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     const SUPPLEMENTAL_METHODS = window.POKEMON_SUPPLEMENTAL_METHODS || [];
     const CAPTURE_BIOMES = window.POKEMON_CAPTURE_BIOMES || [];
     const TYPE_DATA = window.POKEMON_TYPES_DATA || [];
+    const STATS_DATA = window.POKEMON_STATS_DATA || [];
     const EVOLUTION_DATA = window.POKEMON_EVOLUTION_DATA || { pokemon: [], chains: [] };
     const BREEDING_DATA = window.POKEMON_BREEDING_DATA || [];
     const ABILITIES_DATA = window.POKEMON_ABILITIES_DATA || [];
@@ -22,14 +23,29 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     const QUIZ_ALERTS_KEY = "pokemon-checklist-quiz-alerts-v1";
     const QUIZ_AUTO_COPY_KEY = "pokemon-checklist-quiz-auto-copy-v1";
     const GTS_ALERTS_KEY = "pokemon-checklist-gts-alerts-v1";
+    const NOTIFICATION_SOUND_STORAGE_KEY = "pokemon-checklist-notification-sounds-v1";
     const GTS_WATCHLIST_KEY = "pokemon-checklist-gts-watchlist-v1";
     const LOG_CAPTURE_DEFAULT_POLL_MS = 10000;
     const LOG_CAPTURE_QUIZ_POLL_MS = 1000;
     const QUIZ_AUTO_COPY_COOLDOWN_MS = 4000;
     const QUIZ_HISTORY_MATCH_MIN_PERCENT = 70;
+    const CUSTOM_NOTIFICATION_AUDIO_MAX_BYTES = 900 * 1024;
+    const NOTIFICATION_SOUND_TYPES = [
+      { type: "invasion", label: "Invasao", note: "Aviso do navio e eventos de invasao." },
+      { type: "quiz", label: "Quiz", note: "Curiosidade detectada com resposta local." },
+      { type: "gts", label: "GTS", note: "Anuncios desejados e vendas detectadas." }
+    ];
+    const NOTIFICATION_SOUND_PRESETS = [
+      { value: "app-default", label: "Padrao do alerta" },
+      { value: "soft-chime", label: "Sino curto" },
+      { value: "double-ping", label: "Bip duplo" },
+      { value: "urgent", label: "Alerta forte" },
+      { value: "custom", label: "Audio customizado" },
+      { value: "silent", label: "Sem som" }
+    ];
     const APP_META = window.POKELIST_APP_META || {
       name: "Pixelmon - Pokelist",
-      version: "1.0.8",
+      version: "1.0.9",
       releaseUrl: "",
       updaterUrl: ""
     };
@@ -83,12 +99,8 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
 
     const capturedState = new Map();
     const collectionTrackingState = new Map();
-    const filterState = { status: "", methods: new Set(), types: new Set(), sort: "number" };
+    const filterState = { status: "", methods: new Set(), species: "", types: new Set(), sort: "number" };
     let activeView = "checklist";
-    let captureSearch = "";
-    let selectedCaptureBiome = "";
-    let selectedCapturePeriod = "";
-    let captureStatusFilter = "missing";
     let telemetrySearch = "";
     let breedingSearch = "";
     let breedingGroupFilter = "";
@@ -133,7 +145,6 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     let buildMetaOnly = false;
     let selectedBreedingKey = "";
     let focusTelemetrySearchAfterRender = false;
-    let focusCaptureSearchAfterRender = false;
     let focusBreedingSearchAfterRender = false;
     let focusBreedingParentSearchAfterRender = false;
     let focusBreedingSavedSearchAfterRender = false;
@@ -213,6 +224,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     };
     let hasPrimedLogActivityAlerts = false;
     let activityAlertAudioContext = null;
+    const activeNotificationAudios = new Set();
     let activityAlertToastTimer = null;
     let activeTheme = localStorage.getItem(THEME_KEY) === "dark" ? "dark" : "light";
     let isCompactMode = localStorage.getItem(DENSITY_KEY) === "compact";
@@ -220,6 +232,8 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     let invasionWindowsNotificationsEnabled = localStorage.getItem(INVASION_WINDOWS_NOTIFICATION_KEY) === "true";
     let quizAlertsEnabled = localStorage.getItem(QUIZ_ALERTS_KEY) === "true";
     let quizAutoCopyEnabled = localStorage.getItem(QUIZ_AUTO_COPY_KEY) === "true";
+    let notificationSoundSettings = loadNotificationSoundSettings();
+    let notificationSoundStatus = "";
     let quizHistoryImportStatus = "";
     let quizFlowSearch = "";
     let quizFlowMode = "pending";
@@ -233,6 +247,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     const gtsLiveDisplayKeys = new Set();
     let lastQuizClipboardKey = "";
     let lastQuizClipboardAt = 0;
+    const copiedQuizClipboardKeys = new Set();
     let appRenderQueued = false;
     let isLogSidebarCollapsed = localStorage.getItem(LOG_SIDEBAR_COLLAPSED_KEY) === "true";
     let isLogMonitorMinimized = localStorage.getItem(LOG_MONITOR_MINIMIZED_KEY) === "true";
@@ -397,6 +412,12 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
         label: "Especial",
         categories: new Set([evolutionCategory, specialCategory, serverCategory])
       }
+    ];
+    const speciesFilters = [
+      { value: "", label: "Todos" },
+      { value: "normal", label: "Normais" },
+      { value: "legendary", label: "Lend\u00e1rios" },
+      { value: "paradox", label: "Paradox" }
     ];
     const sortOptions = [
       { value: "number", label: "Numérica" },
@@ -804,6 +825,12 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       "Nihilego", "Buzzwole", "Pheromosa", "Xurkitree", "Celesteela", "Kartana", "Guzzlord",
       "Poipole", "Naganadel", "Stakataka", "Blacephalon"
     ].map(canonicalKey));
+    const paradoxPokemonKeys = new Set([
+      "Great Tusk", "Scream Tail", "Brute Bonnet", "Flutter Mane", "Slither Wing", "Sandy Shocks",
+      "Iron Treads", "Iron Bundle", "Iron Hands", "Iron Jugulis", "Iron Moth", "Iron Thorns",
+      "Roaring Moon", "Iron Valiant", "Koraidon", "Miraidon", "Walking Wake", "Iron Leaves",
+      "Gouging Fire", "Raging Bolt", "Iron Boulder", "Iron Crown"
+    ].map(canonicalKey));
     const specialNavItems = [
       {
         type: "legendary",
@@ -837,6 +864,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     const supplementalByKey = new Map(SUPPLEMENTAL_METHODS.map(entry => [canonicalKey(entry.name), entry]));
     const captureBiomesByKey = new Map(CAPTURE_BIOMES.map(entry => [canonicalKey(entry.name), entry]));
     const typesByKey = new Map(TYPE_DATA.map(entry => [canonicalKey(entry.name), entry]));
+    const statsByKey = new Map(STATS_DATA.map(entry => [canonicalKey(entry.name), entry]));
     const evolutionMembersByKey = new Map((EVOLUTION_DATA.pokemon || []).map(entry => [canonicalKey(entry.name), entry]));
     const evolutionChainsById = new Map((EVOLUTION_DATA.chains || []).map(chain => [chain.id, chain]));
     const catalogNameById = new Map(CATALOG.map(entry => [entry.id, entry.name]));
@@ -848,6 +876,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       const method = supplementalByKey.get(nameKey);
       const captureBiome = captureBiomesByKey.get(nameKey);
       const typeInfo = typesByKey.get(nameKey);
+      const statsInfo = statsByKey.get(nameKey);
       const evolution = evolutionMembersByKey.get(nameKey);
       const breeding = breedingByKey.get(nameKey);
       const abilities = abilitiesByKey.get(nameKey);
@@ -877,6 +906,8 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
         sourceCategory,
         wiki: captureBiome?.wiki || method?.wiki || "",
         types: typeInfo?.types || [],
+        stats: statsInfo?.stats || null,
+        statTotal: statsInfo?.total || 0,
         evolution: evolution || null,
         breeding: breeding || null,
         abilities: abilities?.abilities || [],
@@ -1108,6 +1139,8 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       const value = normalize(raw.replace(/\s+\((byg|bop|forge|category)\)$/i, ""));
       if (!value) return "Outros";
       if (value === "any") return "Any";
+      if (value.includes("dimensao paradox") || value.includes("dimension paradox")) return "Dimens\u00e3o Paradox";
+      if (value.includes("dimensao ultra") || value.includes("dimension ultra")) return "Dimens\u00e3o Ultra";
       if (value.startsWith("ultra ")) return "Ultra Space";
       if (value.includes("end")) return "End";
       if (value === "hell" || value.includes("hellish") || value.includes("nether") || value.includes("crimson") || value.includes("warped") || value.includes("basalt") || value.includes("soul sand")) return "Hellish";
@@ -1151,34 +1184,6 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       const visible = names.slice(0, limit);
       const remaining = names.length - visible.length;
       return `${visible.join(", ")}${remaining > 0 ? `, +${remaining}` : ""}`;
-    }
-
-    function getCaptureBiomeOptions() {
-      const options = new Map();
-      allEntries.forEach(entry => {
-        getEntryBiomeGroups(entry).forEach(key => {
-          const current = options.get(key) || { name: key, total: 0, missing: 0 };
-          current.total += 1;
-          if (!isOwned(entry)) current.missing += 1;
-          options.set(key, current);
-        });
-      });
-      return [...options.values()]
-        .sort((a, b) => b.missing - a.missing || a.name.localeCompare(b.name, "pt-BR"));
-    }
-
-    function getCapturePeriodOptions() {
-      const periods = new Set();
-      allEntries.forEach(entry => {
-        getEntryBiomes(entry).forEach(item => {
-          String(item.period || "")
-            .split(",")
-            .map(period => period.trim())
-            .filter(Boolean)
-            .forEach(period => periods.add(period));
-        });
-      });
-      return [...periods].sort((a, b) => a.localeCompare(b, "pt-BR"));
     }
 
     function readJsonStorage(key, fallback) {
@@ -1971,7 +1976,6 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     const appShell = document.querySelector("#app-shell");
     const toolbar = document.querySelector(".toolbar");
     const checklistTab = document.querySelector("#flow-checklist");
-    const captureTab = document.querySelector("#flow-capture");
     const capturedTab = document.querySelector("#flow-telemetry");
     const breedingTab = document.querySelector("#flow-breeding");
     const teamsTab = document.querySelector("#flow-teams");
@@ -1982,7 +1986,6 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     const settingsTab = document.querySelector("#flow-settings");
     const checklistNavSections = document.querySelector("#checklist-nav-sections");
     const checklistFlowCount = document.querySelector("#flow-checklist-count");
-    const captureFlowCount = document.querySelector("#flow-capture-count");
     const telemetryFlowCount = document.querySelector("#flow-telemetry-count");
     const breedingFlowCount = document.querySelector("#flow-breeding-count");
     const teamsFlowCount = document.querySelector("#flow-teams-count");
@@ -1996,6 +1999,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     const updateCheckButton = document.querySelector("#update-check");
     const statusChips = document.querySelector("#status-chips");
     const methodChips = document.querySelector("#method-chips");
+    const speciesChips = document.querySelector("#species-chips");
     const typeChips = document.querySelector("#type-chips");
     const sortChips = document.querySelector("#sort-chips");
     const generationNav = document.querySelector("#generation-nav");
@@ -2104,16 +2108,20 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       };
       const passesMethodFilter = (entry, methods = filterState.methods) =>
         !methods.size || methods.has(getMethodFilter(entry));
+      const passesSpeciesFilter = (entry, species = filterState.species) =>
+        entryMatchesSpeciesFilter(entry, species);
       const passesTypeFilter = (entry, types = filterState.types) =>
         !types.size || entry.types.some(type => types.has(type));
       const countFilteredEntries = ({
         status = filterState.status,
         methods = filterState.methods,
+        species = filterState.species,
         types = filterState.types
       } = {}) =>
         visibleByNavigation.filter(entry =>
           passesStatusFilter(entry, status)
           && passesMethodFilter(entry, methods)
+          && passesSpeciesFilter(entry, species)
           && passesTypeFilter(entry, types)
         ).length;
 
@@ -2149,6 +2157,19 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
             } else {
               filterState.methods.add(filter.value);
             }
+            render();
+          }
+        });
+      }));
+
+      speciesChips.replaceChildren(...speciesFilters.map(filter => {
+        const count = countFilteredEntries({ species: filter.value });
+        return createFilterChip({
+          label: filter.label,
+          count,
+          active: filterState.species === filter.value,
+          onClick: () => {
+            filterState.species = filter.value;
             render();
           }
         });
@@ -2212,6 +2233,17 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
 
     function isOwned(entry) {
       return capturedState.has(canonicalKey(entry.name));
+    }
+
+    function getSpeciesFilter(entry) {
+      const key = canonicalKey(entry.name);
+      if (paradoxPokemonKeys.has(key)) return "paradox";
+      if (specialPokemonKeys.has(key) || mythicalPokemonKeys.has(key) || ultraBeastPokemonKeys.has(key)) return "legendary";
+      return "normal";
+    }
+
+    function entryMatchesSpeciesFilter(entry, filter = "") {
+      return !filter || getSpeciesFilter(entry) === filter;
     }
 
     function pokemonSpriteSource(entry) {
@@ -2931,6 +2963,47 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       return row;
     }
 
+    function createBaseStatsBlock(entry) {
+      const stats = entry?.stats || {};
+      const statItems = [
+        ["HP", stats.hp],
+        ["Atk", stats.atk],
+        ["Def", stats.def],
+        ["SpA", stats.spa],
+        ["SpD", stats.spd],
+        ["Spe", stats.spe]
+      ];
+      const wrap = document.createElement("div");
+      wrap.className = "modal-base-stats";
+      if (!statItems.every(([, value]) => Number.isFinite(Number(value)))) {
+        const empty = document.createElement("p");
+        empty.className = "modal-section-note";
+        empty.textContent = "Status base nao informado.";
+        wrap.append(empty);
+        return wrap;
+      }
+      statItems.forEach(([label, value]) => {
+        const numericValue = Number(value) || 0;
+        const row = document.createElement("div");
+        row.className = "modal-stat-row";
+        row.innerHTML = `
+          <span class="modal-stat-label"></span>
+          <span class="modal-stat-bar"><span></span></span>
+          <strong></strong>
+        `;
+        row.querySelector(".modal-stat-label").textContent = label;
+        row.querySelector(".modal-stat-bar span").style.width = `${Math.min(100, Math.round((numericValue / 255) * 100))}%`;
+        row.querySelector("strong").textContent = String(numericValue);
+        wrap.append(row);
+      });
+      const total = document.createElement("div");
+      total.className = "modal-stat-total";
+      total.innerHTML = `<span>Total</span><strong></strong>`;
+      total.querySelector("strong").textContent = String(entry.statTotal || statItems.reduce((sum, [, value]) => sum + (Number(value) || 0), 0));
+      wrap.append(total);
+      return wrap;
+    }
+
     function createPokemonCollectionControls(entry) {
       const haEntry = getHaTrackingEntry(entry);
       const record = getCollectionRecord(haEntry);
@@ -3085,6 +3158,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       profileList.append(createModalInfoRow("Egg groups", eggWrap));
 
       profileList.append(createModalInfoRow("Obtencao", entry.detail || "Sem detalhe cadastrado."));
+      profileList.append(createModalInfoRow("Status base", createBaseStatsBlock(entry)));
 
       if (entry.materials.length) {
         const materialsWrap = document.createElement("div");
@@ -3435,7 +3509,22 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
 
     function getLogRewardEventKey(event) {
       if (!event) return "";
-      return String(event.id || `${event.type || ""}|${event.logTime || ""}|${event.source || ""}|${event.title || ""}`);
+      return [
+        event.type || "",
+        event.logTime || "",
+        event.source || "",
+        event.title || "",
+        event.detail || "",
+        event.text || ""
+      ].join("|");
+    }
+
+    function rememberQuizClipboardKey(key) {
+      if (!key) return;
+      copiedQuizClipboardKeys.add(key);
+      if (copiedQuizClipboardKeys.size <= 200) return;
+      const firstKey = copiedQuizClipboardKeys.values().next().value;
+      copiedQuizClipboardKeys.delete(firstKey);
     }
 
     function getNewInvasionEvents(nextEvents) {
@@ -3602,10 +3691,11 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       if (kind === "eggGroup") {
         const groups = getEggGroups(entry).filter(group => group !== "no-eggs");
         const formattedGroups = groups.map(formatEggGroup);
+        const answer = formattedGroups.length ? formattedGroups.join(" / ") : "Undiscovered";
         return {
           entry,
           kind,
-          answer: formattedGroups.length ? formattedGroups.join(" / ") : "Undiscovered",
+          answer,
           clipboardText: formatQuizClipboardAnswer(formattedGroups[0] || "Undiscovered")
         };
       }
@@ -3878,6 +3968,139 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       return `Ligado. Avisando anuncios que batem com ${gtsWatchlist.length} desejado${gtsWatchlist.length === 1 ? "" : "s"} e suas vendas detectadas.`;
     }
 
+    function normalizeNotificationSoundType(type) {
+      return type === "gts_sale" ? "gts" : String(type || "quiz");
+    }
+
+    function getDefaultNotificationSoundSettings() {
+      return NOTIFICATION_SOUND_TYPES.reduce((settings, item) => {
+        settings[item.type] = {
+          preset: "app-default",
+          customName: "",
+          customDataUrl: ""
+        };
+        return settings;
+      }, {});
+    }
+
+    function sanitizeNotificationSoundSettings(value) {
+      const defaults = getDefaultNotificationSoundSettings();
+      const allowedPresets = new Set(NOTIFICATION_SOUND_PRESETS.map(preset => preset.value));
+      NOTIFICATION_SOUND_TYPES.forEach(item => {
+        const saved = value?.[item.type] || {};
+        const preset = allowedPresets.has(saved.preset) ? saved.preset : defaults[item.type].preset;
+        defaults[item.type] = {
+          preset,
+          customName: String(saved.customName || ""),
+          customDataUrl: String(saved.customDataUrl || "")
+        };
+      });
+      return defaults;
+    }
+
+    function loadNotificationSoundSettings() {
+      try {
+        return sanitizeNotificationSoundSettings(JSON.parse(localStorage.getItem(NOTIFICATION_SOUND_STORAGE_KEY) || "{}"));
+      } catch {
+        return getDefaultNotificationSoundSettings();
+      }
+    }
+
+    function saveNotificationSoundSettings() {
+      try {
+        localStorage.setItem(NOTIFICATION_SOUND_STORAGE_KEY, JSON.stringify(notificationSoundSettings));
+        return true;
+      } catch {
+        notificationSoundStatus = "Nao foi possivel salvar o audio. Tente um arquivo menor.";
+        return false;
+      }
+    }
+
+    function getNotificationSoundSetting(type) {
+      const normalizedType = normalizeNotificationSoundType(type);
+      return notificationSoundSettings[normalizedType] || notificationSoundSettings.quiz || getDefaultNotificationSoundSettings().quiz;
+    }
+
+    function getNotificationSoundPreset(type) {
+      const setting = getNotificationSoundSetting(type);
+      return NOTIFICATION_SOUND_PRESETS.find(preset => preset.value === setting.preset) || NOTIFICATION_SOUND_PRESETS[0];
+    }
+
+    function getNotificationSoundLabel(type) {
+      const setting = getNotificationSoundSetting(type);
+      const preset = getNotificationSoundPreset(type);
+      if (setting.preset === "custom") {
+        return setting.customName ? `Customizado: ${setting.customName}` : "Customizado sem arquivo";
+      }
+      return preset.label;
+    }
+
+    function getNotificationSoundStatusText() {
+      if (notificationSoundStatus) return notificationSoundStatus;
+      return "Escolha um som por tipo de aviso. Arquivos customizados ficam salvos apenas neste app/navegador.";
+    }
+
+    function setNotificationSoundPreset(type, preset) {
+      const normalizedType = normalizeNotificationSoundType(type);
+      const current = getNotificationSoundSetting(normalizedType);
+      notificationSoundSettings[normalizedType] = {
+        ...current,
+        preset
+      };
+      notificationSoundStatus = `${NOTIFICATION_SOUND_TYPES.find(item => item.type === normalizedType)?.label || "Alerta"} usando ${getNotificationSoundLabel(normalizedType)}.`;
+      saveNotificationSoundSettings();
+    }
+
+    function readCustomNotificationAudio(file) {
+      return new Promise((resolve, reject) => {
+        if (!file) {
+          reject(new Error("Nenhum arquivo selecionado."));
+          return;
+        }
+        if (!String(file.type || "").startsWith("audio/")) {
+          reject(new Error("Escolha um arquivo de audio."));
+          return;
+        }
+        if (file.size > CUSTOM_NOTIFICATION_AUDIO_MAX_BYTES) {
+          reject(new Error("Use um audio com ate 900 KB."));
+          return;
+        }
+        const reader = new FileReader();
+        reader.addEventListener("load", () => resolve(String(reader.result || "")));
+        reader.addEventListener("error", () => reject(new Error("Nao foi possivel ler o audio.")));
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function setCustomNotificationSoundFile(type, file) {
+      const normalizedType = normalizeNotificationSoundType(type);
+      try {
+        const dataUrl = await readCustomNotificationAudio(file);
+        notificationSoundSettings[normalizedType] = {
+          preset: "custom",
+          customName: file.name || "audio customizado",
+          customDataUrl: dataUrl
+        };
+        notificationSoundStatus = `${NOTIFICATION_SOUND_TYPES.find(item => item.type === normalizedType)?.label || "Alerta"} usando ${file.name || "audio customizado"}.`;
+        saveNotificationSoundSettings();
+      } catch (error) {
+        notificationSoundStatus = error?.message || "Nao foi possivel importar o audio.";
+      }
+    }
+
+    function clearCustomNotificationSound(type) {
+      const normalizedType = normalizeNotificationSoundType(type);
+      const current = getNotificationSoundSetting(normalizedType);
+      notificationSoundSettings[normalizedType] = {
+        ...current,
+        preset: "app-default",
+        customName: "",
+        customDataUrl: ""
+      };
+      notificationSoundStatus = `${NOTIFICATION_SOUND_TYPES.find(item => item.type === normalizedType)?.label || "Alerta"} voltou para o som padrao.`;
+      saveNotificationSoundSettings();
+    }
+
     async function setInvasionWindowsNotificationsEnabled(enabled) {
       if (!enabled) {
         invasionWindowsNotificationsEnabled = false;
@@ -3913,7 +4136,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
         await invokeTauri("show_native_notification", {
           title: event?.title || "Invasao iniciada",
           body: event?.toastDetail || event?.detail || "Use /warp navio para entrar.",
-          sound: event?.type || "default"
+          sound: getNativeNotificationSoundKey(event?.type || "default")
         });
       } catch {
         return false;
@@ -3954,12 +4177,35 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       ];
     }
 
-    function playActivityAlertSound(type = "quiz") {
+    function getPresetActivityAlertNotes(preset, type) {
+      if (preset === "soft-chime") {
+        return [
+          { frequency: 587, start: 0, duration: 0.12, gain: 0.14, type: "sine" },
+          { frequency: 784, start: 0.14, duration: 0.2, gain: 0.12, type: "sine" }
+        ];
+      }
+      if (preset === "double-ping") {
+        return [
+          { frequency: 880, start: 0, duration: 0.09, gain: 0.15, type: "triangle" },
+          { frequency: 880, start: 0.14, duration: 0.09, gain: 0.13, type: "triangle" }
+        ];
+      }
+      if (preset === "urgent") {
+        return [
+          { frequency: 392, start: 0, duration: 0.12, gain: 0.18, type: "square" },
+          { frequency: 523, start: 0.14, duration: 0.12, gain: 0.17, type: "square" },
+          { frequency: 784, start: 0.28, duration: 0.18, gain: 0.15, type: "square" }
+        ];
+      }
+      return getActivityAlertNotes(type);
+    }
+
+    function playGeneratedActivityAlertNotes(notes) {
       const context = primeActivityAlertSound();
       if (!context) return;
       const play = () => {
         const now = context.currentTime;
-        getActivityAlertNotes(type).forEach(note => {
+        notes.forEach(note => {
           const oscillator = context.createOscillator();
           const gain = context.createGain();
           oscillator.type = note.type;
@@ -3978,6 +4224,45 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       } else {
         play();
       }
+    }
+
+    function playAudioFileNotification(src, fallbackType) {
+      if (!src) {
+        playGeneratedActivityAlertNotes(getActivityAlertNotes(fallbackType));
+        return;
+      }
+      const audio = new Audio(src);
+      audio.volume = 0.9;
+      activeNotificationAudios.add(audio);
+      const releaseAudio = () => activeNotificationAudios.delete(audio);
+      audio.addEventListener("ended", releaseAudio, { once: true });
+      audio.addEventListener("error", releaseAudio, { once: true });
+      audio.play().catch(() => {
+        releaseAudio();
+        playGeneratedActivityAlertNotes(getActivityAlertNotes(fallbackType));
+      });
+    }
+
+    function playActivityAlertSound(type = "quiz") {
+      const normalizedType = normalizeNotificationSoundType(type);
+      const setting = getNotificationSoundSetting(normalizedType);
+      const preset = getNotificationSoundPreset(normalizedType);
+      if (preset.value === "silent") return;
+      if (preset.audioSrc) {
+        playAudioFileNotification(preset.audioSrc, normalizedType);
+        return;
+      }
+      if (setting.preset === "custom") {
+        playAudioFileNotification(setting.customDataUrl, normalizedType);
+        return;
+      }
+      playGeneratedActivityAlertNotes(getPresetActivityAlertNotes(setting.preset, normalizedType));
+    }
+
+    function getNativeNotificationSoundKey(type) {
+      const normalizedType = normalizeNotificationSoundType(type);
+      const preset = getNotificationSoundPreset(normalizedType);
+      return preset.value === "app-default" ? normalizedType : "silent";
     }
 
     function showActivityAlertToast(event) {
@@ -4005,19 +4290,22 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
 
     async function copyQuizAnswerToClipboard(event, options = {}) {
       const text = String(event?.clipboardText || "").trim();
-      if (!options.forceCopy && (!quizAutoCopyEnabled || event?.type !== "quiz" || !text)) return false;
+      if (!text) return false;
+      if (!options.forceCopy && (!quizAutoCopyEnabled || event?.type !== "quiz")) return false;
       const now = Date.now();
       const copyKey = `${getLogRewardEventKey(event)}|${text}`;
-      if (copyKey === lastQuizClipboardKey) return false;
-      if (now - lastQuizClipboardAt < QUIZ_AUTO_COPY_COOLDOWN_MS) return false;
+      if (!options.forceCopy && copyKey === lastQuizClipboardKey) return false;
+      if (!options.forceCopy && copiedQuizClipboardKeys.has(copyKey)) return false;
+      if (!options.forceCopy && now - lastQuizClipboardAt < QUIZ_AUTO_COPY_COOLDOWN_MS) return false;
       try {
         await copyTextToClipboard(text);
+        rememberQuizClipboardKey(copyKey);
         lastQuizClipboardKey = copyKey;
         lastQuizClipboardAt = now;
+        quizFlowStatus = `Copiado: ${text}`;
         return true;
-      } catch {
-        setQuizAutoCopyEnabled(false);
-        quizFlowStatus = "Copia automatica desligada: o Windows bloqueou a area de transferencia.";
+      } catch (error) {
+        quizFlowStatus = error?.message || "Nao foi possivel copiar para a area de transferencia.";
         return false;
       }
     }
@@ -4076,11 +4364,17 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
         }) || {
           type: "quiz",
           title: "Curiosidade: Tipo Elemental",
-          toastDetail: "Sealeo: Ice / Water"
+          detail: "Sealeo: Ice / Water",
+          toastDetail: "Sealeo: Ice / Water",
+          clipboardText: "Ice / Water"
         };
-        await notifyLogActivity(testEvent, { forceAlert: true, skipCopy: true });
+        const copied = await copyQuizAnswerToClipboard(testEvent, { forceCopy: true });
+        playActivityAlertSound(testEvent.type);
+        showActivityAlertToast(copied
+          ? { ...testEvent, toastDetail: `${testEvent.toastDetail || testEvent.detail || ""} | Copiado: ${testEvent.clipboardText}` }
+          : { ...testEvent, toastDetail: quizFlowStatus || "Nao foi possivel copiar para a area de transferencia." });
         if (button) {
-          showDownloadButtonFeedback(button, "Teste enviado");
+          showDownloadButtonFeedback(button, copied ? "Copiado" : "Erro ao copiar");
         }
       } finally {
         if (button) button.disabled = false;
@@ -4120,7 +4414,8 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       }
       const hasNewGtsDisplayEvents = !isManualGtsHistoryImport && newGtsDisplayEvents.length > 0;
       const newInvasionEvents = getNewInvasionEvents(nextRewardEvents);
-      const newQuizEvents = getNewQuizEvents(nextRewardEvents)
+      const rawNewQuizEvents = getNewQuizEvents(nextRewardEvents);
+      const newQuizEvents = rawNewQuizEvents
         .map(createQuizAlertEvent)
         .filter(Boolean);
       const newGtsEvents = isManualGtsHistoryImport ? [] : getNewGtsEvents(nextRewardEvents);
@@ -4172,6 +4467,10 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       }
       if (newQuizEvents.length) {
         notifyLogActivity(newQuizEvents[0]).catch(() => {});
+      } else if (rawNewQuizEvents.length && (quizAlertsEnabled || quizAutoCopyEnabled)) {
+        const event = rawNewQuizEvents[0];
+        quizFlowStatus = `Quiz detectado sem resposta local: ${event.detail || event.text || event.title || "sem detalhe"}`;
+        renderLogCapturePanel();
       }
       if (newGtsEvents.length) {
         const event = newGtsEvents[0];
@@ -6199,6 +6498,16 @@ IVs: HP 31 / Atk 31 / Def 19 / SpA 31 / SpD 31 / Spe 31"></textarea>
 
     function parseStatSpreadText(value = "", maxValue = 31) {
       const spread = Object.fromEntries(breedingIvStats.map(stat => [stat.key, 0]));
+      const statPattern = /\b(HP|Atk|Def|SpA|SpD|Spe)\b\s*:?\s*(-?\d+)/gi;
+      let matched = false;
+      for (const match of String(value || "").matchAll(statPattern)) {
+        const key = getTeamStatKey(match[1]);
+        if (!key) continue;
+        spread[key] = Math.max(0, Math.min(maxValue, Number.parseInt(match[2], 10) || 0));
+        matched = true;
+      }
+      if (matched) return spread;
+
       String(value || "").split("/").forEach(part => {
         const match = part.trim().match(/^([A-Za-z]+)\s+(-?\d+)/);
         if (!match) return;
@@ -6216,8 +6525,20 @@ IVs: HP 31 / Atk 31 / Def 19 / SpA 31 / SpD 31 / Spe 31"></textarea>
         || "mixed";
     }
 
+    function looksLikePixelmonPrintText(text = "") {
+      const normalized = normalize(text);
+      return /(?:\blvl\b|\blevel\b|nivel|natureza|habilidade|ivs|evs|moves)/i.test(normalized)
+        && /(?:natureza|habilidade|ivs|evs|moves)/i.test(normalized);
+    }
+
     function parseTeamBuildImport(text = "") {
       const fields = parseLabeledText(text);
+      const hasRawPixelmonPrintLabels = ["habilidade", "natureza", "hiddenpower", "pokebola", "felicidade", "niveldynamax"]
+        .some(key => fields.has(key));
+      if (looksLikePixelmonPrintText(text) && (!fields.has("pokemon") || hasRawPixelmonPrintLabels)) {
+        const fromPrint = parsePixelmonTeamPrintText(text);
+        if (fromPrint.text) return parseTeamBuildImport(fromPrint.text);
+      }
       const pokemon = parseNameAndNickname(fields.get("pokemon") || "");
       const entry = findTeamSearchEntry(pokemon.name);
       if (!entry) return { error: "Nao encontrei o Pokemon no texto importado." };
@@ -6234,8 +6555,8 @@ IVs: HP 31 / Atk 31 / Def 19 / SpA 31 / SpD 31 / Spe 31"></textarea>
         damageType: parseTeamDamageLabel(fields.get("dano") || ""),
         level: Number.parseInt(levelText, 10) || 100,
         item: fields.get("item") || "",
-        nature: fields.get("nature") || "",
-        ability: fields.get("ability") || "",
+        nature: fields.get("nature") || fields.get("natureza") || "",
+        ability: fields.get("ability") || fields.get("habilidade") || "",
         shiny: normalize(levelText).includes("shiny"),
         ivs: parseStatSpreadText(fields.get("ivs") || "", 31),
         evs: parseStatSpreadText(fields.get("evs") || "", 252),
@@ -6285,11 +6606,13 @@ IVs: HP 31 / Atk 31 / Def 19 / SpA 31 / SpD 31 / Spe 31"></textarea>
 
     function cleanPixelmonPrintOcrText(text = "") {
       return String(text || "")
+        .replace(/§[0-9a-fk-or]/gi, "")
         .replace(/&[0-9a-fk-or]/gi, "")
         .replace(/[★☆✪✫✬✭✮✯]/g, " ")
         .replace(/[“”]/g, "\"")
         .replace(/[‘’]/g, "'")
         .replace(/[–—]/g, "-")
+        .replace(/[：﹕꞉]/g, ":")
         .replace(/\u00a0/g, " ");
     }
 
@@ -6317,6 +6640,13 @@ IVs: HP 31 / Atk 31 / Def 19 / SpA 31 / SpD 31 / Spe 31"></textarea>
         if (keys.some(key => field.key === key || field.key.includes(key))) return field.value;
       }
       return "";
+    }
+
+    function normalizePixelmonPrintNature(value = "") {
+      return String(value || "")
+        .replace(/\s*\(.*/, "")
+        .trim()
+        .split(/\s+/)[0] || "";
     }
 
     const pixelmonPrintKnownLabels = new Set([
@@ -6354,8 +6684,12 @@ IVs: HP 31 / Atk 31 / Def 19 / SpA 31 / SpD 31 / Spe 31"></textarea>
       return Boolean(field && pixelmonPrintKnownLabels.has(field.key));
     }
 
-    function getPixelmonPrintEntry(lines) {
-      const levelPattern = /\b(?:lvl|lv|lol|lvi|lv1|level|n[iÃ­]vel)\b/i;
+    function escapeRegExp(value = "") {
+      return String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    }
+
+    function getPixelmonPrintHeaderText(lines) {
+      const levelPattern = /\b(?:lvl|lv|lol|lvi|lv1|level|nivel|n[ií]vel|n[iÃ­]vel)\b/i;
       const header = lines.find(line => levelPattern.test(line)) || lines.find(line => !isKnownPixelmonPrintLabelLine(line)) || "";
       const beforeLevel = header
         .split(levelPattern)[0]
@@ -6364,12 +6698,30 @@ IVs: HP 31 / Atk 31 / Def 19 / SpA 31 / SpD 31 / Spe 31"></textarea>
         .replace(/[:|]+$/g, " ")
         .replace(/\s+/g, " ")
         .trim();
-      return findTeamEntryInFreeText(beforeLevel || header);
+      return beforeLevel || header;
+    }
+
+    function getPixelmonPrintIdentity(lines) {
+      const headerName = getPixelmonPrintHeaderText(lines);
+      const entry = findTeamEntryInFreeText(headerName);
+      if (!entry) return { entry: null, nickname: "" };
+
+      const speciesPattern = new RegExp(`\\b${escapeRegExp(entry.name).replace(/\\s+/g, "\\s+")}\\b`, "i");
+      const nickname = headerName
+        .replace(speciesPattern, " ")
+        .replace(/[:|]+/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+
+      return {
+        entry,
+        nickname: canonicalKey(nickname) && canonicalKey(nickname) !== canonicalKey(entry.name) ? nickname : ""
+      };
     }
 
     function getPixelmonPrintLevel(lines) {
-      const levelLine = lines.find(line => /\b(?:lvl|lv|lol|lvi|lv1|level|n[iÃ­]vel)\b/i.test(line)) || "";
-      const match = levelLine.match(/\b(?:lvl|lv|lol|lvi|lv1|level|n[iÃ­]vel)\b\s*\.?\s*(\d{1,3})\b/i);
+      const levelLine = lines.find(line => /\b(?:lvl|lv|lol|lvi|lv1|level|nivel|n[ií]vel|n[iÃ­]vel)\b/i.test(line)) || "";
+      const match = levelLine.match(/\b(?:lvl|lv|lol|lvi|lv1|level|nivel|n[ií]vel|n[iÃ­]vel)\b\s*\.?\s*(\d{1,3})\b/i);
       return Math.max(1, Math.min(100, Number.parseInt(match?.[1], 10) || 100));
     }
 
@@ -6419,7 +6771,28 @@ IVs: HP 31 / Atk 31 / Def 19 / SpA 31 / SpD 31 / Spe 31"></textarea>
       return canonicalKey(line).startsWith("moves");
     }
 
+    function isPixelmonPrintSeparatorLine(line = "") {
+      return /^[\-=_.]{3,}$/.test(String(line || "").replace(/\s+/g, ""));
+    }
+
+    function isPixelmonPrintMoveStopLine(line = "") {
+      if (!String(line || "").trim()) return true;
+      if (isPixelmonPrintSeparatorLine(line)) return true;
+      if (isPixelmonPrintSpreadHeader(line, "ivs") || isPixelmonPrintSpreadHeader(line, "evs")) return true;
+      return isKnownPixelmonPrintLabelLine(line) && !isPixelmonPrintMovesHeader(line);
+    }
+
     function parsePixelmonPrintStatLine(line = "", spread, maxValue) {
+      const statPattern = /\b(HP|Atk|Def|SpA|SpD|Spe|Pltk|Der|Apo|5pe|1[-\s]?17)\b\s*[:;]?\s*([^/]+)/gi;
+      let matched = false;
+      for (const match of String(line || "").matchAll(statPattern)) {
+        const key = getPixelmonPrintStatKey(match[1]);
+        if (!key) continue;
+        spread[key] = parsePixelmonPrintStatValue(match[2], maxValue);
+        matched = true;
+      }
+      if (matched) return;
+
       String(line || "").split("/").forEach(part => {
         const match = part.match(/^\s*([^:;]+)\s*[:;]\s*(.+)$/);
         if (!match) return;
@@ -6452,11 +6825,20 @@ IVs: HP 31 / Atk 31 / Def 19 / SpA 31 / SpD 31 / Spe 31"></textarea>
     function parsePixelmonPrintMoves(lines) {
       const start = lines.findIndex(line => canonicalKey(line).startsWith("moves"));
       if (start < 0) return [];
-      return lines
-        .slice(start + 1, start + 4)
+
+      const headerField = splitPixelmonPrintLabel(lines[start]);
+      const moveLines = headerField?.value ? [headerField.value] : [];
+      for (const line of lines.slice(start + 1)) {
+        if (isPixelmonPrintMoveStopLine(line)) break;
+        moveLines.push(line);
+        if (moveLines.length >= 4) break;
+      }
+
+      return moveLines
         .flatMap(line => line.split(/\s+-\s+| \/ |,/))
-        .map(move => move.trim())
+        .map(move => move.trim().replace(/\s+/g, " "))
         .filter(Boolean)
+        .filter(move => !isPixelmonPrintMoveStopLine(move))
         .slice(0, 4);
     }
 
@@ -6472,15 +6854,10 @@ IVs: HP 31 / Atk 31 / Def 19 / SpA 31 / SpD 31 / Spe 31"></textarea>
     }
 
     function formatPixelmonPrintNotes(lines) {
-      const parts = [
-        ["Hidden Power", getPixelmonPrintValue(lines, ["hiddenpower"])],
-        ["Pokebola", getPixelmonPrintValue(lines, ["pokebola", "pokeball"])],
-        ["OT", getPixelmonPrintValue(lines, ["ot"])],
-        ["Textura", getPixelmonPrintValue(lines, ["textura", "texture"])],
-        ["Forma", getPixelmonPrintValue(lines, ["forma", "form"])],
-        ["Trocavel", getPixelmonPrintValue(lines, ["trocavel", "tradeable"])]
-      ].filter(([, value]) => value);
-      return parts.map(([label, value]) => `${label}: ${value}`).join("; ");
+      const texture = getPixelmonPrintValue(lines, ["textura", "texture"]);
+      const textureKey = canonicalKey(texture);
+      if (!textureKey || ["original", "none", "normal"].includes(textureKey)) return "";
+      return `Textura: ${texture}`;
     }
 
     function formatStatSpreadForTeamImport(spread) {
@@ -6489,16 +6866,16 @@ IVs: HP 31 / Atk 31 / Def 19 / SpA 31 / SpD 31 / Spe 31"></textarea>
 
     function parsePixelmonTeamPrintText(text = "") {
       const lines = getPixelmonPrintLines(text);
-      const entry = getPixelmonPrintEntry(lines);
-      if (!entry) return { error: "Nao encontrei o Pokemon no print.", rawText: cleanPixelmonPrintOcrText(text) };
-      const nature = getPixelmonPrintValue(lines, ["natureza", "nature"]).replace(/\s*\(.*/, "").trim().split(/\s+/)[0] || "";
+      const identity = getPixelmonPrintIdentity(lines);
+      const entry = identity.entry;
+      const nature = normalizePixelmonPrintNature(getPixelmonPrintValue(lines, ["natureza", "nature"]));
       const ability = getPixelmonPrintValue(lines, ["habilidade", "ability"]);
       const form = getPixelmonPrintValue(lines, ["forma", "form"]);
       const ivs = parsePixelmonPrintSpread(lines, "ivs", 31);
       const evs = parsePixelmonPrintSpread(lines, "evs", 252);
       const moves = parsePixelmonPrintMoves(lines);
       const importText = [
-        `Pokemon: ${entry.name}`,
+        `Pokemon: ${entry?.name || ""}`,
         `Nivel: ${getPixelmonPrintLevel(lines)}${isPixelmonPrintShiny(lines) ? " | Shiny" : ""}`,
         `Build: Print Pixelmon${form ? ` - ${form}` : ""}`,
         `Dano: ${inferTeamPrintDamageLabel(evs, nature)}`,
@@ -6633,20 +7010,23 @@ IVs: HP 31 / Atk 31 / Def 19 / SpA 31 / SpD 31 / Spe 31"></textarea>
 
     async function copyTextToClipboard(text) {
       const clipboardText = String(text || "");
+      const errors = [];
       if (isTauriApp()) {
         try {
           await invokeTauri("set_clipboard_text", { text: clipboardText });
           return;
-        } catch {
+        } catch (error) {
           // Keep the browser fallback for legacy/dev mode if the native bridge fails.
+          errors.push(error?.message || String(error));
         }
       }
       if (navigator.clipboard?.writeText) {
         try {
           await navigator.clipboard.writeText(clipboardText);
           return;
-        } catch {
+        } catch (error) {
           // WebView can block async clipboard writes outside a direct click; fall back below.
+          errors.push(error?.message || String(error));
         }
       }
       const textarea = document.createElement("textarea");
@@ -6659,7 +7039,10 @@ IVs: HP 31 / Atk 31 / Def 19 / SpA 31 / SpD 31 / Spe 31"></textarea>
       const copied = document.execCommand("copy");
       textarea.remove();
       if (!copied) {
-        throw new Error("Nao foi possivel copiar para a area de transferencia.");
+        const detail = errors.filter(Boolean).join(" | ");
+        throw new Error(detail
+          ? `Nao foi possivel copiar para a area de transferencia: ${detail}`
+          : "Nao foi possivel copiar para a area de transferencia.");
       }
     }
 
@@ -7938,498 +8321,6 @@ Obs: pronto para boss"></textarea>
       return `Troca neutra: nao resiste, mas tambem nao toma super efetivo pelos tipos selecionados.`;
     }
 
-    function entryHasCapturePeriod(entry, period) {
-      if (!period) return true;
-      return getEntryBiomes(entry).some(item =>
-        String(item.period || "")
-          .split(",")
-          .map(value => value.trim().toLowerCase())
-          .includes(period.toLowerCase())
-      );
-    }
-
-    function entryHasBiome(entry, biome) {
-      if (!biome) return true;
-      const groups = getEntryBiomeGroups(entry);
-      return groups.has("Any") || groups.has(biome);
-    }
-
-    function entryHasNightCapture(entry) {
-      return getEntryBiomes(entry).some(item => {
-        const period = normalize(item.period);
-        return period.includes("night") || period.includes("midnight") || period.includes("dusk");
-      });
-    }
-
-    function entryHasWaterBiome(entry) {
-      return getEntryBiomes(entry).some(item => {
-        const biome = normalize(item.biome);
-        return biome.includes("ocean") || biome.includes("river") || biome.includes("lake") || biome.includes("beach") || biome.includes("swamp");
-      });
-    }
-
-    function entryHasCaveLikeBiome(entry) {
-      return getEntryBiomes(entry).some(item => {
-        const biome = normalize(item.biome);
-        return biome.includes("cave") || biome.includes("crater") || biome.includes("deep") || biome.includes("mountain");
-      });
-    }
-
-    function getPokeballRecommendation(entry) {
-      const category = getCurrentCategory(entry);
-      const types = new Set(entry.types || []);
-      const isSpecial = category === specialCategory || specialPokemonKeys.has(canonicalKey(entry.name)) || mythicalPokemonKeys.has(canonicalKey(entry.name)) || ultraBeastPokemonKeys.has(canonicalKey(entry.name));
-      const night = entryHasNightCapture(entry);
-      const waterBiome = entryHasWaterBiome(entry);
-      const caveLike = entryHasCaveLikeBiome(entry);
-
-      if (types.has("bug") || types.has("water")) {
-        return {
-          opener: "Quick Ball",
-          primary: "Net Ball",
-          backup: night || caveLike ? "Dusk Ball" : "Ultra Ball",
-          reason: "Bonus forte contra tipos Water/Bug; use Quick Ball no primeiro turno.",
-          priority: isSpecial ? "Alta" : "Media"
-        };
-      }
-
-      if (night || caveLike || types.has("dark") || types.has("ghost")) {
-        return {
-          opener: "Quick Ball",
-          primary: "Dusk Ball",
-          backup: isSpecial ? "Timer Ball" : "Ultra Ball",
-          reason: "Boa para capturas noturnas, cavernas e alvos Dark/Ghost.",
-          priority: isSpecial ? "Alta" : "Media"
-        };
-      }
-
-      if (waterBiome) {
-        return {
-          opener: "Quick Ball",
-          primary: "Dive Ball",
-          backup: "Net Ball",
-          reason: "Rota aquatica; leve Net Ball se o alvo tambem for Water ou Bug.",
-          priority: "Media"
-        };
-      }
-
-      if (isSpecial) {
-        return {
-          opener: "Quick Ball",
-          primary: "Timer Ball",
-          backup: "Ultra Ball",
-          reason: "Para lutas longas ou especiais, Timer Ball tende a ficar melhor com turnos.",
-          priority: "Alta"
-        };
-      }
-
-      return {
-        opener: "Quick Ball",
-        primary: "Ultra Ball",
-        backup: "Timer Ball",
-        reason: "Plano geral: Quick Ball abre a tentativa, Ultra Ball cobre o restante.",
-        priority: "Normal"
-      };
-    }
-
-    const pokeballVisuals = {
-      "Quick Ball": { top: "#4daee8", bottom: "#f7d94a", mark: "#1d4f7a" },
-      "Dusk Ball": { top: "#2f3b38", bottom: "#7cc05b", mark: "#f4cf65" },
-      "Net Ball": { top: "#3d8eb8", bottom: "#eff8fa", mark: "#172f42" },
-      "Dive Ball": { top: "#3f9fd7", bottom: "#f3fbff", mark: "#244f9f" },
-      "Timer Ball": { top: "#e85252", bottom: "#f5f2df", mark: "#173042" },
-      "Repeat Ball": { top: "#ee8a3a", bottom: "#f8e36c", mark: "#8d2c2c" },
-      "Master Ball": { top: "#8c55c7", bottom: "#f6f0ff", mark: "#e9649a" },
-      "Ultra Ball": { top: "#30343a", bottom: "#f4cf65", mark: "#ffffff" }
-    };
-
-    function getSpecialBallOptions(entry) {
-      const recommendation = getPokeballRecommendation(entry);
-      const types = new Set(entry.types || []);
-      const owned = isOwned(entry);
-      const category = getCurrentCategory(entry);
-      const isSpecial = category === specialCategory || specialPokemonKeys.has(canonicalKey(entry.name)) || mythicalPokemonKeys.has(canonicalKey(entry.name)) || ultraBeastPokemonKeys.has(canonicalKey(entry.name));
-      const night = entryHasNightCapture(entry);
-      const waterBiome = entryHasWaterBiome(entry);
-      const caveLike = entryHasCaveLikeBiome(entry);
-      const options = new Map();
-      const add = (name, score) => options.set(name, Math.max(options.get(name) || 0, score));
-
-      add("Quick Ball", 88);
-      add("Timer Ball", isSpecial ? 84 : 68);
-      if (types.has("water") || types.has("bug")) add("Net Ball", 90);
-      if (waterBiome) add("Dive Ball", types.has("water") ? 84 : 76);
-      if (night || caveLike || types.has("dark") || types.has("ghost")) add("Dusk Ball", 88);
-      add("Repeat Ball", owned ? 92 : 64);
-      if (isSpecial) add("Master Ball", 100);
-      add(recommendation.primary, recommendation.priority === "Alta" ? 86 : 78);
-      add(recommendation.backup, recommendation.priority === "Alta" ? 78 : 70);
-      if (options.size < 3) add("Ultra Ball", 62);
-
-      return [...options.entries()]
-        .map(([name, score]) => ({ name, score: Math.min(100, score) }))
-        .sort((a, b) => b.score - a.score || a.name.localeCompare(b.name, "pt-BR"))
-        .slice(0, 4);
-    }
-
-    function pokeballImageSrc(name) {
-      const visual = pokeballVisuals[name] || pokeballVisuals["Ultra Ball"];
-      const svg = `
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-          <circle cx="32" cy="32" r="28" fill="${visual.bottom}" stroke="#173042" stroke-width="4"/>
-          <path d="M5 32a27 27 0 0 1 54 0H5z" fill="${visual.top}"/>
-          <path d="M5 32h54" stroke="#173042" stroke-width="5"/>
-          <circle cx="32" cy="32" r="11" fill="#fff" stroke="#173042" stroke-width="4"/>
-          <circle cx="32" cy="32" r="5" fill="${visual.mark}"/>
-        </svg>
-      `;
-      return `data:image/svg+xml,${encodeURIComponent(svg)}`;
-    }
-
-    function createPokeballOption(item) {
-      const row = document.createElement("div");
-      row.className = "pokeball-option";
-      row.innerHTML = `
-        <img alt="">
-        <span class="pokeball-option-name"></span>
-        <strong></strong>
-      `;
-      const image = row.querySelector("img");
-      image.src = pokeballImageSrc(item.name);
-      image.alt = item.name;
-      row.querySelector(".pokeball-option-name").textContent = item.name;
-      row.querySelector("strong").textContent = `${item.score}%`;
-      return row;
-    }
-
-    function getCapturePriorityRank(entry) {
-      const recommendation = getPokeballRecommendation(entry);
-      const rank = { Alta: 0, Media: 1, Normal: 2 };
-      return rank[recommendation.priority] ?? 3;
-    }
-
-    function matchesCaptureSearch(entry, search) {
-      if (!search) return true;
-      const recommendation = getPokeballRecommendation(entry);
-      const biomeText = getEntryBiomes(entry).map(item => `${item.biome} ${item.period}`).join(" ");
-      const biomeGroups = [...getEntryBiomeGroups(entry)].join(" ");
-      return normalize(`${entry.id} ${String(entry.id).padStart(4, "0")} ${entry.name} ${entry.detail} ${biomeText} ${biomeGroups} ${recommendation.primary} ${recommendation.backup}`).includes(search);
-    }
-
-    function matchesCapturePokemonIdentity(entry, search) {
-      if (!search) return false;
-      const rawSearch = String(search).trim();
-      const byId = /^\d+$/.test(rawSearch) && Number(rawSearch) === entry.id;
-      return byId || normalize(entry.name).includes(search);
-    }
-
-    function getCaptureFilteredEntries() {
-      const normalizedSearch = normalize(captureSearch.trim());
-      const hasPokemonIdentitySearch = Boolean(normalizedSearch)
-        && allEntries.some(entry => getEntryBiomes(entry).length && matchesCapturePokemonIdentity(entry, normalizedSearch));
-      return allEntries
-        .filter(entry => getEntryBiomes(entry).length)
-        .filter(entry => {
-          if (hasPokemonIdentitySearch && matchesCapturePokemonIdentity(entry, normalizedSearch)) return true;
-          return entryHasBiome(entry, selectedCaptureBiome)
-            && entryHasCapturePeriod(entry, selectedCapturePeriod);
-        })
-        .filter(entry => {
-          if (hasPokemonIdentitySearch && matchesCapturePokemonIdentity(entry, normalizedSearch)) return true;
-          if (captureStatusFilter === "missing") return !isOwned(entry);
-          if (captureStatusFilter === "captured") return isOwned(entry);
-          return true;
-        })
-        .filter(entry => matchesCaptureSearch(entry, normalizedSearch))
-        .sort((a, b) =>
-          Number(isOwned(a)) - Number(isOwned(b))
-          || getCapturePriorityRank(a) - getCapturePriorityRank(b)
-          || a.id - b.id
-        );
-    }
-
-    function findCaptureSearchEntry(value = captureSearch) {
-      const raw = String(value || "").trim();
-      if (!raw) return null;
-      const byName = catalogByKey.get(canonicalKey(raw));
-      if (byName) return byName;
-      const byId = /^\d+$/.test(raw) ? catalogById.get(Number(raw)) : null;
-      if (byId) return byId;
-      const normalizedSearch = normalize(raw);
-      return allEntries.find(entry => normalize(entry.name) === normalizedSearch) || null;
-    }
-
-    function getPreferredCapturePeriod(entry) {
-      const firstPeriod = getEntryBiomes(entry)
-        .flatMap(item => String(item.period || "").split(","))
-        .map(period => period.trim())
-        .find(Boolean);
-      return firstPeriod || "";
-    }
-
-    function applyCapturePokemonFilter(entry) {
-      if (!entry) return false;
-      captureSearch = entry.name;
-      selectedCaptureBiome = [...getEntryBiomeGroups(entry)][0] || "";
-      selectedCapturePeriod = getPreferredCapturePeriod(entry);
-      captureStatusFilter = "all";
-      return true;
-    }
-
-    function renderCaptureTools(list) {
-      const biomeOptions = getCaptureBiomeOptions();
-      const periodOptions = getCapturePeriodOptions();
-      if (selectedCaptureBiome && !biomeOptions.some(option => option.name === selectedCaptureBiome)) {
-        selectedCaptureBiome = "";
-      }
-
-      const tools = document.createElement("section");
-      tools.className = "capture-planner-tools";
-      tools.innerHTML = `
-        <div class="capture-planner-panel">
-          <div class="capture-planner-header">
-            <div>
-              <p class="eyebrow">Rota de captura</p>
-              <h2 class="filter-title">Grupo e Poké Bola</h2>
-            </div>
-            <button class="link-button" id="clear-capture-route" type="button">Limpar rota</button>
-          </div>
-          <div class="capture-planner-fields">
-            <label>
-              <span>Grupo de bioma</span>
-              <select id="capture-biome-select"></select>
-            </label>
-            <label>
-              <span>Período</span>
-              <select id="capture-period-select"></select>
-            </label>
-            <label>
-              <span>Busca</span>
-              <input id="capture-search" type="search" list="pokemon-search-options" placeholder="Nome, número, bola ou detalhe...">
-            </label>
-          </div>
-          <div class="capture-status-filters" aria-label="Status de captura"></div>
-        </div>
-      `;
-
-      const biomeSelect = tools.querySelector("#capture-biome-select");
-      biomeSelect.append(new Option("Todos os grupos", ""));
-      biomeOptions.forEach(option => {
-        biomeSelect.append(new Option(`${option.name} (${option.missing}/${option.total})`, option.name));
-      });
-      biomeSelect.value = selectedCaptureBiome;
-      biomeSelect.addEventListener("change", event => {
-        selectedCaptureBiome = event.target.value;
-        render();
-      });
-
-      const periodSelect = tools.querySelector("#capture-period-select");
-      periodSelect.append(new Option("Todos os períodos", ""));
-      periodOptions.forEach(period => periodSelect.append(new Option(period, period)));
-      periodSelect.value = selectedCapturePeriod;
-      periodSelect.addEventListener("change", event => {
-        selectedCapturePeriod = event.target.value;
-        render();
-      });
-
-      const search = tools.querySelector("#capture-search");
-      search.value = captureSearch;
-      search.addEventListener("input", event => {
-        captureSearch = event.target.value;
-        applyCapturePokemonFilter(findCaptureSearchEntry(captureSearch));
-        focusCaptureSearchAfterRender = true;
-        render();
-      });
-      search.addEventListener("keydown", event => {
-        if (event.key !== "Enter") return;
-        const exact = findCaptureSearchEntry(captureSearch);
-        if (!exact) return;
-        event.preventDefault();
-        applyCapturePokemonFilter(exact);
-        focusCaptureSearchAfterRender = true;
-        render();
-      });
-
-      const statusFilters = tools.querySelector(".capture-status-filters");
-      [
-        { value: "missing", label: "Não capturados" },
-        { value: "all", label: "Todos" },
-        { value: "captured", label: "Já capturados" }
-      ].forEach(filter => statusFilters.append(createFilterChip({
-        label: filter.label,
-        active: captureStatusFilter === filter.value,
-        onClick: () => {
-          captureStatusFilter = filter.value;
-          render();
-        }
-      })));
-
-      tools.querySelector("#clear-capture-route").addEventListener("click", () => {
-        selectedCaptureBiome = "";
-        selectedCapturePeriod = "";
-        captureSearch = "";
-        captureStatusFilter = "missing";
-        render();
-      });
-
-      list.append(tools);
-      if (focusCaptureSearchAfterRender) {
-        focusCaptureSearchAfterRender = false;
-        focusInputEnd(search);
-      }
-    }
-
-    function renderCaptureLoadout(list, entries) {
-      const targetEntries = captureStatusFilter === "captured"
-        ? entries
-        : entries.filter(entry => !isOwned(entry));
-      const ballCounts = new Map();
-      targetEntries.forEach(entry => {
-        const ball = getSpecialBallOptions(entry)[0]?.name || getPokeballRecommendation(entry).primary;
-        ballCounts.set(ball, (ballCounts.get(ball) || 0) + 1);
-      });
-
-      const section = document.createElement("section");
-      section.className = "capture-loadout";
-      section.innerHTML = `
-        <div class="capture-loadout-header">
-          <div>
-            <p class="eyebrow">Mochila sugerida</p>
-            <h2>Plano do filtro atual</h2>
-          </div>
-          <span class="visible-count"></span>
-        </div>
-        <div class="capture-loadout-grid"></div>
-      `;
-      section.querySelector(".visible-count").textContent = captureStatusFilter === "captured"
-        ? `${targetEntries.length} capturado${targetEntries.length === 1 ? "" : "s"}`
-        : `${targetEntries.length} faltando`;
-      const grid = section.querySelector(".capture-loadout-grid");
-
-      if (!targetEntries.length) {
-        const empty = document.createElement("p");
-        empty.className = "capture-planner-note";
-        empty.textContent = captureStatusFilter === "captured"
-          ? "Nenhum capturado nesse filtro."
-          : "Nenhum faltante nesse filtro. Troque o bioma ou veja capturados para revisar.";
-        grid.append(empty);
-      } else {
-        [...ballCounts.entries()]
-          .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "pt-BR"))
-          .slice(0, 5)
-          .forEach(([ball, count]) => {
-            const item = document.createElement("article");
-            item.className = "capture-loadout-card";
-            item.innerHTML = `<strong></strong><span></span>`;
-            item.querySelector("strong").textContent = ball;
-            item.querySelector("span").textContent = `${count} alvo${count === 1 ? "" : "s"}`;
-            grid.append(item);
-          });
-      }
-
-      list.append(section);
-    }
-
-    function createCapturePlannerCard(entry) {
-      const recommendation = getPokeballRecommendation(entry);
-      const card = document.createElement("article");
-      card.className = `capture-planner-card${isOwned(entry) ? " is-owned" : ""}`;
-      card.tabIndex = 0;
-      card.setAttribute("role", "button");
-      card.setAttribute("aria-label", `Abrir detalhes de ${entry.name}`);
-      card.innerHTML = `
-        <div class="capture-card-top">
-          <span class="capture-card-image"></span>
-          <div class="pokeball-options" aria-label="Poké Bolas recomendadas"></div>
-        </div>
-        <div class="capture-card-main">
-          <div>
-            <p class="modal-kicker"></p>
-            <h3></h3>
-            <div class="raid-card-types"></div>
-          </div>
-        </div>
-        <p class="capture-reason"></p>
-      `;
-      card.querySelector(".capture-card-image").replaceWith(createPokemonImage(entry, ""));
-      card.querySelector(".modal-kicker").textContent = `#${String(entry.id).padStart(4, "0")} - ${getMethodFilterLabel(entry)}`;
-      card.querySelector("h3").textContent = entry.name;
-      entry.types.forEach(type => card.querySelector(".raid-card-types").append(createTypeBadge(type)));
-      getSpecialBallOptions(entry).forEach(item => {
-        card.querySelector(".pokeball-options").append(createPokeballOption(item));
-      });
-      card.querySelector(".capture-reason").textContent = recommendation.reason;
-
-      card.addEventListener("click", () => openPokemonModal(entry));
-      card.addEventListener("keydown", event => {
-        if (event.key !== "Enter" && event.key !== " ") return;
-        event.preventDefault();
-        openPokemonModal(entry);
-      });
-      return card;
-    }
-
-    function renderCaptureFlow(list) {
-      activeTitle.textContent = "Captura por bioma";
-      renderCaptureTools(list);
-      const entries = getCaptureFilteredEntries();
-      const totalMissingWithBiomes = allEntries.filter(entry => getEntryBiomes(entry).length && !isOwned(entry)).length;
-      visibleCount.textContent = `${entries.length} alvo${entries.length === 1 ? "" : "s"}`;
-      captureFlowCount.textContent = totalMissingWithBiomes;
-      renderCaptureLoadout(list, entries);
-
-      const section = document.createElement("section");
-      section.className = "capture-planner-results";
-      section.innerHTML = `
-        <div class="category-heading">
-          <h2></h2>
-          <span class="category-count"></span>
-        </div>
-        <div class="capture-planner-grid"></div>
-      `;
-      const statusHeading = captureStatusFilter === "captured"
-        ? "Capturados"
-        : captureStatusFilter === "all"
-          ? "Todos os alvos"
-          : "Não capturados";
-      section.querySelector("h2").textContent = selectedCaptureBiome
-        ? `${statusHeading} em ${selectedCaptureBiome}`
-        : statusHeading;
-      section.querySelector(".category-count").textContent = `${entries.length} resultado${entries.length === 1 ? "" : "s"}`;
-      const grid = section.querySelector(".capture-planner-grid");
-      const collapsed = attachSectionCollapseControl(section, {
-        scope: "capture",
-        label: selectedCaptureBiome ? `${statusHeading} em ${selectedCaptureBiome}` : statusHeading,
-        content: grid
-      });
-
-      if (collapsed) {
-        list.append(section);
-        return;
-      }
-
-      if (!entries.length) {
-        const empty = document.createElement("div");
-        empty.className = "empty";
-        empty.textContent = selectedCaptureBiome
-          ? "Nenhum Pokémon encontrado para esse grupo com os filtros atuais."
-          : "Nenhum Pokémon com bioma cadastrado encontrado com os filtros atuais.";
-        section.append(empty);
-      } else if (appUtils.appendProgressiveItems) {
-        appUtils.appendProgressiveItems({
-          container: grid,
-          items: entries,
-          renderItem: createCapturePlannerCard,
-          batchSize: 72,
-          buttonLabel: "Mostrar mais capturas"
-        });
-      } else {
-        entries.forEach(entry => grid.append(createCapturePlannerCard(entry)));
-      }
-
-      list.append(section);
-    }
-
     function getCounterCandidates(targetTypes, search = "", options = {}) {
       const shieldType = Object.prototype.hasOwnProperty.call(options, "shieldType") ? options.shieldType : "";
       const offenseTypes = getCounterOffenseTypes(targetTypes);
@@ -9437,7 +9328,6 @@ Obs: pronto para boss"></textarea>
 
     function applyViewTabs() {
       const checklistActive = activeView === "checklist";
-      const captureActive = activeView === "capture";
       const telemetryActive = activeView === "captured";
       const breedingActive = activeView === "breeding";
       const teamsActive = activeView === "teams";
@@ -9447,7 +9337,6 @@ Obs: pronto para boss"></textarea>
       const gtsActive = activeView === "gts";
       const settingsActive = activeView === "settings";
       checklistTab.classList.toggle("active", checklistActive);
-      captureTab.classList.toggle("active", captureActive);
       capturedTab.classList.toggle("active", telemetryActive);
       breedingTab.classList.toggle("active", breedingActive);
       teamsTab.classList.toggle("active", teamsActive);
@@ -9457,7 +9346,6 @@ Obs: pronto para boss"></textarea>
       gtsTab?.classList.toggle("active", gtsActive);
       settingsTab.classList.toggle("active", settingsActive);
       checklistTab.setAttribute("aria-pressed", checklistActive ? "true" : "false");
-      captureTab.setAttribute("aria-pressed", captureActive ? "true" : "false");
       capturedTab.setAttribute("aria-pressed", telemetryActive ? "true" : "false");
       breedingTab.setAttribute("aria-pressed", breedingActive ? "true" : "false");
       teamsTab.setAttribute("aria-pressed", teamsActive ? "true" : "false");
@@ -9466,15 +9354,13 @@ Obs: pronto para boss"></textarea>
       quizTab.setAttribute("aria-pressed", quizActive ? "true" : "false");
       gtsTab?.setAttribute("aria-pressed", gtsActive ? "true" : "false");
       settingsTab.setAttribute("aria-pressed", settingsActive ? "true" : "false");
-      document.body.classList.toggle("flow-without-kpis", captureActive || breedingActive || teamsActive || buildsActive || collectionActive || quizActive || gtsActive || settingsActive);
+      document.body.classList.toggle("flow-without-kpis", breedingActive || teamsActive || buildsActive || collectionActive || quizActive || gtsActive || settingsActive);
       checklistNavSections.hidden = !checklistActive;
       toolbar.hidden = !checklistActive;
       const owned = allEntries.filter(isOwned).length;
       const percent = percentValue(owned, CATALOG.length);
       const breedable = allEntries.filter(entry => !isUndiscovered(entry)).length;
-      const captureMissing = allEntries.filter(entry => getEntryBiomes(entry).length && !isOwned(entry)).length;
       checklistFlowCount.textContent = `${owned}/${CATALOG.length}`;
-      captureFlowCount.textContent = captureMissing;
       telemetryFlowCount.textContent = `${percent}%`;
       breedingFlowCount.textContent = breedable;
       teamsFlowCount.textContent = teamBuiltPokemon.length;
@@ -9984,6 +9870,7 @@ Obs: pronto para boss"></textarea>
           theme: activeTheme,
           density: isCompactMode ? "compact" : "normal",
           playerName: configuredPlayerName || logCaptureState.playerName || "",
+          notificationSounds: notificationSoundSettings,
           logSidebarCollapsed: isLogSidebarCollapsed,
           logMonitorMinimized: isLogMonitorMinimized,
           collapsedSections: [...collapsedSections]
@@ -10061,6 +9948,10 @@ Obs: pronto para boss"></textarea>
             logCaptureState.lastError = "Nao foi possivel restaurar o nome de usuario no monitor de logs.";
           }
         }
+      }
+      if (backup.preferences?.notificationSounds) {
+        notificationSoundSettings = sanitizeNotificationSoundSettings(backup.preferences.notificationSounds);
+        saveNotificationSoundSettings();
       }
       if (Array.isArray(backup.preferences?.collapsedSections)) {
         collapsedSections = new Set(backup.preferences.collapsedSections.filter(item => typeof item === "string" && item.trim()));
@@ -10164,6 +10055,101 @@ Obs: pronto para boss"></textarea>
         status.textContent = `${title}: ${detail}`;
       }
       list.append(status);
+    }
+
+    function createNotificationSoundSettingsRow(item) {
+      const setting = getNotificationSoundSetting(item.type);
+      const row = document.createElement("div");
+      row.className = "settings-sound-row";
+
+      const copy = document.createElement("div");
+      copy.className = "settings-sound-copy";
+      const label = document.createElement("strong");
+      label.textContent = item.label;
+      const note = document.createElement("p");
+      note.className = "settings-row-note";
+      note.textContent = `${item.note} Atual: ${getNotificationSoundLabel(item.type)}.`;
+      copy.append(label, note);
+
+      const controls = document.createElement("div");
+      controls.className = "settings-sound-controls";
+
+      const select = document.createElement("select");
+      select.id = `settings-sound-${item.type}`;
+      select.setAttribute("aria-label", `Som para ${item.label}`);
+      NOTIFICATION_SOUND_PRESETS.forEach(preset => {
+        const option = document.createElement("option");
+        option.value = preset.value;
+        option.textContent = preset.label;
+        select.append(option);
+      });
+      select.value = setting.preset;
+      select.addEventListener("change", event => {
+        setNotificationSoundPreset(item.type, event.target.value);
+        render();
+      });
+
+      const testButton = document.createElement("button");
+      testButton.className = "muted-button";
+      testButton.type = "button";
+      testButton.textContent = "Testar";
+      testButton.addEventListener("click", event => {
+        playActivityAlertSound(item.type);
+        showActivityAlertToast({
+          title: `Teste: ${item.label}`,
+          toastDetail: `Som: ${getNotificationSoundLabel(item.type)}`
+        });
+        showDownloadButtonFeedback(event.currentTarget, "Tocando");
+      });
+
+      const fileInput = document.createElement("input");
+      fileInput.id = `settings-custom-sound-${item.type}`;
+      fileInput.className = "settings-file-input";
+      fileInput.type = "file";
+      fileInput.accept = "audio/*";
+      fileInput.addEventListener("change", event => {
+        const file = event.target.files?.[0];
+        setCustomNotificationSoundFile(item.type, file).then(render);
+      });
+
+      const fileLabel = document.createElement("label");
+      fileLabel.className = "muted-button settings-file-button";
+      fileLabel.setAttribute("for", fileInput.id);
+      fileLabel.textContent = "Enviar audio";
+
+      const clearButton = document.createElement("button");
+      clearButton.className = "muted-button";
+      clearButton.type = "button";
+      clearButton.textContent = "Limpar custom";
+      clearButton.disabled = !setting.customDataUrl;
+      clearButton.addEventListener("click", () => {
+        clearCustomNotificationSound(item.type);
+        render();
+      });
+
+      controls.append(select, testButton, fileLabel, fileInput, clearButton);
+      row.append(copy, controls);
+      return row;
+    }
+
+    function createNotificationSoundSettingsPanel() {
+      const panel = document.createElement("article");
+      panel.className = "settings-panel is-wide";
+      panel.innerHTML = `
+        <div class="settings-panel-header">
+          <div>
+            <p class="eyebrow">Notificacoes</p>
+            <h3 class="settings-panel-title">Sons dos avisos</h3>
+            <p class="settings-panel-note">Cada alerta pode usar o padrao dele, outro preset ou um audio enviado por voce.</p>
+          </div>
+        </div>
+      `;
+      const rows = document.createElement("div");
+      rows.className = "settings-sound-grid";
+      NOTIFICATION_SOUND_TYPES.forEach(item => rows.append(createNotificationSoundSettingsRow(item)));
+      panel.append(rows);
+      renderSettingsStatus(panel, "Sons", getNotificationSoundStatusText());
+      return panel;
     }
 
     function createQuizFlowSummaryItem(label, value) {
@@ -10742,7 +10728,7 @@ Obs: pronto para boss"></textarea>
       settingsQuizAlertNote.textContent = getQuizAlertStatusText();
       settingsQuizAutoCopy.disabled = !useFileDatabase;
       settingsQuizAutoCopy.checked = quizAutoCopyEnabled;
-      settingsQuizAutoCopyNote.textContent = getQuizAutoCopyStatusText();
+      settingsQuizAutoCopyNote.textContent = quizFlowStatus || getQuizAutoCopyStatusText();
       settingsGtsAlerts.disabled = !useFileDatabase;
       settingsGtsAlerts.checked = gtsAlertsEnabled;
       settingsGtsAlertNote.textContent = getGtsAlertStatusText();
@@ -10885,7 +10871,7 @@ Obs: pronto para boss"></textarea>
         useFileDatabase ? "Banco local do app e dados complementares exportaveis." : "Dados salvos no navegador atual."
       );
 
-      grid.append(logPanel, viewPanel, updatePanel, backupPanel);
+      grid.append(logPanel, createNotificationSoundSettingsPanel(), viewPanel, updatePanel, backupPanel);
       appendAboutSettingsPanels(grid);
       list.append(grid);
     }
@@ -11068,12 +11054,6 @@ Obs: pronto para boss"></textarea>
       list.replaceChildren();
       let visible = 0;
 
-      if (activeView === "capture") {
-        renderCaptureFlow(list);
-        finishRender();
-        return;
-      }
-
       if (activeView === "captured") {
         renderCapturedTelemetry(list);
         finishRender();
@@ -11130,6 +11110,7 @@ Obs: pronto para boss"></textarea>
             && matchesTextSearch(entry, search)
             && (!filterState.status || (filterState.status === "done" ? done : !done))
             && (!filterState.methods.size || filterState.methods.has(method))
+            && entryMatchesSpeciesFilter(entry, filterState.species)
             && (!filterState.types.size || entry.types.some(type => filterState.types.has(type)));
         });
         if (!entries.length) return;
@@ -11223,10 +11204,6 @@ Obs: pronto para boss"></textarea>
     });
     document.addEventListener("pointerdown", primeActivityAlertSound, { once: true, passive: true });
     document.addEventListener("keydown", primeActivityAlertSound, { once: true });
-    captureTab.addEventListener("click", () => {
-      activeView = "capture";
-      render();
-    });
     capturedTab.addEventListener("click", () => {
       activeView = "captured";
       render();
@@ -11279,6 +11256,7 @@ Obs: pronto para boss"></textarea>
       searchInput.value = "";
       filterState.status = "";
       filterState.methods.clear();
+      filterState.species = "";
       filterState.types.clear();
       filterState.sort = "number";
       activeNavigation = defaultNavigation;
@@ -11349,4 +11327,4 @@ Obs: pronto para boss"></textarea>
       if (!pokemonModal.hidden) closePokemonModal();
     });
 
-    loadPersistentData().then(refreshLogCaptureStatus);
+    loadPersistentData();

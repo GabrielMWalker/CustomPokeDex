@@ -37,6 +37,8 @@ const EVOLUTION_DATA = context.window.POKEMON_EVOLUTION_DATA;
 const METHODS = context.window.POKEMON_SUPPLEMENTAL_METHODS || [];
 const TARGET_POKEMON = CATALOG.filter((pokemon) => pokemon.id >= GENERATION_START && pokemon.id <= GENERATION_END);
 const catalogByName = new Map(CATALOG.map((pokemon) => [pokemon.name, pokemon]));
+const catalogNameSet = new Set(CATALOG.map((pokemon) => pokemon.name));
+const LEGENDARY_SPAWNS_URL = "https://pixelmonmod.com/wiki/Legendary_Pokemon";
 
 const specialPokemonNames = new Set([
   "Articuno",
@@ -136,6 +138,58 @@ const specialPokemonNames = new Set([
   "Ogerpon",
   "Terapagos",
   "Pecharunt",
+]);
+
+const ultraBeastPokemonNames = new Set([
+  "Nihilego",
+  "Buzzwole",
+  "Pheromosa",
+  "Xurkitree",
+  "Celesteela",
+  "Kartana",
+  "Guzzlord",
+  "Poipole",
+  "Naganadel",
+  "Stakataka",
+  "Blacephalon",
+]);
+
+const paradoxPokemonNames = new Set([
+  "Great Tusk",
+  "Scream Tail",
+  "Brute Bonnet",
+  "Flutter Mane",
+  "Slither Wing",
+  "Sandy Shocks",
+  "Iron Treads",
+  "Iron Bundle",
+  "Iron Hands",
+  "Iron Jugulis",
+  "Iron Moth",
+  "Iron Thorns",
+  "Roaring Moon",
+  "Iron Valiant",
+  "Koraidon",
+  "Miraidon",
+  "Walking Wake",
+  "Iron Leaves",
+  "Gouging Fire",
+  "Raging Bolt",
+  "Iron Boulder",
+  "Iron Crown",
+]);
+
+const serverDimensionOverrides = new Map([
+  ...[...ultraBeastPokemonNames].map((name) => [name, {
+    category: "Lend\u00e1rios, m\u00edticos e especiais",
+    detail: "Biomas: Dimens\u00e3o Ultra (Any)",
+    evidence: "Configura\u00e7\u00e3o do servidor: Ultra Beasts spawnam na Dimens\u00e3o Ultra.",
+  }]),
+  ...[...paradoxPokemonNames].map((name) => [name, {
+    category: "Encontrar ou capturar",
+    detail: "Biomas: Dimens\u00e3o Paradox (Any)",
+    evidence: "Configura\u00e7\u00e3o do servidor: Pok\u00e9mon Paradox spawnam na Dimens\u00e3o Paradox.",
+  }]),
 ]);
 
 const evoOverrides = new Map([
@@ -712,6 +766,8 @@ const itemNames = new Map([
 
 const parentByName = buildParentMap(EVOLUTION_DATA.chains);
 const methodByName = new Map(METHODS.map((method) => [method.name, method]));
+const legendarySpawnPage = await fetchWiki(LEGENDARY_SPAWNS_URL);
+const legendarySpawnByName = legendarySpawnPage.ok ? parseLegendarySpawns(legendarySpawnPage.html) : new Map();
 const progress = TARGET_POKEMON.map((pokemon) => ({
   id: pokemon.id,
   name: pokemon.name,
@@ -736,15 +792,16 @@ for (const entry of progress) {
   const page = await fetchWiki(primaryUrl);
   const wiki = page.ok ? parsePixelmonPage(page.html) : { evolutionSentence: "", spawnSummary: "" };
   const override = parentInfo ? evoOverrides.get(`${parentInfo.from}->${entry.name}`) : null;
+  const legendarySpawn = legendarySpawnByName.get(entry.name);
 
-  const suggestedMethod = buildSuggestedMethod(entry.name, primaryUrl, parentInfo, wiki, page.ok, override);
+  const suggestedMethod = buildSuggestedMethod(entry.name, primaryUrl, parentInfo, wiki, page.ok, override, legendarySpawn);
   const currentMethod = methodByName.get(entry.name);
   entry.suggestedMethod = suggestedMethod;
-  entry.status = page.ok || suggestedMethod.documented ? "Validado" : "Wiki pendente";
+  entry.status = page.ok || suggestedMethod.documented || legendarySpawn ? "Validado" : "Wiki pendente";
   entry.source = suggestedMethod.wiki;
-  entry.evidence = evidenceText(page, wiki, suggestedMethod);
+  entry.evidence = evidenceText(page, wiki, suggestedMethod, legendarySpawn);
   entry.suggested = summarizeMethod(suggestedMethod);
-  entry.shouldApply = shouldApplyMethodUpdate(currentMethod, suggestedMethod, parentInfo, wiki, page.ok, override, ignoredFutureParent);
+  entry.shouldApply = shouldApplyMethodUpdate(currentMethod, suggestedMethod, parentInfo, wiki, page.ok, override, ignoredFutureParent, legendarySpawn);
   entry.action = actionText(entry.local, entry.suggested, entry.shouldApply, page.ok);
 
   writeReport(progress);
@@ -804,6 +861,128 @@ function parsePixelmonPage(html) {
   return { evolutionSentence, spawnSummary };
 }
 
+function parseLegendarySpawns(html) {
+  const locationsStart = html.search(/id=["']Locations["']/i);
+  const specialTexturesStart = html.search(/id=["']Special_Textures["']/i);
+  const section = html.slice(
+    locationsStart === -1 ? 0 : locationsStart,
+    specialTexturesStart === -1 ? undefined : specialTexturesStart
+  );
+  const rows = [...section.matchAll(/<tr\b[^>]*>[\s\S]*?<\/tr>/gi)].map((match) => match[0]);
+  const spawns = new Map();
+  let currentPokemon = null;
+
+  for (const row of rows) {
+    const cells = extractTableCells(row);
+    if (!cells.length) continue;
+    if (/^pok[e\u00e9]mon$/i.test(cells[0].text)) continue;
+
+    const rowPokemonName = getCatalogPokemonName(cells[0].text);
+    const pokemonName = rowPokemonName && specialPokemonNames.has(rowPokemonName) ? rowPokemonName : "";
+    let biome = "";
+    let time = "";
+
+    if (rowPokemonName) {
+      currentPokemon = null;
+      if (!pokemonName) continue;
+
+      currentPokemon = {
+        name: pokemonName,
+        time: cells[3]?.text || "",
+      };
+      biome = cells[1]?.text || "";
+      time = currentPokemon.time;
+    } else if (currentPokemon) {
+      biome = cells[0]?.text || "";
+      time = currentPokemon.time;
+    }
+
+    if (!currentPokemon || !isSpawnBiome(biome)) continue;
+
+    if (!spawns.has(currentPokemon.name)) spawns.set(currentPokemon.name, []);
+    spawns.get(currentPokemon.name).push({
+      biome: cleanLegendaryCell(biome),
+      time: cleanLegendaryTime(time),
+    });
+  }
+
+  return new Map([...spawns.entries()].map(([name, entries]) => [name, {
+    entries,
+    summary: summarizeLegendarySpawnEntries(entries),
+  }]));
+}
+
+function extractTableCells(rowHtml) {
+  return [...rowHtml.matchAll(/<t[dh]\b([^>]*)>([\s\S]*?)<\/t[dh]>/gi)].map(([, attrs, html]) => ({
+    rowspan: Number.parseInt(attrs.match(/\browspan=["']?(\d+)/i)?.[1] || "1", 10),
+    text: cleanLegendaryCell(htmlToText(html)),
+  }));
+}
+
+function getCatalogPokemonName(text) {
+  const clean = cleanLegendaryCell(text);
+  if (catalogNameSet.has(clean)) return clean;
+  return "";
+}
+
+function isSpawnBiome(value) {
+  const text = normalize(cleanLegendaryCell(value));
+  return Boolean(text)
+    && text !== "-"
+    && text !== "does not spawn"
+    && text !== "overworld"
+    && !text.includes("evolves from")
+    && !text.includes("hatch from egg")
+    && !text.includes("quests")
+    && !text.includes("mystery box");
+}
+
+function cleanLegendaryCell(value) {
+  return String(value || "")
+    .replace(/\u2014/g, "-")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function cleanLegendaryTime(value) {
+  const text = cleanLegendaryCell(value);
+  return text && text !== "-" ? text : "Any";
+}
+
+function summarizeLegendarySpawnEntries(entries) {
+  const byBiome = new Map();
+  for (const entry of entries) {
+    if (!byBiome.has(entry.biome)) byBiome.set(entry.biome, new Set());
+    byBiome.get(entry.biome).add(entry.time || "Any");
+  }
+
+  return [...byBiome.entries()]
+    .map(([biome, times]) => `${biome} (${[...times].join(", ")})`)
+    .join("; ");
+}
+
+function filterUnavailableDimensionSpawns(spawn) {
+  const entries = (spawn?.entries || []).filter((entry) => !isUnavailableServerDimension(entry.biome));
+  return {
+    entries,
+    summary: summarizeLegendarySpawnEntries(entries),
+  };
+}
+
+function isUnavailableServerDimension(biome = "") {
+  const text = normalize(cleanLegendaryCell(biome));
+  return text.includes("small end islands")
+    || text === "end"
+    || text.includes("end barrens")
+    || text.includes("end highlands")
+    || text.includes("hellish")
+    || text.includes("nether")
+    || text.includes("basalt")
+    || text.includes("crimson")
+    || text.includes("warped")
+    || text.includes("soul sand");
+}
+
 function htmlToText(html) {
   return decodeHtml(
     html
@@ -860,7 +1039,19 @@ function extractSpawnSummary(html) {
   return unique(entries).slice(0, 12).join("; ");
 }
 
-function buildSuggestedMethod(name, primaryUrl, parentInfo, wiki, pageOk, override) {
+function buildSuggestedMethod(name, primaryUrl, parentInfo, wiki, pageOk, override, legendarySpawn) {
+  const serverOverride = serverDimensionOverrides.get(name);
+  if (serverOverride) {
+    return {
+      name,
+      category: serverOverride.category,
+      detail: serverOverride.detail,
+      wiki: primaryUrl,
+      documented: true,
+      evidence: serverOverride.evidence,
+    };
+  }
+
   if (parentInfo) {
     const detail = override?.detail || detailFromRequirement(parentInfo.from, parentInfo.requirement);
     const category = override?.category || categoryFromRequirement(parentInfo.requirement);
@@ -873,6 +1064,31 @@ function buildSuggestedMethod(name, primaryUrl, parentInfo, wiki, pageOk, overri
       detail,
       wiki: pageOk ? primaryUrl : fallbackWiki || primaryUrl,
       documented,
+    };
+  }
+
+  if (legendarySpawn) {
+    const availableLegendarySpawn = filterUnavailableDimensionSpawns(legendarySpawn);
+    if (!availableLegendarySpawn.entries.length) {
+      return {
+        name,
+        category: "Disponibilidade depende do servidor",
+        detail: "Spawn oficial usa dimens\u00e3o indispon\u00edvel neste servidor. Verifique o spawn customizado do servidor.",
+        wiki: LEGENDARY_SPAWNS_URL,
+        documented: true,
+        evidence: `Legendary Pok\u00e9mon#Spawning oficial: ${legendarySpawn.summary}`,
+      };
+    }
+
+    return {
+      name,
+      category: "Lend\u00e1rios, m\u00edticos e especiais",
+      detail: `Biomas: ${availableLegendarySpawn.summary}`,
+      wiki: LEGENDARY_SPAWNS_URL,
+      documented: true,
+      evidence: availableLegendarySpawn.summary === legendarySpawn.summary
+        ? `Legendary Pok\u00e9mon#Spawning: ${legendarySpawn.summary}`
+        : `Legendary Pok\u00e9mon#Spawning, sem dimens\u00f5es indispon\u00edveis neste servidor: ${availableLegendarySpawn.summary}`,
     };
   }
 
@@ -932,7 +1148,9 @@ function detailFromRequirement(parent, requirement = "") {
   return `Evoluir ${parent}: ${requirement}.`;
 }
 
-function evidenceText(page, wiki, method) {
+function evidenceText(page, wiki, method, legendarySpawn) {
+  if (method.evidence) return method.evidence;
+  if (legendarySpawn) return `Legendary Pok\u00e9mon#Spawning: ${legendarySpawn.summary}`;
   const parentInfo = parentByName.get(method.name);
   const override = parentInfo ? evoOverrides.get(`${parentInfo.from}->${method.name}`) : null;
   if (override?.evidenceNote) return override.evidenceNote;
@@ -948,7 +1166,7 @@ function summarizeMethod(method) {
   return `${method.category}: ${method.detail}`;
 }
 
-function shouldApplyMethodUpdate(currentMethod, suggestedMethod, parentInfo, wiki, pageOk, override, ignoredFutureParent = false) {
+function shouldApplyMethodUpdate(currentMethod, suggestedMethod, parentInfo, wiki, pageOk, override, ignoredFutureParent = false, legendarySpawn = null) {
   if (!currentMethod) return true;
   if (override) {
     const currentText = `${currentMethod.category}: ${currentMethod.detail}`;
@@ -966,7 +1184,11 @@ function shouldApplyMethodUpdate(currentMethod, suggestedMethod, parentInfo, wik
     || normalize(currentMethod.detail).includes("biomas:");
   const currentIsServerish = isServerish(currentMethod);
   const suggestedIsConcrete = !isServerish(suggestedMethod);
+  const suggestedIsServerOverride = serverDimensionOverrides.has(suggestedMethod.name);
 
+  if (suggestedIsServerOverride && normalize(currentText) !== normalize(suggestedText)) return true;
+  if (legendarySpawn && normalize(currentText) !== normalize(suggestedText) && (currentMethod.wiki === LEGENDARY_SPAWNS_URL || !currentIsEncounter || currentIsServerish)) return true;
+  if (!legendarySpawn && currentMethod.wiki === LEGENDARY_SPAWNS_URL && currentIsEncounter) return true;
   if (ignoredFutureParent && pageOk && wiki.spawnSummary && !currentIsEncounter) return true;
   if (currentIsEncounter && pageOk && wiki.spawnSummary) return false;
   if (currentIsServerish && suggestedIsConcrete) return true;

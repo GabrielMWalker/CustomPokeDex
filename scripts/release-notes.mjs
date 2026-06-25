@@ -70,6 +70,14 @@ function collectReleaseHighlights(commits) {
     "Monitoramento de logs mais completo para capturas, ganhos e recompensas do jogador."
   );
   add(
+    /\bsom\b|\bsons\b|\baudio\b|\bnotifica|\balerta/.test(text),
+    "Novas opcoes para personalizar os sons dos alertas de invasao, quiz e GTS."
+  );
+  add(
+    /\bstatus base\b|\bstats\b|\bbase stats\b|\batributo/.test(text),
+    "Descricoes dos Pokemon agora mostram status base para comparar atributos rapidamente."
+  );
+  add(
     /\bdata:\b|\bdados\b|\bgenerated pokemon\b|\bmethod\b|\bmetodo\b|\bmétodo\b|\bbiome\b|\bbioma\b|\bevolution\b|\bevolucao\b|\bevolução\b/.test(text),
     "Dados de Pokemon revisados com ajustes em metodos, biomas e evolucoes."
   );

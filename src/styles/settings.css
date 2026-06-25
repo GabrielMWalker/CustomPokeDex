@@ -91,6 +91,74 @@
   font-weight: 900;
 }
 
+.settings-sound-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.settings-sound-row {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(180px, .9fr) minmax(0, 1.4fr);
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.settings-sound-copy {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.settings-sound-copy strong {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.settings-sound-controls {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(150px, 1fr) repeat(3, auto);
+  align-items: center;
+  gap: 8px;
+}
+
+.settings-sound-controls select {
+  min-width: 0;
+  min-height: 43px;
+  padding: 0 12px;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font: inherit;
+}
+
+.settings-file-input {
+  width: 1px;
+  height: 1px;
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.settings-file-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 43px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-weight: 760;
+  cursor: pointer;
+}
+
 .settings-status {
   padding: 10px 12px;
   color: var(--muted);
@@ -178,7 +246,9 @@
 
 @media (max-width: 760px) {
   .settings-grid,
-  .settings-path-row {
+  .settings-path-row,
+  .settings-sound-row,
+  .settings-sound-controls {
     grid-template-columns: 1fr;
   }
 

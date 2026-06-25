@@ -10,6 +10,7 @@ logs-launcher/
 *.tmp
 .discovery-test.*
 pixelmon-log-discovery-dump.txt
+scripts/.pokemon-*-cache.json
 
 # Estado local do usuario. O servidor cria este arquivo automaticamente se ele nao existir.
 pokemon-checklist-db.json
