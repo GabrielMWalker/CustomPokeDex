@@ -1,12 +1,12 @@
 [package]
-name = "pixelmon-pokelist"
-version = "1.0.9"
-description = "Pokelist local para Pixelmon"
+name = "cobbleverse-companion"
+version = "2.0.0"
+description = "Companion local para Cobbleverse"
 authors = ["GabrielMWalker"]
 edition = "2021"
 
 [lib]
-name = "pixelmon_pokedex_checklist_lib"
+name = "cobbleverse_companion_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
@@ -15,19 +15,5 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-flate2 = "1"
 tauri = { version = "2", features = [] }
-tauri-plugin-notification = "2"
 tauri-plugin-updater = "2"
-tauri-winrt-notification = "0.7.2"
-windows = { version = "0.61.3", features = [
-  "Foundation",
-  "Globalization",
-  "Graphics_Imaging",
-  "Media_Ocr",
-  "Win32_Foundation",
-  "Win32_Security",
-  "Win32_System_Registry",
-  "Win32_UI_Shell",
-  "Storage_Streams",
-] }
