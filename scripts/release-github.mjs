@@ -31,6 +31,7 @@ const capture = (command, commandArgs, options = {}) =>
 
 const readJson = file => JSON.parse(fs.readFileSync(path.join(root, file), "utf8"));
 const tauriConfig = readJson(path.join("src-tauri", "tauri.conf.json"));
+const productName = String(tauriConfig.productName || "Cobbleverse Companion").trim();
 const packageJson = readJson("package.json");
 const version = String(tauriConfig.version || "").trim();
 const packageVersion = String(packageJson.version || "").trim();
@@ -83,8 +84,8 @@ if (remoteTag) {
 }
 
 if (!skipChecks) {
-  run(process.execPath, ["--check", path.join("src", "scripts", "app.js")], { stdio: "inherit" });
-  run(process.execPath, ["--check", path.join("src", "scripts", "app-utils.js")], { stdio: "inherit" });
+  run(process.execPath, ["--check", path.join("src", "scripts", "cobbleverse-app.js")], { stdio: "inherit" });
+  run(process.execPath, [path.join("scripts", "verify-cobbleverse-data.mjs")], { stdio: "inherit" });
   run(process.execPath, ["--check", path.join("scripts", "generate-latest-json.mjs")], { stdio: "inherit" });
   run(process.execPath, ["--check", path.join("scripts", "release-github.mjs")], { stdio: "inherit" });
   run(process.execPath, ["--check", path.join("scripts", "release-notes.mjs")], { stdio: "inherit" });
@@ -92,7 +93,7 @@ if (!skipChecks) {
 }
 
 run("git", ["push", "origin", currentBranch], { stdio: "inherit" });
-run("git", ["tag", "-a", tagName, "-m", `Pixelmon - Pokelist ${tagName}`, "-m", releaseNotes], { stdio: "inherit" });
+run("git", ["tag", "-a", tagName, "-m", `${productName} ${tagName}`, "-m", releaseNotes], { stdio: "inherit" });
 run("git", ["push", "origin", tagName], { stdio: "inherit" });
 
 console.log(dryRun

@@ -54,6 +54,26 @@ function collectReleaseHighlights(commits) {
   };
 
   add(
+    /\bcobbleverse\b|\bmodpack\b/.test(text),
+    "Aplicativo reconstruido para o COBBLEVERSE 1.7.31-CF e Cobblemon 1.7.3."
+  );
+  add(
+    /\bdrop\b|\bdrops\b|\bpasture\b/.test(text),
+    "Nova consulta de drops com chance, quantidade, icones dos itens e compatibilidade com o Pasture."
+  );
+  add(
+    /\bbait\b|\bbaits\b|\bberry\b|\bberries\b|\bcrossplant/.test(text),
+    "Novas areas de Baits e Berries, incluindo perks e combinacoes de crossplanting."
+  );
+  add(
+    /\bbreeding\b|\begg group\b|\begggroup\b/.test(text),
+    "Breeding atualizado com verificacao de pares e filtros por Egg Group."
+  );
+  add(
+    /\bginasio\b|\bginasios\b|\bgym\b|\bgyms\b/.test(text),
+    "Guia dos 32 ginasios de Kanto, Johto, Hoenn e Sinnoh com equipes e progresso local."
+  );
+  add(
     /\bcollection\b|\bcolecao\b|\bcoleção\b|\bha\b|\bshiny\b/.test(text),
     "Nova area de colecao para acompanhar HA, Shiny e listas de Pokemon com mais praticidade."
   );
@@ -92,7 +112,7 @@ function collectReleaseHighlights(commits) {
 export function formatReleaseNotes({ version, tagName = `v${version}`, cwd = process.cwd() }) {
   const commits = getReleaseCommits(tagName, cwd);
   const lines = [
-    `Pixelmon - Pokelist ${tagName}`,
+    `Cobbleverse Companion ${tagName}`,
     "",
     "Destaques desta versao:"
   ];

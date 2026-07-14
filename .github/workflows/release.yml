@@ -57,8 +57,8 @@ jobs:
 
       - name: Validate JavaScript
         run: |
-          node --check src\scripts\app.js
-          node --check src\scripts\app-utils.js
+          node --check src\scripts\cobbleverse-app.js
+          node scripts\verify-cobbleverse-data.mjs
           node --check scripts\generate-latest-json.mjs
           node --check scripts\release-notes.mjs
 
@@ -76,6 +76,6 @@ jobs:
         with:
           body_path: release-notes.md
           files: |
-            src-tauri/target/release/bundle/nsis/Pixelmon - Pokelist_*_x64-setup.exe
-            src-tauri/target/release/bundle/nsis/Pixelmon - Pokelist_*_x64-setup.exe.sig
+            src-tauri/target/release/bundle/nsis/Cobbleverse Companion_*_x64-setup.exe
+            src-tauri/target/release/bundle/nsis/Cobbleverse Companion_*_x64-setup.exe.sig
             src-tauri/target/release/bundle/nsis/latest.json
