@@ -159,6 +159,84 @@
   cursor: pointer;
 }
 
+.alerts-grid {
+  align-items: start;
+}
+
+.alerts-form-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 10px;
+}
+
+.alerts-form-grid label {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.alerts-form-grid label span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.alerts-form-grid input,
+.alerts-form-grid select {
+  min-width: 0;
+  min-height: 43px;
+  padding: 0 12px;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font: inherit;
+}
+
+.alerts-list {
+  display: grid;
+  gap: 10px;
+}
+
+.alerts-card {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.alerts-card.is-disabled {
+  opacity: .64;
+}
+
+.alerts-card strong,
+.alerts-card span {
+  display: block;
+  min-width: 0;
+}
+
+.alerts-card strong {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.alerts-card span {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
 .settings-status {
   padding: 10px 12px;
   color: var(--muted);
@@ -248,7 +326,9 @@
   .settings-grid,
   .settings-path-row,
   .settings-sound-row,
-  .settings-sound-controls {
+  .settings-sound-controls,
+  .alerts-form-grid,
+  .alerts-card {
     grid-template-columns: 1fr;
   }
 

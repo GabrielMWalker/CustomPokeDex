@@ -24,6 +24,8 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     const QUIZ_AUTO_COPY_KEY = "pokemon-checklist-quiz-auto-copy-v1";
     const GTS_ALERTS_KEY = "pokemon-checklist-gts-alerts-v1";
     const NOTIFICATION_SOUND_STORAGE_KEY = "pokemon-checklist-notification-sounds-v1";
+    const ALERT_SOUND_LIBRARY_STORAGE_KEY = "pokemon-checklist-alert-sound-library-v1";
+    const CUSTOM_ALERTS_STORAGE_KEY = "pokemon-checklist-custom-alerts-v1";
     const GTS_WATCHLIST_KEY = "pokemon-checklist-gts-watchlist-v1";
     const LOG_CAPTURE_DEFAULT_POLL_MS = 10000;
     const LOG_CAPTURE_QUIZ_POLL_MS = 1000;
@@ -43,6 +45,9 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       { value: "custom", label: "Audio customizado" },
       { value: "silent", label: "Sem som" }
     ];
+    const ALERT_SOUND_BUILTINS = NOTIFICATION_SOUND_PRESETS
+      .filter(preset => preset.value !== "custom")
+      .map(preset => ({ id: preset.value, label: preset.label, kind: "preset" }));
     const APP_META = window.POKELIST_APP_META || {
       name: "Pixelmon - Pokelist",
       version: "1.0.9",
@@ -234,6 +239,11 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     let quizAutoCopyEnabled = localStorage.getItem(QUIZ_AUTO_COPY_KEY) === "true";
     let notificationSoundSettings = loadNotificationSoundSettings();
     let notificationSoundStatus = "";
+    let alertSoundLibrary = loadAlertSoundLibrary();
+    let customAlerts = loadCustomAlerts();
+    let alertManagementStatus = "";
+    const customLogAlertKeys = new Set();
+    let lastCustomLogAlertChatKey = "";
     let quizHistoryImportStatus = "";
     let quizFlowSearch = "";
     let quizFlowMode = "pending";
@@ -1983,6 +1993,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     const collectionTab = document.querySelector("#flow-collection");
     const quizTab = document.querySelector("#flow-quiz");
     const gtsTab = document.querySelector("#flow-gts");
+    const alertsTab = document.querySelector("#flow-alerts");
     const settingsTab = document.querySelector("#flow-settings");
     const checklistNavSections = document.querySelector("#checklist-nav-sections");
     const checklistFlowCount = document.querySelector("#flow-checklist-count");
@@ -1993,6 +2004,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     const collectionFlowCount = document.querySelector("#flow-collection-count");
     const quizFlowCount = document.querySelector("#flow-quiz-count");
     const gtsFlowCount = document.querySelector("#flow-gts-count");
+    const alertsFlowCount = document.querySelector("#flow-alerts-count");
     const settingsFlowCount = document.querySelector("#flow-settings-count");
     const themeToggleButton = document.querySelector("#theme-toggle");
     const densityToggleButton = document.querySelector("#density-toggle");
@@ -3979,13 +3991,17 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     }
 
     function normalizeNotificationSoundType(type) {
-      return type === "gts_sale" ? "gts" : String(type || "quiz");
+      const normalized = String(type || "quiz");
+      if (normalized === "gts_sale") return "gts";
+      if (normalized === "custom_alert") return "custom_alert";
+      return normalized;
     }
 
     function getDefaultNotificationSoundSettings() {
       return NOTIFICATION_SOUND_TYPES.reduce((settings, item) => {
         settings[item.type] = {
           preset: "app-default",
+          soundId: "app-default",
           customName: "",
           customDataUrl: ""
         };
@@ -3999,8 +4015,12 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       NOTIFICATION_SOUND_TYPES.forEach(item => {
         const saved = value?.[item.type] || {};
         const preset = allowedPresets.has(saved.preset) ? saved.preset : defaults[item.type].preset;
+        const savedSoundId = typeof saved.soundId === "string" && saved.soundId.trim()
+          ? saved.soundId.trim()
+          : preset;
         defaults[item.type] = {
           preset,
+          soundId: savedSoundId,
           customName: String(saved.customName || ""),
           customDataUrl: String(saved.customDataUrl || "")
         };
@@ -4031,6 +4051,96 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       return notificationSoundSettings[normalizedType] || notificationSoundSettings.quiz || getDefaultNotificationSoundSettings().quiz;
     }
 
+    function isBuiltinAlertSoundId(soundId) {
+      return ALERT_SOUND_BUILTINS.some(sound => sound.id === soundId);
+    }
+
+    function normalizeAlertSoundRecord(record) {
+      if (!record || typeof record !== "object") return null;
+      const id = String(record.id || createLocalRecordId()).trim();
+      const name = String(record.name || record.customName || "").trim();
+      const dataUrl = String(record.dataUrl || record.customDataUrl || "").trim();
+      if (!id || !name || !dataUrl) return null;
+      return {
+        id,
+        name: name.slice(0, 80),
+        dataUrl,
+        createdAt: String(record.createdAt || new Date().toISOString())
+      };
+    }
+
+    function sanitizeAlertSoundLibrary(value) {
+      if (!Array.isArray(value)) return [];
+      const seen = new Set();
+      return value
+        .map(normalizeAlertSoundRecord)
+        .filter(Boolean)
+        .filter(record => {
+          if (seen.has(record.id)) return false;
+          seen.add(record.id);
+          return true;
+        });
+    }
+
+    function loadAlertSoundLibrary() {
+      try {
+        return sanitizeAlertSoundLibrary(JSON.parse(localStorage.getItem(ALERT_SOUND_LIBRARY_STORAGE_KEY) || "[]"));
+      } catch {
+        return [];
+      }
+    }
+
+    function saveAlertSoundLibrary() {
+      try {
+        localStorage.setItem(ALERT_SOUND_LIBRARY_STORAGE_KEY, JSON.stringify(alertSoundLibrary));
+        return true;
+      } catch {
+        alertManagementStatus = "Nao foi possivel salvar a biblioteca. Tente um audio menor.";
+        return false;
+      }
+    }
+
+    function getAlertSoundOptions() {
+      return [
+        ...ALERT_SOUND_BUILTINS,
+        ...alertSoundLibrary.map(sound => ({
+          id: `custom:${sound.id}`,
+          label: sound.name,
+          kind: "custom",
+          record: sound
+        }))
+      ];
+    }
+
+    function resolveAlertSound(soundId, type = "quiz") {
+      const setting = getNotificationSoundSetting(type);
+      const legacyPreset = setting.preset || "app-default";
+      const requestedId = String(soundId || setting.soundId || legacyPreset || "app-default");
+      const customId = requestedId.startsWith("custom:") ? requestedId.slice("custom:".length) : "";
+      if (customId) {
+        const customSound = alertSoundLibrary.find(sound => sound.id === customId);
+        if (customSound) {
+          return { id: requestedId, label: customSound.name, kind: "custom", dataUrl: customSound.dataUrl };
+        }
+      }
+      if (isBuiltinAlertSoundId(requestedId)) {
+        return ALERT_SOUND_BUILTINS.find(sound => sound.id === requestedId);
+      }
+      if (legacyPreset === "custom" && setting.customDataUrl) {
+        return {
+          id: "legacy-custom",
+          label: setting.customName ? `Customizado: ${setting.customName}` : "Audio customizado",
+          kind: "legacy-custom",
+          dataUrl: setting.customDataUrl
+        };
+      }
+      return ALERT_SOUND_BUILTINS[0];
+    }
+
+    function getAlertSoundLabelById(soundId, type = "quiz") {
+      return resolveAlertSound(soundId, type).label;
+    }
+
     function getNotificationSoundPreset(type) {
       const setting = getNotificationSoundSetting(type);
       return NOTIFICATION_SOUND_PRESETS.find(preset => preset.value === setting.preset) || NOTIFICATION_SOUND_PRESETS[0];
@@ -4038,27 +4148,35 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
 
     function getNotificationSoundLabel(type) {
       const setting = getNotificationSoundSetting(type);
-      const preset = getNotificationSoundPreset(type);
+      if (setting.soundId && setting.soundId !== "custom") {
+        return getAlertSoundLabelById(setting.soundId, type);
+      }
       if (setting.preset === "custom") {
         return setting.customName ? `Customizado: ${setting.customName}` : "Customizado sem arquivo";
       }
-      return preset.label;
+      return getAlertSoundLabelById(setting.soundId || setting.preset, type);
     }
 
     function getNotificationSoundStatusText() {
       if (notificationSoundStatus) return notificationSoundStatus;
-      return "Escolha um som por tipo de aviso. Arquivos customizados ficam salvos apenas neste app/navegador.";
+      return "Escolha um som da biblioteca por tipo de aviso. Arquivos customizados ficam salvos apenas neste app/navegador.";
     }
 
-    function setNotificationSoundPreset(type, preset) {
+    function setNotificationSoundId(type, soundId) {
       const normalizedType = normalizeNotificationSoundType(type);
       const current = getNotificationSoundSetting(normalizedType);
+      const preset = isBuiltinAlertSoundId(soundId) ? soundId : "app-default";
       notificationSoundSettings[normalizedType] = {
         ...current,
-        preset
+        preset,
+        soundId
       };
       notificationSoundStatus = `${NOTIFICATION_SOUND_TYPES.find(item => item.type === normalizedType)?.label || "Alerta"} usando ${getNotificationSoundLabel(normalizedType)}.`;
       saveNotificationSoundSettings();
+    }
+
+    function setNotificationSoundPreset(type, preset) {
+      setNotificationSoundId(type, preset);
     }
 
     function readCustomNotificationAudio(file) {
@@ -4088,6 +4206,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
         const dataUrl = await readCustomNotificationAudio(file);
         notificationSoundSettings[normalizedType] = {
           preset: "custom",
+          soundId: "custom",
           customName: file.name || "audio customizado",
           customDataUrl: dataUrl
         };
@@ -4104,11 +4223,58 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       notificationSoundSettings[normalizedType] = {
         ...current,
         preset: "app-default",
+        soundId: "app-default",
         customName: "",
         customDataUrl: ""
       };
       notificationSoundStatus = `${NOTIFICATION_SOUND_TYPES.find(item => item.type === normalizedType)?.label || "Alerta"} voltou para o som padrao.`;
       saveNotificationSoundSettings();
+    }
+
+    async function addAlertSoundToLibrary(name, file) {
+      const cleanName = String(name || "").trim();
+      if (!cleanName) {
+        alertManagementStatus = "Dê um nome para o som antes de adicionar.";
+        return false;
+      }
+      try {
+        const dataUrl = await readCustomNotificationAudio(file);
+        alertSoundLibrary = [
+          ...alertSoundLibrary,
+          {
+            id: createLocalRecordId(),
+            name: cleanName.slice(0, 80),
+            dataUrl,
+            createdAt: new Date().toISOString()
+          }
+        ];
+        if (saveAlertSoundLibrary()) {
+          alertManagementStatus = `Som "${cleanName}" adicionado a biblioteca.`;
+          return true;
+        }
+      } catch (error) {
+        alertManagementStatus = error?.message || "Nao foi possivel importar o audio.";
+      }
+      return false;
+    }
+
+    function removeAlertSoundFromLibrary(soundId) {
+      const customId = String(soundId || "").replace(/^custom:/, "");
+      const removed = alertSoundLibrary.find(sound => sound.id === customId);
+      alertSoundLibrary = alertSoundLibrary.filter(sound => sound.id !== customId);
+      NOTIFICATION_SOUND_TYPES.forEach(item => {
+        const setting = getNotificationSoundSetting(item.type);
+        if (setting.soundId === `custom:${customId}`) {
+          setNotificationSoundId(item.type, "app-default");
+        }
+      });
+      customAlerts = customAlerts.map(alert =>
+        alert.soundId === `custom:${customId}` ? { ...alert, soundId: "app-default" } : alert
+      );
+      saveNotificationSoundSettings();
+      saveCustomAlerts();
+      saveAlertSoundLibrary();
+      alertManagementStatus = removed ? `Som "${removed.name}" removido da biblioteca.` : "Som removido da biblioteca.";
     }
 
     async function setInvasionWindowsNotificationsEnabled(enabled) {
@@ -4146,7 +4312,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
         await invokeTauri("show_native_notification", {
           title: event?.title || "Invasao iniciada",
           body: event?.toastDetail || event?.detail || "Use /warp navio para entrar.",
-          sound: getNativeNotificationSoundKey(event?.type || "default")
+          sound: getNativeNotificationSoundKey(event?.type || "default", event?.soundId || "")
         });
       } catch {
         return false;
@@ -4253,26 +4419,21 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       });
     }
 
-    function playActivityAlertSound(type = "quiz") {
+    function playActivityAlertSound(type = "quiz", soundId = "") {
       const normalizedType = normalizeNotificationSoundType(type);
-      const setting = getNotificationSoundSetting(normalizedType);
-      const preset = getNotificationSoundPreset(normalizedType);
-      if (preset.value === "silent") return;
-      if (preset.audioSrc) {
-        playAudioFileNotification(preset.audioSrc, normalizedType);
+      const sound = resolveAlertSound(soundId, normalizedType);
+      if (sound.id === "silent") return;
+      if (sound.kind === "custom" || sound.kind === "legacy-custom") {
+        playAudioFileNotification(sound.dataUrl, normalizedType);
         return;
       }
-      if (setting.preset === "custom") {
-        playAudioFileNotification(setting.customDataUrl, normalizedType);
-        return;
-      }
-      playGeneratedActivityAlertNotes(getPresetActivityAlertNotes(setting.preset, normalizedType));
+      playGeneratedActivityAlertNotes(getPresetActivityAlertNotes(sound.id, normalizedType));
     }
 
-    function getNativeNotificationSoundKey(type) {
+    function getNativeNotificationSoundKey(type, soundId = "") {
       const normalizedType = normalizeNotificationSoundType(type);
-      const preset = getNotificationSoundPreset(normalizedType);
-      return preset.value === "app-default" ? normalizedType : "silent";
+      const sound = resolveAlertSound(soundId, normalizedType);
+      return sound.id === "app-default" ? normalizedType : "silent";
     }
 
     function showActivityAlertToast(event) {
@@ -4321,7 +4482,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
     }
 
     async function notifyLogActivity(event, options = {}) {
-      if (!["invasion", "quiz", "gts", "gts_sale"].includes(event?.type)) return;
+      if (!["invasion", "quiz", "gts", "gts_sale", "custom_alert"].includes(event?.type)) return;
       const copiedQuizAnswer = options.skipCopy ? false : await copyQuizAnswerToClipboard(event, options);
       if (event.type === "quiz" && !quizAlertsEnabled && !options.forceAlert) return;
       if ((event.type === "gts" || event.type === "gts_sale") && !gtsAlertsEnabled && !options.forceAlert) return;
@@ -4331,13 +4492,15 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
             toastDetail: `${event.toastDetail || event.detail || ""} | Copiado: ${event.clipboardText}`
           }
         : event;
-      playActivityAlertSound(event.type);
+      playActivityAlertSound(event.type, event.soundId || options.soundId || "");
       showActivityAlertToast(toastEvent);
       if (event.type === "invasion") {
         showNativeActivityNotification(event).catch(() => {});
       } else if (quizAlertsEnabled) {
         showNativeActivityNotification(toastEvent, { force: true }).catch(() => {});
       } else if ((event.type === "gts" || event.type === "gts_sale") && (gtsAlertsEnabled || options.forceAlert)) {
+        showNativeActivityNotification(toastEvent, { force: true }).catch(() => {});
+      } else if (event.type === "custom_alert" && options.forceAlert) {
         showNativeActivityNotification(toastEvent, { force: true }).catch(() => {});
       }
     }
@@ -4409,6 +4572,134 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       }
     }
 
+    function normalizeCustomAlert(record) {
+      if (!record || typeof record !== "object") return null;
+      const triggerText = String(record.triggerText || record.trigger || "").trim();
+      if (!triggerText) return null;
+      const soundId = String(record.soundId || "app-default");
+      return {
+        id: String(record.id || createLocalRecordId()),
+        name: String(record.name || "Alerta customizado").trim().slice(0, 80) || "Alerta customizado",
+        triggerText: triggerText.slice(0, 240),
+        soundId: getAlertSoundOptions().some(option => option.id === soundId) ? soundId : "app-default",
+        enabled: record.enabled !== false,
+        createdAt: String(record.createdAt || new Date().toISOString())
+      };
+    }
+
+    function sanitizeCustomAlerts(value) {
+      if (!Array.isArray(value)) return [];
+      const seen = new Set();
+      return value
+        .map(normalizeCustomAlert)
+        .filter(Boolean)
+        .filter(alert => {
+          if (seen.has(alert.id)) return false;
+          seen.add(alert.id);
+          return true;
+        });
+    }
+
+    function loadCustomAlerts() {
+      try {
+        return sanitizeCustomAlerts(JSON.parse(localStorage.getItem(CUSTOM_ALERTS_STORAGE_KEY) || "[]"));
+      } catch {
+        return [];
+      }
+    }
+
+    function saveCustomAlerts() {
+      localStorage.setItem(CUSTOM_ALERTS_STORAGE_KEY, JSON.stringify(customAlerts));
+    }
+
+    function hasEnabledCustomAlerts() {
+      return customAlerts.some(alert => alert.enabled && alert.triggerText);
+    }
+
+    function getCustomLogChatKey(chat) {
+      const message = String(chat?.message || chat?.text || "").trim();
+      if (!message) return "";
+      return `${chat?.logTime || ""}|${message}`;
+    }
+
+    function markCurrentCustomAlertChatSeen() {
+      const chatKey = getCustomLogChatKey(logCaptureState.lastChat);
+      if (chatKey) {
+        lastCustomLogAlertChatKey = chatKey;
+      }
+    }
+
+    function addCustomLogAlert(name, triggerText, soundId) {
+      const alert = normalizeCustomAlert({
+        id: createLocalRecordId(),
+        name,
+        triggerText,
+        soundId,
+        enabled: true,
+        createdAt: new Date().toISOString()
+      });
+      if (!alert) {
+        alertManagementStatus = "Informe o texto que deve aparecer no log.";
+        return false;
+      }
+      customAlerts = [...customAlerts, alert];
+      saveCustomAlerts();
+      alertManagementStatus = `Alerta "${alert.name}" criado.`;
+      markCurrentCustomAlertChatSeen();
+      scheduleLogCapturePolling();
+      return true;
+    }
+
+    function updateCustomLogAlert(id, patch) {
+      customAlerts = customAlerts.map(alert => {
+        if (alert.id !== id) return alert;
+        return normalizeCustomAlert({ ...alert, ...patch }) || alert;
+      });
+      saveCustomAlerts();
+      if (patch.enabled) {
+        markCurrentCustomAlertChatSeen();
+      }
+      scheduleLogCapturePolling();
+    }
+
+    function removeCustomLogAlert(id) {
+      const removed = customAlerts.find(alert => alert.id === id);
+      customAlerts = customAlerts.filter(alert => alert.id !== id);
+      saveCustomAlerts();
+      scheduleLogCapturePolling();
+      alertManagementStatus = removed ? `Alerta "${removed.name}" removido.` : "Alerta removido.";
+    }
+
+    function getCustomLogAlertsForChat(chat) {
+      const message = String(chat?.message || chat?.text || "").trim();
+      if (!hasPrimedLogActivityAlerts || !message || !hasEnabledCustomAlerts()) return [];
+      const chatKey = getCustomLogChatKey(chat);
+      if (!chatKey || chatKey === lastCustomLogAlertChatKey) return [];
+      lastCustomLogAlertChatKey = chatKey;
+      const normalizedMessage = normalize(message);
+      const matches = customAlerts.filter(alert =>
+        alert.enabled
+          && alert.triggerText
+          && normalizedMessage.includes(normalize(alert.triggerText))
+      );
+      return matches.filter(alert => {
+        const eventKey = `${alert.id}|${chatKey}`;
+        if (customLogAlertKeys.has(eventKey)) return false;
+        customLogAlertKeys.add(eventKey);
+        if (customLogAlertKeys.size > 200) {
+          customLogAlertKeys.delete(customLogAlertKeys.values().next().value);
+        }
+        return true;
+      }).map(alert => ({
+        type: "custom_alert",
+        title: alert.name,
+        detail: alert.triggerText,
+        toastDetail: compactText(message, 180),
+        soundId: alert.soundId,
+        customAlertId: alert.id
+      }));
+    }
+
     function applyLogCaptureState(data = {}, options = {}) {
       const nextRewardEvents = Array.isArray(data.rewardEvents) ? data.rewardEvents : [];
       const previousRewardKeys = new Set((logCaptureState.rewardEvents || []).map(getLogRewardEventKey));
@@ -4468,6 +4759,7 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
       }
       scheduleLogCapturePolling();
       renderLogCapturePanel();
+      const newCustomLogAlerts = getCustomLogAlertsForChat(logCaptureState.lastChat);
       if (activeView === "gts" && hasNewGtsDisplayEvents) {
         scheduleAppRender();
       }
@@ -4492,6 +4784,9 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
             ? `${info.buyer} comprou ${info.item}${info.received ? ` | Recebido: ${info.received}` : ""}`
             : `${info.item} por ${info.price}${matchTerm ? ` | Desejado: ${matchTerm}` : ""}`
         }).catch(() => {});
+      }
+      if (newCustomLogAlerts.length) {
+        notifyLogActivity(newCustomLogAlerts[0], { forceAlert: true, skipCopy: true }).catch(() => {});
       }
     }
 
@@ -4532,7 +4827,9 @@ const SOURCE = window.POKEMON_LIST_SOURCE || "";
         logCaptureState.poller = null;
       }
       if (useFileDatabase && logCaptureState.enabled) {
-        const interval = quizAlertsEnabled || quizAutoCopyEnabled || gtsAlertsEnabled ? LOG_CAPTURE_QUIZ_POLL_MS : LOG_CAPTURE_DEFAULT_POLL_MS;
+        const interval = quizAlertsEnabled || quizAutoCopyEnabled || gtsAlertsEnabled || hasEnabledCustomAlerts()
+          ? LOG_CAPTURE_QUIZ_POLL_MS
+          : LOG_CAPTURE_DEFAULT_POLL_MS;
         logCaptureState.poller = setInterval(refreshLogCaptureStatus, interval);
       }
     }
@@ -9345,6 +9642,7 @@ Obs: pronto para boss"></textarea>
       const collectionActive = activeView === "collection";
       const quizActive = activeView === "quiz";
       const gtsActive = activeView === "gts";
+      const alertsActive = activeView === "alerts";
       const settingsActive = activeView === "settings";
       checklistTab.classList.toggle("active", checklistActive);
       capturedTab.classList.toggle("active", telemetryActive);
@@ -9354,6 +9652,7 @@ Obs: pronto para boss"></textarea>
       collectionTab.classList.toggle("active", collectionActive);
       quizTab.classList.toggle("active", quizActive);
       gtsTab?.classList.toggle("active", gtsActive);
+      alertsTab?.classList.toggle("active", alertsActive);
       settingsTab.classList.toggle("active", settingsActive);
       checklistTab.setAttribute("aria-pressed", checklistActive ? "true" : "false");
       capturedTab.setAttribute("aria-pressed", telemetryActive ? "true" : "false");
@@ -9363,8 +9662,9 @@ Obs: pronto para boss"></textarea>
       collectionTab.setAttribute("aria-pressed", collectionActive ? "true" : "false");
       quizTab.setAttribute("aria-pressed", quizActive ? "true" : "false");
       gtsTab?.setAttribute("aria-pressed", gtsActive ? "true" : "false");
+      alertsTab?.setAttribute("aria-pressed", alertsActive ? "true" : "false");
       settingsTab.setAttribute("aria-pressed", settingsActive ? "true" : "false");
-      document.body.classList.toggle("flow-without-kpis", breedingActive || teamsActive || buildsActive || collectionActive || quizActive || gtsActive || settingsActive);
+      document.body.classList.toggle("flow-without-kpis", breedingActive || teamsActive || buildsActive || collectionActive || quizActive || gtsActive || alertsActive || settingsActive);
       checklistNavSections.hidden = !checklistActive;
       toolbar.hidden = !checklistActive;
       const owned = allEntries.filter(isOwned).length;
@@ -9379,6 +9679,9 @@ Obs: pronto para boss"></textarea>
       quizFlowCount.textContent = getQuizPendingEntries().length;
       if (gtsFlowCount) {
         gtsFlowCount.textContent = getGtsMatchedListings().length || getGtsSales().length;
+      }
+      if (alertsFlowCount) {
+        alertsFlowCount.textContent = customAlerts.length;
       }
       settingsFlowCount.textContent = isTauriApp() ? "Desk" : "Web";
     }
@@ -9881,6 +10184,8 @@ Obs: pronto para boss"></textarea>
           density: isCompactMode ? "compact" : "normal",
           playerName: configuredPlayerName || logCaptureState.playerName || "",
           notificationSounds: notificationSoundSettings,
+          alertSoundLibrary,
+          customAlerts,
           logSidebarCollapsed: isLogSidebarCollapsed,
           logMonitorMinimized: isLogMonitorMinimized,
           collapsedSections: [...collapsedSections]
@@ -9962,6 +10267,14 @@ Obs: pronto para boss"></textarea>
       if (backup.preferences?.notificationSounds) {
         notificationSoundSettings = sanitizeNotificationSoundSettings(backup.preferences.notificationSounds);
         saveNotificationSoundSettings();
+      }
+      if (Array.isArray(backup.preferences?.alertSoundLibrary)) {
+        alertSoundLibrary = sanitizeAlertSoundLibrary(backup.preferences.alertSoundLibrary);
+        saveAlertSoundLibrary();
+      }
+      if (Array.isArray(backup.preferences?.customAlerts)) {
+        customAlerts = sanitizeCustomAlerts(backup.preferences.customAlerts);
+        saveCustomAlerts();
       }
       if (Array.isArray(backup.preferences?.collapsedSections)) {
         collapsedSections = new Set(backup.preferences.collapsedSections.filter(item => typeof item === "string" && item.trim()));
@@ -10067,7 +10380,21 @@ Obs: pronto para boss"></textarea>
       list.append(status);
     }
 
-    function createNotificationSoundSettingsRow(item) {
+    function createAlertSoundSelect(selectedSoundId, onChange, ariaLabel) {
+      const select = document.createElement("select");
+      select.setAttribute("aria-label", ariaLabel);
+      getAlertSoundOptions().forEach(sound => {
+        const option = document.createElement("option");
+        option.value = sound.id;
+        option.textContent = sound.kind === "custom" ? `Custom: ${sound.label}` : sound.label;
+        select.append(option);
+      });
+      select.value = getAlertSoundOptions().some(sound => sound.id === selectedSoundId) ? selectedSoundId : "app-default";
+      select.addEventListener("change", event => onChange(event.target.value));
+      return select;
+    }
+
+    function createAppAlertSoundRow(item) {
       const setting = getNotificationSoundSetting(item.type);
       const row = document.createElement("div");
       row.className = "settings-sound-row";
@@ -10083,21 +10410,10 @@ Obs: pronto para boss"></textarea>
 
       const controls = document.createElement("div");
       controls.className = "settings-sound-controls";
-
-      const select = document.createElement("select");
-      select.id = `settings-sound-${item.type}`;
-      select.setAttribute("aria-label", `Som para ${item.label}`);
-      NOTIFICATION_SOUND_PRESETS.forEach(preset => {
-        const option = document.createElement("option");
-        option.value = preset.value;
-        option.textContent = preset.label;
-        select.append(option);
-      });
-      select.value = setting.preset;
-      select.addEventListener("change", event => {
-        setNotificationSoundPreset(item.type, event.target.value);
+      const select = createAlertSoundSelect(setting.soundId || setting.preset, soundId => {
+        setNotificationSoundId(item.type, soundId);
         render();
-      });
+      }, `Som para ${item.label}`);
 
       const testButton = document.createElement("button");
       testButton.className = "muted-button";
@@ -10112,54 +10428,214 @@ Obs: pronto para boss"></textarea>
         showDownloadButtonFeedback(event.currentTarget, "Tocando");
       });
 
-      const fileInput = document.createElement("input");
-      fileInput.id = `settings-custom-sound-${item.type}`;
-      fileInput.className = "settings-file-input";
-      fileInput.type = "file";
-      fileInput.accept = "audio/*";
-      fileInput.addEventListener("change", event => {
-        const file = event.target.files?.[0];
-        setCustomNotificationSoundFile(item.type, file).then(render);
-      });
-
-      const fileLabel = document.createElement("label");
-      fileLabel.className = "muted-button settings-file-button";
-      fileLabel.setAttribute("for", fileInput.id);
-      fileLabel.textContent = "Enviar audio";
-
-      const clearButton = document.createElement("button");
-      clearButton.className = "muted-button";
-      clearButton.type = "button";
-      clearButton.textContent = "Limpar custom";
-      clearButton.disabled = !setting.customDataUrl;
-      clearButton.addEventListener("click", () => {
-        clearCustomNotificationSound(item.type);
-        render();
-      });
-
-      controls.append(select, testButton, fileLabel, fileInput, clearButton);
+      controls.append(select, testButton);
       row.append(copy, controls);
       return row;
     }
 
-    function createNotificationSoundSettingsPanel() {
+    function createAlertSoundLibraryPanel() {
       const panel = document.createElement("article");
       panel.className = "settings-panel is-wide";
       panel.innerHTML = `
         <div class="settings-panel-header">
           <div>
-            <p class="eyebrow">Notificacoes</p>
-            <h3 class="settings-panel-title">Sons dos avisos</h3>
-            <p class="settings-panel-note">Cada alerta pode usar o padrao dele, outro preset ou um audio enviado por voce.</p>
+            <p class="eyebrow">Sons</p>
+            <h3 class="settings-panel-title">Biblioteca</h3>
+            <p class="settings-panel-note">Audios salvos localmente ficam disponiveis para qualquer alerta.</p>
+          </div>
+        </div>
+        <div class="alerts-form-grid">
+          <label>
+            <span>Nome do som</span>
+            <input id="alerts-sound-name" type="text" maxlength="80" placeholder="Ex: Pix recebido">
+          </label>
+          <label>
+            <span>Arquivo</span>
+            <input id="alerts-sound-file" type="file" accept="audio/*">
+          </label>
+          <button class="modal-capture-button" id="alerts-add-sound" type="button">Adicionar som</button>
+        </div>
+      `;
+      const list = document.createElement("div");
+      list.className = "alerts-list";
+      const builtins = document.createElement("div");
+      builtins.className = "alerts-card";
+      builtins.innerHTML = `<strong>Padroes do app</strong><span>${ALERT_SOUND_BUILTINS.map(sound => sound.label).join(", ")}</span>`;
+      list.append(builtins);
+
+      if (alertSoundLibrary.length) {
+        alertSoundLibrary.forEach(sound => {
+          const card = document.createElement("div");
+          card.className = "alerts-card";
+          const copy = document.createElement("div");
+          copy.innerHTML = `<strong></strong><span>Customizado</span>`;
+          copy.querySelector("strong").textContent = sound.name;
+          const actions = document.createElement("div");
+          actions.className = "settings-sound-controls";
+          const testButton = document.createElement("button");
+          testButton.className = "muted-button";
+          testButton.type = "button";
+          testButton.textContent = "Testar";
+          testButton.addEventListener("click", event => {
+            playAudioFileNotification(sound.dataUrl, "quiz");
+            showDownloadButtonFeedback(event.currentTarget, "Tocando");
+          });
+          const removeButton = document.createElement("button");
+          removeButton.className = "muted-button";
+          removeButton.type = "button";
+          removeButton.textContent = "Remover";
+          removeButton.addEventListener("click", () => {
+            removeAlertSoundFromLibrary(sound.id);
+            render();
+          });
+          actions.append(testButton, removeButton);
+          card.append(copy, actions);
+          list.append(card);
+        });
+      }
+      panel.append(list);
+      renderSettingsStatus(panel, "Biblioteca", `${alertSoundLibrary.length} som${alertSoundLibrary.length === 1 ? "" : "s"} customizado${alertSoundLibrary.length === 1 ? "" : "s"}.`);
+
+      const nameInput = panel.querySelector("#alerts-sound-name");
+      const fileInput = panel.querySelector("#alerts-sound-file");
+      panel.querySelector("#alerts-add-sound").addEventListener("click", () => {
+        addAlertSoundToLibrary(nameInput.value, fileInput.files?.[0]).then(success => {
+          if (success) render();
+          else render();
+        });
+      });
+      return panel;
+    }
+
+    function createAppAlertsPanel() {
+      const panel = document.createElement("article");
+      panel.className = "settings-panel is-wide";
+      panel.innerHTML = `
+        <div class="settings-panel-header">
+          <div>
+            <p class="eyebrow">Alertas</p>
+            <h3 class="settings-panel-title">Eventos do app</h3>
+            <p class="settings-panel-note">Invasao, quiz e GTS escolhem sons da biblioteca.</p>
           </div>
         </div>
       `;
       const rows = document.createElement("div");
       rows.className = "settings-sound-grid";
-      NOTIFICATION_SOUND_TYPES.forEach(item => rows.append(createNotificationSoundSettingsRow(item)));
+      NOTIFICATION_SOUND_TYPES.forEach(item => rows.append(createAppAlertSoundRow(item)));
       panel.append(rows);
       renderSettingsStatus(panel, "Sons", getNotificationSoundStatusText());
       return panel;
+    }
+
+    function createCustomAlertsPanel() {
+      const panel = document.createElement("article");
+      panel.className = "settings-panel is-wide";
+      panel.innerHTML = `
+        <div class="settings-panel-header">
+          <div>
+            <p class="eyebrow">Custom</p>
+            <h3 class="settings-panel-title">Texto no log</h3>
+            <p class="settings-panel-note">O alerta dispara quando o chat lido contem o texto cadastrado.</p>
+          </div>
+        </div>
+        <div class="alerts-form-grid">
+          <label>
+            <span>Nome</span>
+            <input id="custom-alert-name" type="text" maxlength="80" placeholder="Ex: Pix">
+          </label>
+          <label>
+            <span>Texto</span>
+            <input id="custom-alert-trigger" type="text" maxlength="240" placeholder="Texto exato ou trecho do log">
+          </label>
+          <label>
+            <span>Som</span>
+          </label>
+          <button class="modal-capture-button" id="custom-alert-add" type="button">Adicionar alerta</button>
+        </div>
+      `;
+      const soundLabel = panel.querySelector(".alerts-form-grid label:nth-of-type(3)");
+      const soundSelect = createAlertSoundSelect("app-default", () => {}, "Som para alerta customizado");
+      soundLabel.append(soundSelect);
+      const list = document.createElement("div");
+      list.className = "alerts-list";
+      if (!customAlerts.length) {
+        renderSettingsStatus(list, "Nenhum alerta customizado", "Crie um alerta para monitorar um texto especifico do log.");
+      } else {
+        customAlerts.forEach(alert => {
+          const card = document.createElement("div");
+          card.className = `alerts-card${alert.enabled ? "" : " is-disabled"}`;
+          const copy = document.createElement("div");
+          copy.innerHTML = `<strong></strong><span></span>`;
+          copy.querySelector("strong").textContent = alert.name;
+          copy.querySelector("span").textContent = `"${alert.triggerText}" | ${getAlertSoundLabelById(alert.soundId, "custom_alert")}`;
+
+          const controls = document.createElement("div");
+          controls.className = "settings-sound-controls";
+          const enabledLabel = document.createElement("label");
+          enabledLabel.className = "switch-control";
+          enabledLabel.setAttribute("aria-label", `Ativar ${alert.name}`);
+          enabledLabel.innerHTML = `<input type="checkbox"><span class="switch-track" aria-hidden="true"></span>`;
+          const checkbox = enabledLabel.querySelector("input");
+          checkbox.checked = alert.enabled;
+          checkbox.addEventListener("change", event => {
+            updateCustomLogAlert(alert.id, { enabled: event.target.checked });
+            render();
+          });
+          const select = createAlertSoundSelect(alert.soundId, soundId => {
+            updateCustomLogAlert(alert.id, { soundId });
+            render();
+          }, `Som para ${alert.name}`);
+          const testButton = document.createElement("button");
+          testButton.className = "muted-button";
+          testButton.type = "button";
+          testButton.textContent = "Testar";
+          testButton.addEventListener("click", event => {
+            notifyLogActivity({
+              type: "custom_alert",
+              title: alert.name,
+              detail: alert.triggerText,
+              toastDetail: `Teste: ${alert.triggerText}`,
+              soundId: alert.soundId
+            }, { forceAlert: true, skipCopy: true }).catch(() => {});
+            showDownloadButtonFeedback(event.currentTarget, "Tocando");
+          });
+          const removeButton = document.createElement("button");
+          removeButton.className = "muted-button";
+          removeButton.type = "button";
+          removeButton.textContent = "Remover";
+          removeButton.addEventListener("click", () => {
+            removeCustomLogAlert(alert.id);
+            render();
+          });
+          controls.append(enabledLabel, select, testButton, removeButton);
+          card.append(copy, controls);
+          list.append(card);
+        });
+      }
+      panel.append(list);
+      renderSettingsStatus(panel, "Custom alerts", `${customAlerts.filter(alert => alert.enabled).length}/${customAlerts.length} ativos.`);
+
+      panel.querySelector("#custom-alert-add").addEventListener("click", () => {
+        const name = panel.querySelector("#custom-alert-name").value;
+        const trigger = panel.querySelector("#custom-alert-trigger").value;
+        addCustomLogAlert(name, trigger, soundSelect.value);
+        render();
+      });
+      return panel;
+    }
+
+    function renderAlertsFlow(list) {
+      activeTitle.textContent = "Alerts";
+      visibleCount.textContent = `${customAlerts.length} custom | ${alertSoundLibrary.length} sons`;
+
+      const grid = document.createElement("section");
+      grid.className = "settings-grid alerts-grid";
+      grid.setAttribute("aria-label", "Gerenciamento de alerts");
+      grid.append(createAlertSoundLibraryPanel(), createAppAlertsPanel(), createCustomAlertsPanel());
+      if (alertManagementStatus) {
+        renderSettingsStatus(grid, "Alerts", alertManagementStatus);
+      }
+      list.append(grid);
     }
 
     function createQuizFlowSummaryItem(label, value) {
@@ -10881,7 +11357,7 @@ Obs: pronto para boss"></textarea>
         useFileDatabase ? "Banco local do app e dados complementares exportaveis." : "Dados salvos no navegador atual."
       );
 
-      grid.append(logPanel, createNotificationSoundSettingsPanel(), viewPanel, updatePanel, backupPanel);
+      grid.append(logPanel, viewPanel, updatePanel, backupPanel);
       appendAboutSettingsPanels(grid);
       list.append(grid);
     }
@@ -11106,6 +11582,12 @@ Obs: pronto para boss"></textarea>
         return;
       }
 
+      if (activeView === "alerts") {
+        renderAlertsFlow(list);
+        finishRender();
+        return;
+      }
+
       if (activeView === "settings") {
         renderSettingsFlow(list);
         finishRender();
@@ -11243,6 +11725,10 @@ Obs: pronto para boss"></textarea>
     });
     gtsTab?.addEventListener("click", () => {
       activeView = "gts";
+      render();
+    });
+    alertsTab?.addEventListener("click", () => {
+      activeView = "alerts";
       render();
     });
     settingsTab.addEventListener("click", () => {
