@@ -55,7 +55,7 @@ function collectReleaseHighlights(commits) {
 
   add(
     /\bcobbleverse\b|\bmodpack\b/.test(text),
-    "Aplicativo reconstruido para o COBBLEVERSE 1.7.31-CF e Cobblemon 1.7.3."
+    "Dados, guias e recursos visuais do COBBLEVERSE 1.7.31-CF foram ampliados."
   );
   add(
     /\bdrop\b|\bdrops\b|\bpasture\b/.test(text),
@@ -78,7 +78,11 @@ function collectReleaseHighlights(commits) {
     "Nova area de colecao para acompanhar HA, Shiny e listas de Pokemon com mais praticidade."
   );
   add(
-    /\bbackup\b|\bmerge\b|\bmescl|\bsync\b|\bpc\b|\bpcs\b/.test(text),
+    /\bsftp\b|\bserver\b|\bservidor\b|\bplayer sync\b/.test(text),
+    "Nova sincronizacao segura dos dados do jogador diretamente com o servidor configurado."
+  );
+  add(
+    /\bbackup\b|\bmerge\b|\bmescl|\bentre pcs\b|\bmulti-pc\b/.test(text),
     "Novo fluxo para atualizar dados entre PCs sem substituir a base local."
   );
   add(
@@ -90,7 +94,7 @@ function collectReleaseHighlights(commits) {
     "Monitoramento de logs mais completo para capturas, ganhos e recompensas do jogador."
   );
   add(
-    /\bsom\b|\bsons\b|\baudio\b|\bnotifica|\balerta/.test(text),
+    /\bsom\b|\bsons\b|\baudio\b|\bnotifica|\balerta|\balerts?\b/.test(text),
     "Novas opcoes para personalizar os sons dos alertas de invasao, quiz e GTS."
   );
   add(
