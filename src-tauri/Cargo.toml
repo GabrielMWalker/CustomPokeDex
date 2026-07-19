@@ -15,5 +15,15 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+anyhow = "1"
+fastnbt = "2"
+flate2 = "1"
+russh = { version = "0.62.2", default-features = false, features = ["ring"] }
+russh-sftp = "2.3.0"
 tauri = { version = "2", features = [] }
 tauri-plugin-updater = "2"
+tokio = { version = "1", features = ["time"] }
+zeroize = { version = "1", features = ["derive"] }
+
+[target.'cfg(windows)'.dependencies]
+keyring = { version = "4.1.5", default-features = false, features = ["v1", "windows-native-keyring-store"] }

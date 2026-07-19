@@ -19,18 +19,21 @@
       </div>
 
       <nav class="main-nav" id="main-nav">
-        <button class="nav-button is-active" data-view="pokedex" type="button"><span>Pokédex</span><b id="nav-pokedex-count">1025</b></button>
+        <button class="nav-button is-active" data-view="home" type="button"><span>Início</span><b>Resumo</b></button>
+        <button class="nav-button" data-view="pokedex" type="button"><span>Pokédex</span><b id="nav-pokedex-count">1025</b></button>
         <button class="nav-button" data-view="drops" type="button"><span>Drops</span><b id="nav-drops-count">0</b></button>
         <button class="nav-button" data-view="baits" type="button"><span>Baits</span><b id="nav-baits-count">78</b></button>
         <button class="nav-button" data-view="berries" type="button"><span>Berries</span><b id="nav-berries-count">70</b></button>
+        <button class="nav-button" data-view="ev-training" type="button"><span>Treino de EVs</span><b>6 stats</b></button>
         <button class="nav-button" data-view="breeding" type="button"><span>Breeding</span><b>Compat.</b></button>
-        <button class="nav-button" data-view="teams" type="button"><span>Times</span><b id="nav-teams-count">0</b></button>
+        <button class="nav-button" data-view="teams" type="button"><span>Pokémon</span><b id="nav-teams-count">0</b></button>
         <button class="nav-button" data-view="counters" type="button"><span>Counters</span><b>Tipos</b></button>
         <button class="nav-button" data-view="gyms" type="button"><span>Ginásios</span><b id="nav-gyms-count">0/32</b></button>
         <button class="nav-button" data-view="settings" type="button"><span>Configurações</span><b>v2</b></button>
       </nav>
 
       <footer class="sidebar-footer">
+        <button class="server-sync-button" id="server-player-sync" type="button" hidden>Atualizar dados do jogador</button>
         <button class="preference-button" id="theme-toggle" type="button">Alternar tema</button>
         <p>Dados exatos da instalação local<br><strong>COBBLEVERSE 1.7.31-CF</strong></p>
       </footer>
@@ -39,9 +42,9 @@
     <section class="workspace">
       <header class="workspace-header">
         <div>
-          <p class="eyebrow" id="view-kicker">Guia do modpack</p>
-          <h2 id="view-title">Pokédex Cobbleverse</h2>
-          <p class="view-description" id="view-description">Espécies, spawns e evoluções da versão instalada.</p>
+          <p class="eyebrow" id="view-kicker">Visão geral</p>
+          <h2 id="view-title">Início</h2>
+          <p class="view-description" id="view-description">Sua coleção, farms, progresso e próximos passos em um só lugar.</p>
         </div>
         <div class="header-meta" id="header-meta"></div>
       </header>
@@ -62,7 +65,11 @@
   <datalist id="pokemon-options"></datalist>
   <datalist id="bait-options"></datalist>
   <datalist id="drop-options"></datalist>
+  <datalist id="berry-options"></datalist>
+  <datalist id="counter-options"></datalist>
 
+  <script src="./pokemon-abilities-data.js"></script>
+  <script src="./pokemon-evolution-data.js"></script>
   <script src="./cobbleverse-data.js"></script>
   <script src="./scripts/cobbleverse-app.js"></script>
 </body>

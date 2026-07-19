@@ -13,12 +13,13 @@
         "title": "Cobbleverse Companion",
         "width": 1280,
         "height": 820,
+        "maximized": true,
         "minWidth": 980,
         "minHeight": 640
       }
     ],
     "security": {
-      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://img.pokemondb.net; media-src 'self' data: blob:; connect-src 'self' ipc: http://ipc.localhost; frame-ancestors 'none'; object-src 'none'; base-uri 'self'"
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://img.pokemondb.net https://www.lumyverse.com https://wiki.cobblemon.com https://cobbletoolkit.pages.dev; media-src 'self' data: blob:; connect-src 'self' ipc: http://ipc.localhost; frame-ancestors 'none'; object-src 'none'; base-uri 'self'"
     }
   },
   "bundle": {

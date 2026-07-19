@@ -8,6 +8,7 @@ src-tauri/target/
 logs-game/
 logs-launcher/
 *.tmp
+pix-audio.m4a
 .discovery-test.*
 pixelmon-log-discovery-dump.txt
 scripts/.pokemon-*-cache.json
