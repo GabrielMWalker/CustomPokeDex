@@ -111,19 +111,31 @@ $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
 $modsPath = Join-Path $InstancePath "mods"
 $datapacksPath = Join-Path $InstancePath "datapacks"
 $cobblemonJar = Get-ChildItem -LiteralPath $modsPath -Filter "Cobblemon-fabric-1.7.3+*.jar" | Select-Object -First 1 -ExpandProperty FullName
+$megaShowdownJar = Get-ChildItem -LiteralPath $modsPath -Filter "mega_showdown-fabric-*.jar" | Select-Object -First 1 -ExpandProperty FullName
+$legendaryMonumentsJar = Join-Path $modsPath "LegendaryMonuments-Cobbleverse.jar"
 $mainPack = Get-RequiredFile (Join-Path $datapacksPath "COBBLEVERSE-DP-v19-CF.zip") "Datapack principal"
 $rctPack = Get-RequiredFile (Join-Path $datapacksPath "COBBLEVERSE-RCT-DP-v19.zip") "Datapack de treinadores"
 $pastureConfigPath = Get-RequiredFile (Join-Path $InstancePath "config\PastureLoot.json") "Configuracao do Pasture Loot"
 $cobblemonJar = Get-RequiredFile $cobblemonJar "Cobblemon 1.7.3"
+$megaShowdownJar = Get-RequiredFile $megaShowdownJar "Mega Showdown"
+$showdownMovesPath = Get-RequiredFile (Join-Path $InstancePath "showdown\data\moves.js") "Dados de golpes do Pokemon Showdown"
+$moveExtractorPath = Get-RequiredFile (Join-Path $PSScriptRoot "extract-showdown-move-data.mjs") "Extrator de golpes"
+$moveDataJson = & node $moveExtractorPath $showdownMovesPath
+if ($LASTEXITCODE -ne 0 -or -not $moveDataJson) { throw "Falha ao extrair os dados de golpes do Pokemon Showdown" }
+$moveData = $moveDataJson | ConvertFrom-Json
+$legendaryMonumentsJar = Get-RequiredFile $legendaryMonumentsJar "Legendary Monuments"
 $pastureConfig = Get-Content -LiteralPath $pastureConfigPath -Raw | ConvertFrom-Json
 
 $speciesById = @{}
+$speciesLookupIdByDex = @{}
 foreach ($entry in Get-ArchiveJsonEntries $cobblemonJar '^data/cobblemon/species/.+\.json$') {
   $speciesById[$entry.Data.name.ToLowerInvariant()] = $entry.Data
+  $speciesLookupIdByDex[[int]$entry.Data.nationalPokedexNumber] = [IO.Path]::GetFileNameWithoutExtension($entry.Name).ToLowerInvariant()
 }
 foreach ($entry in Get-ArchiveJsonEntries $mainPack '^data/cobblemon/species/.+\.json$') {
   $id = $entry.Data.name.ToLowerInvariant()
   $speciesById[$id] = Merge-Object $speciesById[$id] $entry.Data
+  $speciesLookupIdByDex[[int]$entry.Data.nationalPokedexNumber] = [IO.Path]::GetFileNameWithoutExtension($entry.Name).ToLowerInvariant()
 }
 foreach ($entry in Get-ArchiveJsonEntries $mainPack '^data/cobblemon/species_additions/.+\.json$') {
   $id = (($entry.Data.target -split ':')[-1]).ToLowerInvariant()
@@ -162,9 +174,31 @@ foreach ($file in $spawnFiles.Values) {
   }
 }
 
+$acquisitionMethodsByPokemon = @{}
+foreach ($entry in Get-ArchiveJsonEntries $mainPack '^data/cobblemon/fossils/.+\.json$') {
+  $result = "$($entry.Data.result)"
+  $pokemonId = (($result -split ' ')[0] -split ':')[-1].ToLowerInvariant()
+  if (-not $pokemonId) { continue }
+  if (-not $acquisitionMethodsByPokemon.ContainsKey($pokemonId)) { $acquisitionMethodsByPokemon[$pokemonId] = @() }
+  $properties = @($result -split ' ' | Select-Object -Skip 1)
+  $acquisitionMethodsByPokemon[$pokemonId] += [pscustomobject]@{
+    kind = 'fossil_revival'
+    recipe = [IO.Path]::GetFileNameWithoutExtension($entry.Name)
+    result = $result
+    items = @($entry.Data.fossils)
+    shiny = $properties -contains 'shiny'
+  }
+}
+
 $blacklist = @($pastureConfig.item_blacklist)
 $pokemon = foreach ($species in $speciesById.Values | Sort-Object nationalPokedexNumber) {
   $id = $species.name.ToLowerInvariant()
+  $lookupId = $speciesLookupIdByDex[[int]$species.nationalPokedexNumber]
+  if (-not $lookupId) { $lookupId = $id -replace '[^a-z0-9]', '' }
+  $spawnEntries = [object[]]@()
+  if ($spawnsByPokemon.ContainsKey($lookupId)) { $spawnEntries = [object[]]$spawnsByPokemon[$lookupId] }
+  $acquisitionEntries = [object[]]@()
+  if ($acquisitionMethodsByPokemon.ContainsKey($lookupId)) { $acquisitionEntries = [object[]]$acquisitionMethodsByPokemon[$lookupId] }
   $dropEntries = foreach ($drop in @($species.drops.entries)) {
     if ($null -eq $drop) { continue }
     [pscustomobject]@{
@@ -205,7 +239,8 @@ $pokemon = foreach ($species in $speciesById.Values | Sort-Object nationalPokede
     evolutions = @($evolutions)
     drops = @($dropEntries)
     dropAmount = $species.drops.amount
-    spawns = @($spawnsByPokemon[$id])
+    spawns = $spawnEntries
+    acquisitionMethods = $acquisitionEntries
   }
 }
 
@@ -285,30 +320,62 @@ $berries = foreach ($name in @($naturalBerries + ($mutations | ForEach-Object re
 }
 
 $gymDefinitions = @(
-  [pscustomobject]@{ region='Kanto'; pack=$mainPack; map='cobbleverse:gym_map'; leaders=@(
+  [pscustomobject]@{ region='Kanto'; pack=$mainPack; map='cobbleverse:gym_map'; trade='data/lumymon/trades/kanto_cartographer.json'; leaders=@(
     @('brock','Brock','Brock','Rock'), @('misty','Misty','Misty','Water'), @('ltsurge','Lt. Surge','Lt. Surge','Electric'), @('erika','Erika','Erika','Grass'),
     @('koga','Koga','Koga','Poison'), @('sabrina','Sabrina','Sabrina','Psychic'), @('blaine','Blaine','Blaine','Fire'), @('giovanni','Giovanni','Giovanni','Ground')) },
-  [pscustomobject]@{ region='Johto'; pack=(Join-Path $datapacksPath 'extra\COBBLEVERSE-Johto-DP.zip'); map='cobbleverse:johto_gym_map'; leaders=@(
+  [pscustomobject]@{ region='Johto'; pack=(Join-Path $datapacksPath 'extra\COBBLEVERSE-Johto-DP.zip'); map='cobbleverse:johto_gym_map'; trade='data/lumymon/trades/johto_cartographer.json'; leaders=@(
     @('valerio','Falkner','Valerio','Flying'), @('raffaello','Bugsy','Raffaello','Bug'), @('chiara','Whitney','Chiara','Normal'), @('angelo','Morty','Angelo','Ghost'),
     @('furio','Chuck','Furio','Fighting'), @('jasmine','Jasmine','Jasmine','Steel'), @('alfredo','Pryce','Alfredo','Ice'), @('sandra','Clair','Sandra','Dragon')) },
-  [pscustomobject]@{ region='Hoenn'; pack=(Join-Path $datapacksPath 'extra\COBBLEVERSE-Hoenn-DP.zip'); map='cobbleverse:hoenn_gym_map'; leaders=@(
+  [pscustomobject]@{ region='Hoenn'; pack=(Join-Path $datapacksPath 'extra\COBBLEVERSE-Hoenn-DP.zip'); map='cobbleverse:hoenn_gym_map'; trade='data/lumymon/trades/hoenn_cartographer.json'; leaders=@(
     @('petra','Roxanne','Petra','Rock'), @('rudi','Brawly','Rudi','Fighting'), @('walter','Wattson','Walter','Electric'), @('fiammetta','Flannery','Fiammetta','Fire'),
     @('norman','Norman','Norman','Normal'), @('alice','Winona','Alice','Flying'), @('tell_pat','Tate & Liza','Tell & Pat','Psychic'), @('adriano','Juan','Adriano','Water')) },
-  [pscustomobject]@{ region='Sinnoh'; pack=(Join-Path $datapacksPath 'extra\COBBLEVERSE-Sinnoh-DP.zip'); map='cobbleverse:sinnoh_gym_map'; leaders=@(
+  [pscustomobject]@{ region='Sinnoh'; pack=(Join-Path $datapacksPath 'extra\COBBLEVERSE-Sinnoh-DP.zip'); map='cobbleverse:sinnoh_gym_map'; trade='data/lumymon/trades/sinnoh_cartographer.json'; leaders=@(
     @('pedro','Roark','Pedro','Rock'), @('gardenia','Gardenia','Gardenia','Grass'), @('marzia','Maylene','Marzia','Fighting'), @('omar','Crasher Wake','Omar','Water'),
     @('fannie','Fantina','Fannie','Ghost'), @('ferruccio','Byron','Ferruccio','Steel'), @('bianca','Candice','Bianca','Ice'), @('corrado','Volkner','Corrado','Electric')) }
 )
 
 $gyms = @()
+$extraLocations = @()
+$encounterStructures = @(
+  'crown_cemetery', 'crown_spire', 'dawn_tower', 'dusk_tower', 'bell_tower', 'burned_tower', 'celebi_shrine', 'whirl_island',
+  'dyna_tree', 'secret_garden', 'sky_pillar', 'crescent_isle', 'flower_paradise', 'fullmoon_island', 'snowpoint_temple',
+  'spear_pillar', 'split_decision_temple', 'wind_plant'
+)
 foreach ($region in $gymDefinitions) {
   $region.pack = Get-RequiredFile $region.pack "Datapack de $($region.region)"
+  $regionId = $region.region.ToLowerInvariant()
+  $tradeData = Get-ArchiveJson $region.pack $region.trade
+  $mapTradesByDestination = @{}
+  foreach ($tier in @($tradeData.tiers)) {
+    foreach ($group in @($tier.groups)) {
+      foreach ($trade in @($group.trades)) {
+        $explorationMap = $trade.result.functions | Where-Object { $_.function -eq 'minecraft:exploration_map' } | Select-Object -First 1
+        if (-not $explorationMap.destination) { continue }
+        $mapName = $trade.result.functions | Where-Object { $_.function -eq 'minecraft:set_name' } | Select-Object -First 1
+        $cleanMapName = ("$($mapName.name)" -replace "$([char]0x00A7).", '')
+        if ($cleanMapName -eq 'Sinnoh Leagu') { $cleanMapName = 'Sinnoh League' }
+        $mapTradesByDestination["$($explorationMap.destination)"] = [pscustomobject]@{
+          destination = "$($explorationMap.destination)"
+          locatorCostItem = "$($trade.cost_a.name)"
+          locatorBaseItem = "$($trade.cost_b.name)"
+          locatorItem = "$($trade.result.name)"
+          locatorMapName = $cleanMapName
+        }
+      }
+    }
+  }
+
   $order = 0
   foreach ($leader in $region.leaders) {
     $order++
     $structureId = $leader[0]
-    $trainerId = if ($region.region -eq 'Hoenn' -and $structureId -eq 'tell_pat') { 'hoenn_tell' } else { "$($region.region.ToLowerInvariant())_$structureId" }
+    $trainerId = if ($region.region -eq 'Hoenn' -and $structureId -eq 'tell_pat') { 'hoenn_tell' } else { "${regionId}_$structureId" }
     $structure = Get-ArchiveJson $region.pack "data/cobbleverse/worldgen/structure/$structureId.json"
     $trainer = Get-ArchiveJson $rctPack "data/rctmod/trainers/$trainerId.json"
+    $trainerLoot = Get-ArchiveJson $rctPack "data/rctmod/loot_table/trainers/single/$trainerId.json"
+    $badgeItem = $trainerLoot.pools | ForEach-Object { $_.entries } | Where-Object { $_.name -match '^cobbleversebadges:.+_badge$' } | Select-Object -First 1 -ExpandProperty name
+    $mapDestination = "cobbleverse:${regionId}_${structureId}_gym"
+    $mapTrade = $mapTradesByDestination[$mapDestination]
     if ($region.region -eq 'Hoenn' -and $structureId -eq 'tell_pat') {
       $trainerPat = Get-ArchiveJson $rctPack 'data/rctmod/trainers/hoenn_pat.json'
       if ($trainerPat -and $trainer) { $trainer.team = @($trainer.team) + @($trainerPat.team) }
@@ -322,13 +389,99 @@ foreach ($region in $gymDefinitions) {
       specialty = $leader[3].ToLowerInvariant()
       biome = $structure.biomes
       structure = "cobbleverse:$structureId"
-      locatorItem = 'minecraft:map'
+      locatorItem = $mapTrade.locatorItem
+      locatorCostItem = $mapTrade.locatorCostItem
+      locatorBaseItem = $mapTrade.locatorBaseItem
+      locatorMapName = $mapTrade.locatorMapName
+      locatorDestination = $mapTrade.destination
       locatorTable = $region.map
+      badgeItem = $badgeItem
       team = @($trainer.team)
       bag = @($trainer.bag)
       battleFormat = $trainer.battleFormat
       maxItemUses = $trainer.battleRules.maxItemUses
     }
+  }
+
+  $gymStructureIds = @($region.leaders | ForEach-Object { $_[0] })
+  foreach ($entry in Get-ArchiveJsonEntries $region.pack '^data/cobbleverse/worldgen/structure/.+\.json$') {
+    $structureKey = $entry.Name -replace '^data/cobbleverse/worldgen/structure/', '' -replace '\.json$', ''
+    $structureLeaf = ($structureKey -split '/')[-1]
+    if ($gymStructureIds -contains $structureLeaf) { continue }
+
+    $category = if ($structureLeaf -eq "${regionId}_league") {
+      'league'
+    } elseif ($structureLeaf -match 'team_rocket|rocket_radio|team_galactic|eterna_building') {
+      'villain'
+    } elseif ($structureKey -match '^(legendary|mythical)/' -or $encounterStructures -contains $structureLeaf) {
+      'encounter'
+    } else {
+      'landmark'
+    }
+    $locationTrade = if ($category -eq 'league') {
+      $mapTradesByDestination.Values | Where-Object { $_.destination -match "cobbleverse:${regionId}_league" } | Select-Object -First 1
+    } else { $null }
+    $extraLocations += [pscustomobject]@{
+      id = "${regionId}-$($structureKey -replace '/', '-')"
+      region = $region.region
+      key = $structureKey
+      category = $category
+      biome = $entry.Data.biomes
+      structure = "cobbleverse:$structureKey"
+      locatorItem = $locationTrade.locatorItem
+      locatorCostItem = $locationTrade.locatorCostItem
+      locatorBaseItem = $locationTrade.locatorBaseItem
+      locatorMapName = $locationTrade.locatorMapName
+      locatorDestination = $locationTrade.destination
+      rewardItem = if ($category -eq 'league') { "cobbleversebadges:${regionId}_league_trophy" } else { $null }
+    }
+  }
+}
+
+# Estruturas relevantes de progressao que nao vivem nos datapacks regionais.
+# A lista e intencionalmente limitada a locais com encontro, item especial ou
+# etapa de lendario; ruinas decorativas e estruturas comuns ficam de fora.
+$externalStructureDefinitions = @(
+  [pscustomobject]@{ region='Galar'; key='cobblemon/ruins/luna_henge_ruins'; archive=$cobblemonJar; entry='data/cobblemon/worldgen/structure/ruins/luna_henge_ruins.json'; structure='cobblemon:ruins/luna_henge_ruins'; category='landmark' },
+  [pscustomobject]@{ region='Galar'; key='cobblemon/ruins/sol_henge_ruins'; archive=$cobblemonJar; entry='data/cobblemon/worldgen/structure/ruins/sol_henge_ruins.json'; structure='cobblemon:ruins/sol_henge_ruins'; category='landmark' },
+  [pscustomobject]@{ region='Paldea'; key='cobblemon/ruins/deserted_gimmi_tower'; archive=$cobblemonJar; entry='data/cobblemon/worldgen/structure/ruins/deserted_gimmi_tower.json'; structure='cobblemon:ruins/deserted_gimmi_tower'; category='landmark' },
+  [pscustomobject]@{ region='Paldea'; key='cobblemon/ruins/frozen_gimmi_tower'; archive=$cobblemonJar; entry='data/cobblemon/worldgen/structure/ruins/frozen_gimmi_tower.json'; structure='cobblemon:ruins/frozen_gimmi_tower'; category='landmark' },
+  [pscustomobject]@{ region='Paldea'; key='cobblemon/ruins/lush_gimmi_tower'; archive=$cobblemonJar; entry='data/cobblemon/worldgen/structure/ruins/lush_gimmi_tower.json'; structure='cobblemon:ruins/lush_gimmi_tower'; category='landmark' },
+  [pscustomobject]@{ region='Kalos'; key='cobblemon/ruins/crumbling_arch_ruins'; archive=$cobblemonJar; entry='data/cobblemon/worldgen/structure/ruins/crumbling_arch_ruins.json'; structure='cobblemon:ruins/crumbling_arch_ruins'; category='landmark' },
+  [pscustomobject]@{ region='Kalos'; key='cobblemon/ruins/mossy_oubliette_ruins'; archive=$cobblemonJar; entry='data/cobblemon/worldgen/structure/ruins/mossy_oubliette_ruins.json'; structure='cobblemon:ruins/mossy_oubliette_ruins'; category='landmark' },
+  [pscustomobject]@{ region='Kalos'; key='mega_showdown/archaeological_site'; archive=$megaShowdownJar; entry='data/mega_showdown/worldgen/structure/archaeological_site.json'; structure='mega_showdown:archaeological_site'; category='landmark' },
+  [pscustomobject]@{ region='Kalos'; key='mega_showdown/wishing_weald'; archive=$megaShowdownJar; entry='data/mega_showdown/worldgen/structure/wishing_weald.json'; structure='mega_showdown:wishing_weald'; category='landmark' },
+  [pscustomobject]@{ region='Sinnoh'; key='legendarymonuments/lake_verity'; archive=$legendaryMonumentsJar; entry='data/legendarymonuments/worldgen/structure/lake_verity.json'; structure='legendarymonuments:lake_verity'; category='encounter'; biome='terralith:sakura_valley' },
+  [pscustomobject]@{ region='Sinnoh'; key='legendarymonuments/lake_acuity'; archive=$legendaryMonumentsJar; entry='data/legendarymonuments/worldgen/structure/lake_acuity.json'; structure='legendarymonuments:lake_acuity'; category='encounter'; biome='terralith:glacial_chasm' },
+  [pscustomobject]@{ region='Sinnoh'; key='legendarymonuments/lake_valor'; archive=$legendaryMonumentsJar; entry='data/legendarymonuments/worldgen/structure/lake_valor.json'; structure='legendarymonuments:lake_valor'; category='encounter'; biome='terralith:arid_highlands' },
+  [pscustomobject]@{ region='Sinnoh'; key='legendarymonuments/turnback_cave'; archive=$legendaryMonumentsJar; entry='data/legendarymonuments/worldgen/structure/turnback_cave.json'; structure='legendarymonuments:turnback_cave'; category='encounter'; biome='#cobblemon:is_overworld' },
+  [pscustomobject]@{ region='Sinnoh'; key='legendarymonuments/distortion_portal'; archive=$legendaryMonumentsJar; entry='data/legendarymonuments/worldgen/structure/distortion_portal.json'; structure='legendarymonuments:distortion_portal'; category='landmark'; biome='legendarymonuments:distortion_world_biome' },
+  [pscustomobject]@{ region='Sinnoh'; key='legendarymonuments/giratina_island'; archive=$legendaryMonumentsJar; entry='data/legendarymonuments/worldgen/structure/giratina_island.json'; structure='legendarymonuments:giratina_island'; category='encounter' },
+  [pscustomobject]@{ region='Sinnoh'; key='legendarymonuments/stark_mountain'; archive=$legendaryMonumentsJar; entry='data/legendarymonuments/worldgen/structure/stark_mountain.json'; structure='legendarymonuments:stark_mountain'; category='encounter'; biome='minecraft:nether_wastes' },
+  [pscustomobject]@{ region='Paldea'; key='legendarymonuments/firescourge_shrine'; archive=$legendaryMonumentsJar; entry='data/legendarymonuments/worldgen/structure/firescourge_shrine.json'; structure='legendarymonuments:firescourge_shrine'; category='encounter' },
+  [pscustomobject]@{ region='Paldea'; key='legendarymonuments/grasswither_shrine'; archive=$legendaryMonumentsJar; entry='data/legendarymonuments/worldgen/structure/grasswither_shrine.json'; structure='legendarymonuments:grasswither_shrine'; category='encounter' },
+  [pscustomobject]@{ region='Paldea'; key='legendarymonuments/groundblight_shrine'; archive=$legendaryMonumentsJar; entry='data/legendarymonuments/worldgen/structure/groundblight_shrine.json'; structure='legendarymonuments:groundblight_shrine'; category='encounter' },
+  [pscustomobject]@{ region='Paldea'; key='legendarymonuments/icerend_shrine'; archive=$legendaryMonumentsJar; entry='data/legendarymonuments/worldgen/structure/icerend_shrine.json'; structure='legendarymonuments:icerend_shrine'; category='encounter' },
+  [pscustomobject]@{ region='Kalos'; key='legendarymonuments/outskirt_stand'; archive=$legendaryMonumentsJar; entry='data/legendarymonuments/worldgen/structure/outskirt_stand.json'; structure='legendarymonuments:outskirt_stand'; category='landmark' },
+  [pscustomobject]@{ region='Galar'; key='legendarymonuments/eternatus_cocoon'; archive=$legendaryMonumentsJar; entry='data/legendarymonuments/worldgen/structure/eternatus_cocoon.json'; structure='legendarymonuments:eternatus_cocoon'; category='encounter' }
+)
+
+foreach ($definition in $externalStructureDefinitions) {
+  $structureData = Get-ArchiveJson $definition.archive $definition.entry
+  $biome = if ($definition.biome) { $definition.biome } else { $structureData.biomes }
+  $extraLocations += [pscustomobject]@{
+    id = "external-$($definition.key -replace '[:/]', '-')"
+    region = $definition.region
+    key = $definition.key
+    category = $definition.category
+    biome = $biome
+    structure = $definition.structure
+    locatorItem = $null
+    locatorCostItem = $null
+    locatorBaseItem = $null
+    locatorMapName = $null
+    locatorDestination = $null
+    rewardItem = $null
   }
 }
 
@@ -352,7 +505,9 @@ $payload = [ordered]@{
   pokemon = @($pokemon)
   baits = @($baits | Sort-Object item)
   berries = @($berries)
+  moves = $moveData
   gyms = @($gyms)
+  extraLocations = @($extraLocations)
 }
 
 $json = $payload | ConvertTo-Json -Depth 100 -Compress
@@ -361,5 +516,5 @@ $resolvedOutput = [IO.Path]::GetFullPath($OutputPath)
 [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($resolvedOutput)) | Out-Null
 [IO.File]::WriteAllText($resolvedOutput, $content, [Text.UTF8Encoding]::new($false))
 
-Write-Host "Cobbleverse $($manifest.version): $(@($pokemon).Count) Pokemon, $($spawnFiles.Count) arquivos de spawn, $(@($baits).Count) baits, $(@($berries).Count) berries e $(@($gyms).Count) ginasios."
+Write-Host "Cobbleverse $($manifest.version): $(@($pokemon).Count) Pokemon, $($spawnFiles.Count) arquivos de spawn, $(@($baits).Count) baits, $(@($berries).Count) berries, $(@($gyms).Count) ginasios e $(@($extraLocations).Count) locais extras."
 Write-Host "Gerado em $resolvedOutput"
