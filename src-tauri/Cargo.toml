@@ -1,6 +1,6 @@
 [package]
 name = "cobbleverse-companion"
-version = "2.0.0"
+version = "2.0.1"
 description = "Companion local para Cobbleverse"
 authors = ["GabrielMWalker"]
 edition = "2021"
